@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# 设置脚本在出错时退出
+export NODE_ENV=development
+
+# 检查是否已安装pnpm
+echo "检查pnpm环境..."
+if command -v pnpm &> /dev/null
+then
+    echo "pnpm已安装，版本: $(pnpm --version)"
+else
+    echo "警告: 未安装pnpm，正在尝试使用npm安装..."
+    npm install -g pnpm
+    if [ $? -ne 0 ]
+    then
+        echo "错误: pnpm安装失败，请手动安装pnpm。"
+        exit 1
+    fi
+fi
+
+# 进入脚本所在目录
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR"
+
+echo "当前目录: $SCRIPT_DIR"
+
+# 检查并安装依赖
+echo "检查项目依赖..."
+if [ -d "node_modules" ]; then
+    echo "node_modules目录已存在，跳过安装。"
+else
+    echo "正在安装依赖..."
+    pnpm install
+    if [ $? -ne 0 ];
+    then
+        echo "依赖安装失败，请检查网络或package.json文件。"
+        exit 1
+    fi
+    echo "依赖安装成功！"
+fi
+
+function openUrlInBrowser(){
+    sleep 2 && open http://localhost:3000/
+}
+# 启动应用
+echo "正在启动待办事项管理系统..."
+# openUrlInBrowser & pnpm start
+pnpm start

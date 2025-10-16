@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天气预报</title>
+    <script src="/assets/js/third_party/tailwindcss.js"></script>
+    <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 自定义配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        info: '#3b82f6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .weather-card {
+                transition: all 0.3s ease;
+            }
+            .weather-card:hover {
+                transform: translateY(-2px);
+            }
+            .city-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .forecast-container {
+                @apply bg-white rounded-xl shadow-md p-4 my-4;
+            }
+            .chart-container {
+                @apply bg-white rounded-xl shadow-md p-4 mt-8;
+            }
+            .current-day-highlight {
+                @apply border-2 border-primary ring-2 ring-primary/20;
+            }
+            .select-container select {
+                @apply appearance-none bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded leading-tight focus:outline-none focus:border-primary;
+            }
+            .select-container {
+                @apply relative;
+            }
+            .select-container::after {
+                content: "\f078";
+                font-family: "FontAwesome";
+                @apply absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 融合后的城市信息与选择区域 -->
+        <div class="city-info-and-controls bg-white rounded-xl shadow-lg overflow-hidden mb-6">
+            <!-- 顶部城市信息区域 - 包含月份选择 -->
+            <div class="bg-gradient-to-r from-blue-400 to-purple-400 p-4">
+                <div class="flex flex-col md:flex-row items-center justify-between text-white">
+                    <div class="flex flex-col mb-2 md:mb-0">
+                        <div class="flex items-center">
+                            <div class="text-2xl font-bold" id="city-name">正在定位...</div>
+                            <div class="text-sm text-white/80 ml-3" id="city-code">城市代码: ...</div>
+                        </div>
+                        <div id="current-weather-info" class="text-sm text-white/90 mt-1">
+                            <!-- 当前天气信息将通过JavaScript动态加载 -->
+                            <span id="current-temp" class="font-medium">--°</span>
+                            <span id="current-wea" class="mx-2">--</span>
+                            <span id="current-wind">--</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-right">
+                        <p class="text-lg font-medium" id="current-date">2023年5月20日</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部控制区域 - 添加重新定位按钮和省市区选择 -->
+            <div class="bg-gradient-to-r from-blue-400 to-purple-400 p-4">
+                <div class="flex flex-wrap items-center justify-between">
+                    <button id="relocate-btn" class="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-6 rounded-full transition-all flex items-center shadow-md hover:shadow-lg">
+                        <i class="fa fa-crosshairs mr-2"></i>重新定位
+                    </button>
+                    
+                    <!-- 省市区三级联动选择区域 -->
+                    <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+                        <select id="province-select" class="bg-white border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">请选择省份</option>
+                        </select>
+                        <select id="city-select" class="bg-white border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" disabled>
+                            <option value="">请选择城市</option>
+                        </select>
+                        <select id="district-select" class="bg-white border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" disabled>
+                            <option value="">请选择区县</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 为融合后的组件添加样式 - 优化UI -->
+        <style>
+            .city-info-and-controls {
+                transition: all 0.3s ease;
+                border-radius: 16px;
+                overflow: hidden;
+            }
+            .city-info-and-controls:hover {
+                box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                transform: translateY(-1px);
+            }
+            /* 增强选择框的样式 */
+            .select-container select {
+                appearance: none;
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 0.875rem;
+                height: 2.5rem;
+                line-height: 1.5;
+                outline: 0;
+                padding: 0.375rem 1.5rem 0.375rem 0.75rem;
+                width: 100%;
+                z-index: 1;
+                position: relative;
+                cursor: pointer;
+                font-weight: 500;
+            }
+            .select-container select:focus {
+                background-color: rgba(255, 255, 255, 0.2);
+                border-color: rgba(255, 255, 255, 0.5);
+            }
+            .select-container {
+                transition: all 0.3s ease;
+                position: relative;
+                backdrop-filter: blur(5px);
+            }
+            .select-container::after {
+                content: "\f078";
+                font-family: "FontAwesome";
+                position: absolute;
+                right: 0.75rem;
+                top: 50%;
+                transform: translateY(-50%);
+                pointer-events: none;
+                color: rgba(255, 255, 255, 0.7);
+                z-index: 0;
+                transition: all 0.3s ease;
+            }
+            .select-container:hover::after {
+                color: white;
+            }
+            /* 选择框选项样式 */
+            .select-container select option {
+                background-color: #1e40af;
+                color: white;
+                font-weight: 500;
+                padding: 10px;
+            }
+            /* 按钮动画效果增强 */
+            #refresh-btn, #locate-btn {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                backdrop-filter: blur(5px);
+                font-weight: 500;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            #refresh-btn:hover, #locate-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                border-color: rgba(255, 255, 255, 0.3);
+            }
+            #refresh-btn:active, #locate-btn:active {
+                transform: translateY(0);
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            }
+            /* 加载动画优化 */
+            @keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+            }
+            .animate-pulse {
+                animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            /* 响应式布局增强 */
+            @media (max-width: 768px) {
+                .flex-1 {
+                    width: 100%;
+                }
+                .min-w\[300px\], .min-w\[200px\] {
+                    min-width: 100%;
+                }
+            }
+        </style>
+        
+        <!-- 天气预报区域 -->
+        <div class="forecast-container">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">40天天气预报</h2>
+            <div id="weather-data" class="min-h-[200px]">
+                <!-- 天气数据将通过JavaScript动态加载 -->
+                <div class="flex justify-center items-center h-40">
+                    <div class="animate-pulse flex space-x-2">
+                        <div class="h-4 w-4 rounded-full bg-primary opacity-80"></div>
+                        <div class="h-4 w-4 rounded-full bg-primary opacity-60"></div>
+                        <div class="h-4 w-4 rounded-full bg-primary opacity-40"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 气温趋势图区域 -->
+        <div class="chart-container">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">气温趋势图</h2>
+            <div id="temperature-chart-container" class="min-h-[300px]">
+                <!-- 气温趋势图将通过JavaScript动态加载 -->
+                <div class="flex justify-center items-center h-40">
+                    <div class="animate-pulse flex space-x-2">
+                        <div class="h-4 w-4 rounded-full bg-primary opacity-80"></div>
+                        <div class="h-4 w-4 rounded-full bg-primary opacity-60"></div>
+                        <div class="h-4 w-4 rounded-full bg-primary opacity-40"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // 导入必要的模块
+        import { 
+            fetchWeatherData, 
+            extractWeatherDays, 
+            formatWeatherDataToHTML, 
+            formatTemperatureChart, 
+            extractCityInfo,
+            getProvinceData,
+            getCityData,
+            getDistrictData,
+            getCityByIp,
+            dataCache
+        } from '../assets/js/business/weather_view_final.js';
+        
+        // 全局变量
+        let currentWeatherCode = '101010001'; // 默认使用北京的天气代码
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 更新当前日期和时间
+            updateCurrentDateTime();
+            
+            // 设置月份选择框默认选择当月
+            const now = new Date();
+            
+            // 初始化省份选择框
+            await initProvinceSelect();
+            
+            // 添加事件监听
+            addEventListeners();
+            
+            // 尝试通过IP定位城市
+            locateCityByIp();
+        });
+        
+        // 初始化省份选择框
+    async function initProvinceSelect() {
+        const provinceSelect = document.getElementById('province-select');
+        
+        try {
+            // 清空选择框
+            provinceSelect.innerHTML = '<option value="">请选择省份</option>';
+            
+            // 获取省份数据
+            const provinces = await getProvinceData();
+            
+            // 填充省份选择框
+                for (const province of provinces) {
+                    const option = document.createElement('option');
+                    option.value = province.id;
+                    option.textContent = province.name;
+                    provinceSelect.appendChild(option);
+                }
+            
+            console.log('省份数据加载完成');
+            
+            // 如果有缓存的位置信息，尝试匹配省份
+            if (dataCache && dataCache.ipLocation && dataCache.ipLocation.province) {
+                matchProvinceSelect(dataCache.ipLocation.province);
+            }
+        } catch (error) {
+            console.error('加载省份数据失败:', error);
+            
+            // 不使用默认省份，显示错误提示
+            provinceSelect.innerHTML = '<option value="" disabled>加载省份数据失败，请稍后重试</option>';
+        }
+    }
+        
+        // 更新当前日期和时间
+        function updateCurrentDateTime() {
+            const now = new Date();
+            const dateStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日';
+            
+            document.getElementById('current-date').textContent = dateStr;
+        }
+        
+        // 添加事件监听
+        function addEventListeners() {
+            // 重新定位按钮点击事件
+            document.getElementById('relocate-btn').addEventListener('click', function() {
+                locateCityByIp();
+            });
+            
+            // 省份选择事件
+            document.getElementById('province-select').addEventListener('change', async function() {
+                const provinceCode = this.value;
+                const citySelect = document.getElementById('city-select');
+                const districtSelect = document.getElementById('district-select');
+                
+                // 清空并禁用城市和区县选择框
+                citySelect.innerHTML = '<option value="">请选择城市</option>';
+                citySelect.disabled = true;
+                districtSelect.innerHTML = '<option value="">请选择区县</option>';
+                districtSelect.disabled = true;
+                
+                if (provinceCode) {
+                    try {
+                        // 启用城市选择框
+                        citySelect.disabled = false;
+                        
+                        // 获取城市数据
+                        const cityData = await getCityData(provinceCode);
+                        
+                        // 填充城市选择框
+                        for (const city of cityData) {
+                            const option = document.createElement('option');
+                            option.value = city.id;
+                            option.textContent = city.name;
+                            citySelect.appendChild(option);
+                        }
+                        
+                        console.log('城市数据加载完成');
+                        
+                        // 如果有缓存的位置信息，尝试匹配城市
+                        if (dataCache && dataCache.ipLocation && dataCache.ipLocation.city) {
+                            const citySelect = document.getElementById('city-select');
+                            const districtSelect = document.getElementById('district-select');
+                            if (citySelect && citySelect.options) {
+                                matchCitySelect(dataCache.ipLocation.city);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('加载城市数据失败:', error);
+                    }
+                }
+            });
+            
+            // 城市选择事件
+            document.getElementById('city-select').addEventListener('change', async function() {
+                const cityCode = this.value;
+                const districtSelect = document.getElementById('district-select');
+                
+                // 清空并禁用区县选择框
+                districtSelect.innerHTML = '<option value="">请选择区县</option>';
+                districtSelect.disabled = true;
+                
+                if (cityCode) {
+                    try {
+                        // 启用区县选择框
+                        districtSelect.disabled = false;
+                        
+                        // 获取区县数据
+                        const districtData = await getDistrictData(cityCode);
+                        
+                        // 填充区县选择框
+                        for (const district of districtData) {
+                            const option = document.createElement('option');
+                            option.value = district.weatherCode;
+                            option.textContent = district.name;
+                            districtSelect.appendChild(option);
+                        }
+                        
+                        console.log('区县数据加载完成');
+                    } catch (error) {
+                        console.error('加载区县数据失败:', error);
+                    }
+                }
+            });
+            
+            // 区县选择事件
+            document.getElementById('district-select').addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const weatherCode = this.value; // weatherCode存储在value属性中
+                const districtName = selectedOption.text;
+                
+                if (weatherCode) {
+                    // 更新当前天气代码
+                    currentWeatherCode = weatherCode;
+                    
+                    // 同步更新页面顶部显示的城市代码
+                    const provinceSelect = document.getElementById('province-select');
+                    const citySelect = document.getElementById('city-select');
+                    
+                    let fullCityName = '';
+                    // 构建完整的城市名称
+                    if (provinceSelect.options[provinceSelect.selectedIndex]) {
+                        fullCityName += provinceSelect.options[provinceSelect.selectedIndex].text;
+                    }
+                    if (citySelect.options[citySelect.selectedIndex]) {
+                        fullCityName += citySelect.options[citySelect.selectedIndex].text;
+                    }
+                    if (districtSelect.options[districtSelect.selectedIndex]) {
+                        fullCityName += districtSelect.options[districtSelect.selectedIndex].text;
+                    }
+                    
+                    // 更新页面顶部的城市信息
+                    document.getElementById('city-name').textContent = fullCityName || '未知城市';
+                    document.getElementById('city-code').textContent = '城市代码: ' + weatherCode;
+                    
+                    // 加载天气数据
+                    loadWeatherData();
+                }
+            });
+        }
+        
+        // 通过IP定位城市
+        async function locateCityByIp() {
+            try {
+                // 显示定位中状态
+                const cityNameElement = document.getElementById('city-name');
+                const cityCodeElement = document.getElementById('city-code');
+                const originalCityName = cityNameElement.textContent;
+                const originalCityCode = cityCodeElement.textContent;
+                
+                cityNameElement.textContent = '正在定位...';
+                cityCodeElement.textContent = '城市代码: ...';
+                
+                // 调用IP定位函数
+                const locationResult = await getCityByIp();
+                
+                if (locationResult.success) {
+                    console.log('IP定位成功:', locationResult);
+                    
+                    // 更新当前天气代码，不使用默认值
+                    currentWeatherCode = locationResult.weatherCode;
+                    
+                    // 更新城市显示
+                    updateCityDisplay(locationResult);
+                    
+                    // 尝试匹配省市区下拉框
+                    try {
+                        matchLocationSelect(locationResult);
+                    } catch (matchError) {
+                        console.warn('匹配省市区下拉框失败:', matchError);
+                    }
+                    
+                    // 加载天气数据
+                    loadWeatherData();
+                } else {
+                    console.warn('IP定位失败，无法获取天气数据');
+                    // 直接提示失败，不使用默认城市
+                    document.getElementById('city-name').textContent = '定位失败';
+                    document.getElementById('city-code').textContent = '城市代码: ...';
+                    alert('定位失败，无法获取天气数据');
+                    return;
+                }
+            } catch (error) {
+                console.error('IP定位过程中发生错误:', error);
+                
+                // 恢复原始显示
+                document.getElementById('city-name').textContent = '定位失败';
+                document.getElementById('city-code').textContent = '城市代码: ...';
+                alert('定位过程中发生错误: ' + (error.message || '未知错误'));
+            }
+        }
+        
+        // 更新城市显示
+        function updateCityDisplay(locationResult) {
+            const cityNameElement = document.getElementById('city-name');
+            const cityCodeElement = document.getElementById('city-code');
+            
+            // 构建完整的城市区域信息
+            let fullCityName = '';
+            if (locationResult.province) {
+                fullCityName += locationResult.province;
+            }
+            if (locationResult.city) {
+                fullCityName += locationResult.city;
+            }
+            if (locationResult.district && locationResult.district !== locationResult.city) {
+                fullCityName += locationResult.district;
+            }
+            
+            // 不使用默认值，完全依赖接口结果
+            cityNameElement.textContent = fullCityName || '未知城市';
+            cityCodeElement.textContent = '城市代码: ' + (locationResult.weatherCode || '未知');
+        }
+        
+        // 尝试匹配省市区下拉框
+        function matchLocationSelect(locationResult) {
+            const provinceSelect = document.getElementById('province-select');
+            const citySelect = document.getElementById('city-select');
+            const districtSelect = document.getElementById('district-select');
+            
+            console.log('开始匹配省市区下拉框:', locationResult);
+            
+            // 定义直辖市列表，特殊处理
+            const municipalities = ['北京市', '上海市', '天津市', '重庆市'];
+            
+            // 检查是否有可用的定位信息
+            if (!locationResult.city && !locationResult.province) {
+                console.warn('没有可用的城市或省份信息，无法匹配下拉框');
+                return;
+            }
+            
+            // 遍历所有省份
+            let foundProvince = false;
+            for (let i = 0; i < provinceSelect.options.length; i++) {
+                const province = provinceSelect.options[i];
+                
+                // 如果是直辖市，直接使用城市名称匹配省份
+                const isMunicipality = municipalities.some(municipality => 
+                    municipality.includes(locationResult.city) || 
+                    locationResult.city?.includes(municipality)
+                );
+                
+                // 使用更精确的匹配方法，优先完全匹配或去掉空格后匹配
+                const isMatch = 
+                    // 完全匹配
+                    province.text === locationResult.province || 
+                    // 包含关系匹配
+                    province.text.includes(locationResult.province || '') || 
+                    // 直辖市特殊处理
+                    (isMunicipality && province.text.includes(locationResult.city)) ||
+                    // 反向包含关系匹配
+                    (locationResult.province && locationResult.province.includes(province.text));
+                
+                if (isMatch) {
+                    foundProvince = true;
+                    province.selected = true;
+                    console.log('找到匹配的省份:', province.text);
+                    provinceSelect.dispatchEvent(new Event('change'));
+                    
+                    // 等待城市数据加载完成后继续，使用较长的超时时间
+                    setTimeout(() => {
+                        matchCitySelect(locationResult, citySelect, districtSelect);
+                    }, 300);
+                    break;
+                }
+            }
+            
+            if (!foundProvince) {
+                console.warn('未找到匹配的省份:', locationResult.province);
+                // 如果省份匹配失败，尝试直接匹配城市
+                matchCitySelect(locationResult, citySelect, districtSelect);
+            }
+        }
+        
+        // 匹配城市选择框
+        function matchCitySelect(locationResult, citySelect, districtSelect) {
+            // 支持两种调用方式：matchCitySelect(cityName) 或 matchCitySelect(locationResult, citySelect, districtSelect)
+            let cityName = locationResult;
+            let actualCitySelect = citySelect;
+            let actualDistrictSelect = districtSelect;
+            
+            // 如果是传入的是城市名称字符串而不是locationResult对象
+            if (typeof locationResult === 'string') {
+                actualCitySelect = document.getElementById('city-select');
+                actualDistrictSelect = document.getElementById('district-select');
+            } else if (locationResult && locationResult.city) {
+                cityName = locationResult.city;
+            }
+            
+            // 检查城市选择框是否存在且有options属性
+            if (!actualCitySelect || !actualCitySelect.options) {
+                console.warn('城市选择框不存在或options属性未定义，无法匹配城市');
+                return;
+            }
+            
+            let foundCity = false;
+            
+            // 定义直辖市列表
+            const municipalities = ['北京市', '上海市', '天津市', '重庆市'];
+            
+            // 遍历所有城市
+            for (let j = 0; j < actualCitySelect.options.length; j++) {
+                const city = actualCitySelect.options[j];
+                
+                // 检查是否为直辖市
+                const isMunicipality = municipalities.some(municipality => 
+                    municipality.includes(cityName) || 
+                    cityName?.includes(municipality)
+                );
+                
+                // 使用更精确的匹配方法
+                const isMatch = 
+                    // 完全匹配
+                    city.text === cityName || 
+                    // 包含关系匹配
+                    city.text.includes(cityName) || 
+                    // 直辖市特殊处理（城市名称包含省份名称）
+                    (isMunicipality && cityName?.includes(city.text));
+                
+                if (isMatch) {
+                    foundCity = true;
+                    city.selected = true;
+                    console.log('找到匹配的城市:', city.text);
+                    actualCitySelect.dispatchEvent(new Event('change'));
+                    
+                    // 等待区县数据加载完成后继续
+                    setTimeout(() => {
+                        matchDistrictSelect(locationResult, actualDistrictSelect);
+                    }, 300);
+                    break;
+                }
+            }
+            
+            if (!foundCity) {
+                console.warn('未找到匹配的城市:', locationResult.city);
+                // 不直接加载天气数据，等待区县选择事件
+            }
+        }
+        
+        // 匹配区县选择框
+        function matchDistrictSelect(locationResult, districtSelect) {
+            let foundDistrict = false;
+            
+            // 如果有区县信息，尝试匹配区县
+            if (locationResult.district) {
+                for (let k = 0; k < districtSelect.options.length; k++) {
+                    const district = districtSelect.options[k];
+                    
+                    // 使用更精确的匹配方法
+                    const isMatch = 
+                        // 完全匹配
+                        district.text === locationResult.district || 
+                        // 包含关系匹配
+                        district.text.includes(locationResult.district) ||
+                        // 反向包含关系匹配
+                        locationResult.district.includes(district.text);
+                    
+                    if (isMatch) {
+                        foundDistrict = true;
+                        district.selected = true;
+                        console.log('找到匹配的区县:', district.text);
+                        districtSelect.dispatchEvent(new Event('change'));
+                        break;
+                    }
+                }
+            }
+            
+            if (!foundDistrict && districtSelect.options.length > 1) {
+                console.warn('未找到匹配的区县:', locationResult.district);
+                // 如果区县匹配失败，选择第一个区县
+                districtSelect.selectedIndex = 1;
+                districtSelect.dispatchEvent(new Event('change'));
+            } else if (!foundDistrict) {
+                console.log('区县数据尚未加载完成或为空');
+                // 不直接加载天气数据，等待区县选择事件
+            } else {
+                console.log('找到匹配的区县，等待区县选择事件触发天气数据加载');
+                // 已经通过dispatchEvent触发了change事件，不需要再加载天气数据
+            }
+        }
+        
+        // 加载天气数据的函数
+        async function loadWeatherData() {
+            try {
+                // 显示加载状态
+                const weatherDataContainer = document.getElementById('weather-data');
+                const temperatureChartContainer = document.getElementById('temperature-chart-container');
+                
+                weatherDataContainer.innerHTML = `
+                    <div class="flex justify-center items-center h-40">
+                        <div class="animate-pulse flex space-x-2">
+                            <div class="h-4 w-4 rounded-full bg-primary opacity-80"></div>
+                            <div class="h-4 w-4 rounded-full bg-primary opacity-60"></div>
+                            <div class="h-4 w-4 rounded-full bg-primary opacity-40"></div>
+                        </div>
+                    </div>`;
+                
+                temperatureChartContainer.innerHTML = `
+                    <div class="flex justify-center items-center h-40">
+                        <div class="animate-pulse flex space-x-2">
+                            <div class="h-4 w-4 rounded-full bg-primary opacity-80"></div>
+                            <div class="h-4 w-4 rounded-full bg-primary opacity-60"></div>
+                            <div class="h-4 w-4 rounded-full bg-primary opacity-40"></div>
+                        </div>
+                    </div>`;
+                
+                // 更新最后更新时间
+                updateCurrentDateTime();
+                
+                // 获取天气数据
+                console.log('开始获取天气数据...');
+                const html = await fetchWeatherData(currentWeatherCode);
+                
+                // 创建临时DOM元素以解析HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // 清理临时元素
+                tempDiv.remove();
+                
+                // 解析天气数据
+                console.log('解析天气数据...');
+                const weatherDays = extractWeatherDays(html);
+                
+                // 尝试提取当前天气信息
+                console.log('提取当前天气信息...');
+                let currentTemp = null;
+                let currentWea = null;
+                let currentWind = null;
+                
+                // 统一从40天预报原始页面抓取的数据
+                // 尝试从原有数据中提取，重新创建临时元素
+                const weatherTempDiv = document.createElement('div');
+                weatherTempDiv.innerHTML = html;
+                
+                // 查找可能包含当前天气信息的元素
+                const currentWeatherElements = weatherTempDiv.querySelectorAll('.weather-today, .current-weather, .today-weather');
+                if (currentWeatherElements.length > 0) {
+                    const firstElement = currentWeatherElements[0];
+                    // 尝试提取温度
+                    const tempElement = firstElement.querySelector('.temp, .temperature, .w_temperature');
+                    if (tempElement && tempElement.textContent) {
+                        currentTemp = tempElement.textContent.trim();
+                    }
+                    // 尝试提取天气状况
+                    const weaElement = firstElement.querySelector('.wea, .weather, .w_weather');
+                    if (weaElement && weaElement.textContent) {
+                        currentWea = weaElement.textContent.trim();
+                    }
+                    // 尝试提取风力
+                    const windElement = firstElement.querySelector('.wind, .w_wind');
+                    if (windElement && windElement.textContent) {
+                        currentWind = windElement.textContent.trim();
+                    }
+                }
+                
+                // 如果没有找到，尝试从weatherDays中的第一天提取
+                if (weatherDays && weatherDays.length > 0) {
+                    const firstDay = weatherDays[0];
+                    if (firstDay.tem) currentTemp = firstDay.tem;
+                    if (firstDay.wea) currentWea = firstDay.wea;
+                    if (firstDay.wind) currentWind = firstDay.wind;
+                }
+                
+                // 清理临时元素
+                weatherTempDiv.remove();
+                
+                // 更新当前天气信息显示，只显示有值的信息
+                document.getElementById('current-temp').textContent = currentTemp || '';
+                document.getElementById('current-wea').textContent = currentWea || '';
+                document.getElementById('current-wind').textContent = currentWind || '';
+                
+                // 格式化并显示天气数据
+                console.log('格式化并显示天气数据...');
+                const weatherHTML = formatWeatherDataToHTML(weatherDays);
+                weatherDataContainer.innerHTML = `<div class="max-w-6xl mx-auto px-4 py-2">${weatherHTML}</div>`;
+                
+                // 格式化并显示气温趋势图
+                console.log('格式化并显示气温趋势图...');
+                const chartHTML = formatTemperatureChart(weatherDays);
+                temperatureChartContainer.innerHTML = `<div class="max-w-6xl mx-auto px-4 py-2">${chartHTML}</div>`;
+                
+                console.log('天气数据和气温趋势图加载完成');
+            } catch (error) {
+                console.error('加载天气数据过程中发生错误:', error);
+                // 显示错误信息
+                document.getElementById('weather-data').innerHTML = `
+                    <div class="text-center text-red-500 py-10">
+                        <p class="mb-2"><i class="fa fa-exclamation-circle mr-2"></i>加载天气数据失败</p>
+                        <p class="text-sm text-gray-500">请稍后重试或检查网络连接</p>
+                    </div>`;
+                
+                document.getElementById('temperature-chart-container').innerHTML = `
+                    <div class="text-center text-red-500 py-10">
+                        <p class="mb-2"><i class="fa fa-exclamation-circle mr-2"></i>加载气温趋势图失败</p>
+                        <p class="text-sm text-gray-500">请稍后重试或检查网络连接</p>
+                    </div>`;
+            }
+        }
+    </script>
+</body>
+</html>
