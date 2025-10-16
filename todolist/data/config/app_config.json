@@ -1,0 +1,23 @@
+{
+  "server": {
+    "ports": {
+      "node": 3000,
+      "python": 3001
+    }
+  },
+  "python": {
+    "executable_path": "~/miniconda3/envs/python39/bin/python3"
+  },
+  "features": {
+    "mock": {
+      "enabled": false
+    },
+    "cache": {
+      "enabled": true
+    }
+  },
+  "logs": {
+    "printApiData": false,
+    "printDataLog": false
+  }
+}

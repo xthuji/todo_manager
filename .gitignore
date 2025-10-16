@@ -114,3 +114,16 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# IDE files directory
+.history
+.idea
+.cursor
+.codebuddy
+
+# TodoList cache directory
+cache/
+
+# API 测试报告
+api_comparison_report.md
+api_comparison_result.json
