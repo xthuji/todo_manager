@@ -48,6 +48,14 @@ cd ~/script/todo
 启动后，通过浏览器访问以下地址：
 - 使用Node.js服务器： [http://localhost:3000](http://localhost:3000)
 
+## AI智能编码规则
+
+项目已配置AI智能编码规则，请参考以下文档了解详情：
+- [AI_CODING_RULES_README.md](AI_CODING_RULES_README.md) - 详细的编码规则说明
+- [ai_coding_rules.json](ai_coding_rules.json) - 规则配置文件
+
+开发人员和AI工具在生成代码时请严格遵循这些规则。
+
 ## 技术栈
 
 - 前端：HTML, CSS, JavaScript

@@ -1,0 +1,352 @@
+/* 天气预报模块样式 - 简化版 */
+
+/* 天气页面容器 */
+.weather-page {
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 天气卡片容器 */
+.weather-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+/* 页面头部样式 */
+.weather-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.weather-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin: 0;
+}
+
+.date-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.1rem;
+    color: #4a5568;
+}
+
+#current-date {
+    font-weight: 600;
+    color: white;
+}
+
+/* 位置信息样式 */
+.location-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+}
+
+.location-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#city-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+#city-code {
+    font-size: 0.9rem;
+    color: white;
+}
+
+.relocate-btn {
+    background-color: #3182ce;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.relocate-btn:hover {
+    background-color: #2c5282;
+}
+
+.relocate-btn i {
+    font-size: 1.1rem;
+}
+
+/* 当前天气样式 */
+.current-weather {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.current-weather-left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.current-temp {
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.current-wea {
+    font-size: 1.5rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.current-weather-right {
+    display: flex;
+    gap: 20px;
+}
+
+.weather-detail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.weather-detail-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.weather-detail-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+/* 选择器区域样式 */
+.selectors-section {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.select-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.select-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #4a5568;
+    font-size: 0.95rem;
+}
+
+.select-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: white;
+    color: #2d3748;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.select-group select:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.select-group select:disabled {
+    background-color: #f7fafc;
+    color: #a0aec0;
+    cursor: not-allowed;
+}
+
+/* 天气数据展示区域 */
+.weather-data {
+    margin-top: 20px;
+}
+
+/* 天气卡片样式 */
+.weather-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #e2e8f0;
+}
+
+.weather-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.weather-card p {
+    margin: 0;
+}
+
+.weather-card .font-semibold {
+    color: #4a5568;
+    margin-bottom: 8px;
+}
+
+.weather-card .text-3xl {
+    color: #2d3748;
+    margin: 8px 0;
+}
+
+.weather-card .text-gray-600 {
+    color: #718096;
+    font-size: 0.95rem;
+}
+
+/* 加载状态样式 */
+.loading-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100px;
+    color: #4a5568;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3182ce;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 错误提示样式 */
+.error-message {
+    color: #e53e3e;
+    text-align: center;
+    padding: 20px;
+    background-color: #fed7d7;
+    border-radius: 8px;
+    border: 1px solid #feb2b2;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .weather-container {
+        padding: 20px;
+    }
+    
+    .weather-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .location-section {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .current-weather {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .current-weather-right {
+        justify-content: center;
+    }
+    
+    .selectors-section {
+        flex-direction: column;
+    }
+    
+    .select-group {
+        min-width: auto;
+    }
+    
+    .weather-card {
+        padding: 15px;
+    }
+    
+    .weather-card .text-3xl {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .weather-page {
+        padding: 10px;
+    }
+    
+    .weather-container {
+        padding: 15px;
+    }
+    
+    .weather-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .current-temp {
+        font-size: 2.8rem;
+    }
+    
+    .current-wea {
+        font-size: 1.2rem;
+    }
+    
+    .weather-detail {
+        gap: 3px;
+    }
+    
+    .weather-detail-label {
+        font-size: 0.8rem;
+    }
+    
+    .weather-detail-value {
+        font-size: 1rem;
+    }
+}
