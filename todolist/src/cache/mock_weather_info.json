@@ -1,0 +1,507 @@
+{
+    "timestamp": 1761138775435,
+    "mojiAreaCode": "zhejiang/xiaoshan-district",
+    "weatherCode": "101210101",
+    "todayWeather": {
+        "time": "20:24",
+        "weather": "多云",
+        "temperature": "15",
+        "wind": "北风4级",
+        "humidity": "63%",
+        "airQuality": "36 优",
+        "visibility": "19km",
+        "limit": "3和7",
+        "tempMin": "14",
+        "tempMax": "18",
+        "tips": "略微偏凉，还是蛮舒适的。",
+        "hourlyWeather": [
+            {
+                "hour": "20",
+                "weather": "晴",
+                "temperature": 17,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "21",
+                "weather": "晴",
+                "temperature": 16,
+                "wind": "东北风 <3级"
+            },
+            {
+                "hour": "22",
+                "weather": "晴",
+                "temperature": 15,
+                "wind": "东南风 <3级"
+            },
+            {
+                "hour": "23",
+                "weather": "晴",
+                "temperature": 15,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "00",
+                "weather": "晴",
+                "temperature": 15,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "01",
+                "weather": "晴",
+                "temperature": 15,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "02",
+                "weather": "晴",
+                "temperature": 15,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "03",
+                "weather": "晴",
+                "temperature": 14,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "04",
+                "weather": "晴",
+                "temperature": 14,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "05",
+                "weather": "晴",
+                "temperature": 14,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "06",
+                "weather": "晴",
+                "temperature": 14,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "07",
+                "weather": "晴",
+                "temperature": 14,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "08",
+                "weather": "晴",
+                "temperature": 15,
+                "wind": "西北风 <3级"
+            },
+            {
+                "hour": "09",
+                "weather": "晴",
+                "temperature": 18,
+                "wind": "西风 <3级"
+            },
+            {
+                "hour": "10",
+                "weather": "晴",
+                "temperature": 18,
+                "wind": "西南风 <3级"
+            },
+            {
+                "hour": "11",
+                "weather": "晴",
+                "temperature": 18,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "12",
+                "weather": "晴",
+                "temperature": 18,
+                "wind": "南风 <3级"
+            },
+            {
+                "hour": "13",
+                "weather": "晴",
+                "temperature": 18,
+                "wind": "南风 <3级"
+            },
+            {
+                "hour": "14",
+                "weather": "晴",
+                "temperature": 18,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "15",
+                "weather": "晴",
+                "temperature": 19,
+                "wind": "南风 <3级"
+            },
+            {
+                "hour": "16",
+                "weather": "晴",
+                "temperature": 19,
+                "wind": "南风 <3级"
+            },
+            {
+                "hour": "17",
+                "weather": "晴",
+                "temperature": 19,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "18",
+                "weather": "晴",
+                "temperature": 18,
+                "wind": "北风 <3级"
+            },
+            {
+                "hour": "19",
+                "weather": "晴",
+                "temperature": 18,
+                "wind": "北风 <3级"
+            }
+        ]
+    },
+    "calendarWeather": [
+        {
+            "date": "20251001",
+            "weather": "多云",
+            "wind": "东风  1级",
+            "historyTempMin": "17",
+            "historyTempMax": "23",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "24",
+            "tempMax": "30"
+        },
+        {
+            "date": "20251002",
+            "weather": "小雨",
+            "wind": "东南风  1级",
+            "historyTempMin": "16",
+            "historyTempMax": "24",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "25",
+            "tempMax": "35"
+        },
+        {
+            "date": "20251003",
+            "weather": "小雨",
+            "wind": "西北风  1级",
+            "historyTempMin": "17",
+            "historyTempMax": "25",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "23",
+            "tempMax": "34"
+        },
+        {
+            "date": "20251004",
+            "weather": "多云",
+            "wind": "东北风  1级",
+            "historyTempMin": "15",
+            "historyTempMax": "25",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "25",
+            "tempMax": "32"
+        },
+        {
+            "date": "20251005",
+            "weather": "晴",
+            "wind": "东北风  1级",
+            "historyTempMin": "16",
+            "historyTempMax": "24",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "26",
+            "tempMax": "35"
+        },
+        {
+            "date": "20251006",
+            "weather": "阴",
+            "wind": "东北风  1级",
+            "historyTempMin": "17",
+            "historyTempMax": "25",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "27",
+            "tempMax": "37"
+        },
+        {
+            "date": "20251007",
+            "weather": "晴",
+            "wind": "东风  1级",
+            "historyTempMin": "17",
+            "historyTempMax": "25",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "24",
+            "tempMax": "34"
+        },
+        {
+            "date": "20251008",
+            "weather": "多云",
+            "wind": "东风  1级",
+            "historyTempMin": "17",
+            "historyTempMax": "24",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "24",
+            "tempMax": "32"
+        },
+        {
+            "date": "20251009",
+            "weather": "晴",
+            "wind": "东风  1级",
+            "historyTempMin": "17",
+            "historyTempMax": "25",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "23",
+            "tempMax": "32"
+        },
+        {
+            "date": "20251010",
+            "weather": "晴",
+            "wind": "东风  1级",
+            "historyTempMin": "18",
+            "historyTempMax": "26",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "24",
+            "tempMax": "34"
+        },
+        {
+            "date": "20251011",
+            "weather": "晴",
+            "wind": "北风  1级",
+            "historyTempMin": "19",
+            "historyTempMax": "27",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "25",
+            "tempMax": "35"
+        },
+        {
+            "date": "20251012",
+            "weather": "晴",
+            "wind": "东北风  1级",
+            "historyTempMin": "18",
+            "historyTempMax": "26",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "25",
+            "tempMax": "33"
+        },
+        {
+            "date": "20251013",
+            "weather": "多云",
+            "wind": "北风  1级",
+            "historyTempMin": "18",
+            "historyTempMax": "25",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "22",
+            "tempMax": "32"
+        },
+        {
+            "date": "20251014",
+            "weather": "小雨",
+            "wind": "北风  1级",
+            "historyTempMin": "16",
+            "historyTempMax": "23",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "21",
+            "tempMax": "23"
+        },
+        {
+            "date": "20251015",
+            "weather": "小雨",
+            "wind": "西北风  1级",
+            "historyTempMin": "15",
+            "historyTempMax": "23",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "22",
+            "tempMax": "30"
+        },
+        {
+            "date": "20251016",
+            "weather": "多云",
+            "wind": "北风  1级",
+            "historyTempMin": "13",
+            "historyTempMax": "23",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "22",
+            "tempMax": "26"
+        },
+        {
+            "date": "20251017",
+            "weather": "多云",
+            "wind": "东北风  1级",
+            "historyTempMin": "16",
+            "historyTempMax": "25",
+            "realTempMin": "21",
+            "realTempMax": "30",
+            "tempMin": "22",
+            "tempMax": "29"
+        },
+        {
+            "date": "20251018",
+            "weather": "小雨",
+            "wind": "北风  1级",
+            "historyTempMin": "15",
+            "historyTempMax": "24",
+            "realTempMin": "18",
+            "realTempMax": "21",
+            "tempMin": "18",
+            "tempMax": "25"
+        },
+        {
+            "date": "20251019",
+            "weather": "多云",
+            "wind": "北风  1级",
+            "historyTempMin": "15",
+            "historyTempMax": "23",
+            "realTempMin": "16",
+            "realTempMax": "20",
+            "tempMin": "16",
+            "tempMax": "19"
+        },
+        {
+            "date": "20251020",
+            "weather": "多云",
+            "wind": "北风  1级",
+            "historyTempMin": "17",
+            "historyTempMax": "24",
+            "realTempMin": "14",
+            "realTempMax": "18",
+            "tempMin": "15",
+            "tempMax": "19"
+        },
+        {
+            "date": "20251021",
+            "weather": "多云",
+            "wind": "北风  1级",
+            "historyTempMin": "17",
+            "historyTempMax": "25",
+            "realTempMin": "13",
+            "realTempMax": "16",
+            "tempMin": "13",
+            "tempMax": "17"
+        },
+        {
+            "date": "20251022",
+            "weather": "阴转多云",
+            "wind": "北风3-4级转<3级",
+            "historyTempMin": "16",
+            "historyTempMax": "25",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "14",
+            "tempMax": "17"
+        },
+        {
+            "date": "20251023",
+            "weather": "多云",
+            "wind": "<3级",
+            "historyTempMin": "14",
+            "historyTempMax": "23",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "15",
+            "tempMax": "19"
+        },
+        {
+            "date": "20251024",
+            "weather": "多云转晴",
+            "wind": "<3级",
+            "historyTempMin": "15",
+            "historyTempMax": "23",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "14",
+            "tempMax": "20"
+        },
+        {
+            "date": "20251025",
+            "weather": "多云",
+            "wind": "<3级",
+            "historyTempMin": "15",
+            "historyTempMax": "22",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "14",
+            "tempMax": "21"
+        },
+        {
+            "date": "20251026",
+            "weather": "晴",
+            "wind": "<3级",
+            "historyTempMin": "14",
+            "historyTempMax": "21",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "13",
+            "tempMax": "20"
+        },
+        {
+            "date": "20251027",
+            "weather": "多云转晴",
+            "wind": "<3级",
+            "historyTempMin": "13",
+            "historyTempMax": "23",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "12",
+            "tempMax": "20"
+        },
+        {
+            "date": "20251028",
+            "weather": "晴转小雨",
+            "wind": "<3级",
+            "historyTempMin": "13",
+            "historyTempMax": "21",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "13",
+            "tempMax": "20"
+        },
+        {
+            "date": "20251029",
+            "weather": "晴转阴",
+            "wind": "<3级",
+            "historyTempMin": "14",
+            "historyTempMax": "21",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "15",
+            "tempMax": "22"
+        },
+        {
+            "date": "20251030",
+            "weather": "雨",
+            "wind": "<3级",
+            "historyTempMin": "15",
+            "historyTempMax": "21",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "17",
+            "tempMax": "25"
+        },
+        {
+            "date": "20251031",
+            "weather": "雨转阴",
+            "wind": "<3级",
+            "historyTempMin": "14",
+            "historyTempMax": "20",
+            "realTempMin": "",
+            "realTempMax": "",
+            "tempMin": "14",
+            "tempMax": "24"
+        }
+    ]
+}

@@ -10,9 +10,7 @@ const Stream = require('stream');
 
 const router = express.Router();
 
-// 天气网地区编码缓存文件路径
-// 从 https://j.i8tq.com/weather2020/search/city.js 获取
-const TIANQI_AREA_CODES_CACHE_FILE = path.join(__dirname, '../../../data/weather/tianqi_weather_area_codes.json');
+// tianqi_weather_area_codes.json 数据源：https://j.i8tq.com/weather2020/search/city.js 
 // 天气地区编码缓存文件路径(合并了天气网和墨迹天气的地区代码)
 const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
 
@@ -503,12 +501,19 @@ router.get('/weather-info', async (req, res) => {
             weatherCode: weatherCode,
             todayWeather:todayWeather,
             calendarWeather:calendarWeather,
+            // mojiWeatherData: mojiWeatherData, 
+            // todayWeatherData: todayWeatherData, 
+            // todayDetailWeatherData: todayDetailWeatherData, 
+            // calendarAndHistoryWeatherData: calendarAndHistoryWeatherData
         };
         console.log('天气数据提取完成');
 
         // 返回数据
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.json(weatherData);
+        // 从 cache中取模拟数据，方便调试页面
+        const mockWeatherData = fs.readFileSync(path.join(__dirname, '../../cache/mock_weather_info.json'), 'utf-8');
+        res.json(JSON.parse(mockWeatherData));
+        // res.json(weatherData);
 
     } catch (error) {
         console.error('获取天气数据失败:', error);

@@ -7,6 +7,8 @@
     <script src="/assets/js/third_party/tailwindcss.js"></script>
     <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/css/business/weather_view.css">
+    <!-- 引入Chart.js用于绘制图表 -->
+    <script src="/assets/js/third_party/chart.js"></script>
     <!-- 自定义配置 -->
     <script>
         tailwind.config = {
@@ -79,16 +81,10 @@
                             <div class="text-2xl font-bold" id="city-name">正在定位...</div>
                             <div class="text-sm text-white/80 ml-3" id="city-code">城市代码: ...</div>
                         </div>
-                        <div id="current-weather-info" class="text-sm text-white/90 mt-1">
-                            <!-- 当前天气信息将通过JavaScript动态加载 -->
-                            <span id="current-temp" class="font-medium">--°</span>
-                            <span id="current-wea" class="mx-2">--</span>
-                            <span id="current-wind">--</span>
-                        </div>
                     </div>
                     
                     <div class="text-right">
-                        <p class="text-lg font-medium" id="current-date">2023年5月20日</p>
+                        <p class="text-lg font-medium" id="current-date">----年--月--日</p>
                     </div>
                 </div>
             </div>
@@ -214,47 +210,107 @@
             }
         </style>
         
-        <!-- 24小时天气预报区域 -->
-        <div class="day-hours-container">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">24小时天气</h2>
-            <div id="day-hours-weather-data" class="min-h-[200px]">
-                <!-- 天气数据将通过JavaScript动态加载 -->
-                <div class="flex justify-center items-center h-40">
-                    <div class="animate-pulse flex space-x-2">
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-80"></div>
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-60"></div>
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-40"></div>
-                    </div>
-                </div>
+        <!-- 加载状态和错误信息 -->
+        <div id="weather-loading" class="hidden flex justify-center items-center h-40">
+            <div class="animate-pulse flex space-x-2">
+                <div class="h-4 w-4 rounded-full bg-primary opacity-80"></div>
+                <div class="h-4 w-4 rounded-full bg-primary opacity-60"></div>
+                <div class="h-4 w-4 rounded-full bg-primary opacity-40"></div>
             </div>
         </div>
         
-        <!-- 天气日历区域 -->
-        <div class="forecast-container">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">天气日历</h2>
-            <div id="weather-data" class="min-h-[200px]">
-                <!-- 天气日历数据将通过JavaScript动态加载 -->
-                <div class="flex justify-center items-center h-40">
-                    <div class="animate-pulse flex space-x-2">
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-80"></div>
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-60"></div>
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-40"></div>
+        <div id="weather-error" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+            <strong class="font-bold">错误！</strong>
+            <span class="block sm:inline">无法加载天气数据，请稍后重试。</span>
+        </div>
+        
+        <!-- 天气内容容器 -->
+        <div id="weather-content" class="space-y-6">
+            <!-- 今天天气面板 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">今日天气</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 主要天气信息 -->
+                    <div class="flex flex-col items-center justify-center">
+                        <div id="weather-icon" class="text-6xl mb-4 default-weather-icon">
+                            <i class="fa fa-cloud"></i>
+                        </div>
+                        <div id="weather-condition" class="text-xl text-gray-600">--</div>
+                        <div id="current-temp" class="text-4xl font-bold text-gray-800 mt-2">--°C</div>
+                        <div id="temp-range" class="text-gray-500 mt-1">--°C / --°C</div>
+                        <!-- 天气提示 -->
+                        <div class="mt-4 w-full">
+                            <div class="text-gray-500 text-sm mb-1">天气提示</div>
+                            <div id="weather-tips" class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded text-gray-700 text-sm">
+                                --
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 详细天气信息 -->
+                    <div class="flex flex-col justify-center">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="text-primary text-sm mr-2" title="风向风力"><i class="fa fa-compass"></i></div>
+                                    <div id="wind-info" class="text-base font-medium text-gray-800">--</div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="text-primary text-sm mr-2" title="湿度"><i class="fa fa-tint"></i></div>
+                                    <div id="humidity-info" class="text-base font-medium text-gray-800">--</div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="text-primary text-sm mr-2" title="空气质量"><i class="fa fa-leaf"></i></div>
+                                    <div id="air-quality" class="text-base font-medium text-gray-800">--</div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="text-primary text-sm mr-2" title="能见度"><i class="fa fa-eye"></i></div>
+                                    <div id="visibility-info" class="text-base font-medium text-gray-800">--</div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="text-primary text-sm mr-2" title="限行信息"><i class="fa fa-car"></i></div>
+                                    <div id="traffic-restriction" class="text-base font-medium text-gray-800">--</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- 气温趋势图区域 -->
-        <div class="chart-container">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">气温趋势图</h2>
-            <div id="temperature-chart-container" class="min-h-[300px]">
-                <!-- 气温趋势图将通过JavaScript动态加载 -->
-                <div class="flex justify-center items-center h-40">
-                    <div class="animate-pulse flex space-x-2">
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-80"></div>
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-60"></div>
-                        <div class="h-4 w-4 rounded-full bg-primary opacity-40"></div>
-                    </div>
+            
+            <!-- 24小时天气 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">24小时天气</h2>
+                <!-- 上方显示天气和风力风向 -->
+                <div id="hourly-weather-summary" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mb-6">
+                    <!-- 每小时天气摘要将通过JavaScript动态加载 -->
+                </div>
+                <!-- 下方显示温度折线图 -->
+                <div class="h-64">
+                    <canvas id="24hour-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 天气预报日历 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">天气预报日历</h2>
+                <div id="weather-calendar" class="grid grid-cols-7 gap-3">
+                    <!-- 周一到周日的日历网格，每一格显示一天的天气 -->
+                </div>
+            </div>
+            
+            <!-- 气温趋势折线图 -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">气温趋势</h2>
+                <div class="h-80">
+                    <canvas id="weather-trend-chart"></canvas>
                 </div>
             </div>
         </div>
