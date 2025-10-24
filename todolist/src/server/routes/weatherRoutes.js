@@ -9,6 +9,8 @@ const path = require('path');
 
 const router = express.Router();
 
+const USE_MOCK = true;
+const USE_CACHE = true;
 const BASE_DIR = path.join(__dirname, '../../../');
 const CACHE_DIR = path.join(BASE_DIR, 'cache');
 // tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js 
@@ -20,6 +22,7 @@ if (fs.existsSync(AREA_CODES_FILE)) {
     const areaCodesContent = fs.readFileSync(AREA_CODES_FILE, 'utf-8');
     areaCodesData = JSON.parse(areaCodesContent);
 }
+
 // 通用缓存处理函数
 /**
  * 通用缓存处理函数，根据参数决定执行读取或写入操作
@@ -33,6 +36,9 @@ if (fs.existsSync(AREA_CODES_FILE)) {
  * @returns {Object|null} 读取模式下返回缓存的数据，写入模式下返回null
  */
 function handleCache(cacheKey, data = null, options = {}) {
+    if (!USE_CACHE) {
+        return null;
+    }
     try {
         // 清理缓存键，避免文件系统特殊字符问题
         const safeCacheKey = cacheKey.replace(/\./g, '_');
@@ -67,28 +73,6 @@ function handleCache(cacheKey, data = null, options = {}) {
         console.error(`缓存${data !== null ? '写入' : '读取'}失败:`, error);
     }
     return null;
-}
-
-// IP位置信息缓存入口函数
-/**
- * IP位置信息缓存处理函数，封装handleCache并提供默认配置
- * @param {string} ipAddress - IP地址作为缓存键
- * @param {Object|null} locationData - 要缓存的位置数据，如果为null则执行读取操作
- * @returns {Object|null} 读取模式下返回缓存的位置数据，写入模式下返回null
- */
-function cacheIpLocation(ipAddress, locationData = null) {
-    const defaultOptions = {
-        cachePrefix: 'ip_',
-        ttl: 5 * 60 * 60 * 1000, // 5小时缓存
-        cacheDir: CACHE_DIR,
-        extension: 'json'
-    };
-    
-    if (locationData !== null) {
-        console.log('缓存IP位置信息:', ipAddress);
-    }
-    
-    return handleCache(ipAddress, locationData, defaultOptions);
 }
 
 // 接口级别响应缓存处理函数
@@ -148,16 +132,15 @@ function cacheWeatherInfo(weatherCode, mojiAreaCode = null, weatherData = null) 
 }
 
 // 辅助函数：递归查找区县信息，确定完整的省市县信息
-function findDistrictInfo(areaData, districtName) {
+function findDistrictInfo(areaData, provinceName, districtName) {
     let result = null;
-    
     // 递归搜索函数
     function searchRecursive(data, currentProvince, currentCity, provinceMojiCode) {
         if (!data || !Array.isArray(data)) return;
-        
+
         for (const item of data) {
             // 检查是否为叶子节点（区县）
-            if (item.code && item.name === districtName) {
+            if (item.code && item.name === districtName && currentProvince === provinceName) {
                 result = {
                     province: currentProvince,
                     city: currentCity,
@@ -168,7 +151,7 @@ function findDistrictInfo(areaData, districtName) {
                 };
                 return;
             }
-            
+
             // 如果有children，继续递归搜索
             if (item.children && item.children.length > 0) {
                 if (currentProvince === null) {
@@ -182,13 +165,110 @@ function findDistrictInfo(areaData, districtName) {
                     searchRecursive(item.children, currentProvince, currentCity, provinceMojiCode);
                 }
             }
-            
+
             if (result) break;
         }
     }
-    
+
     searchRecursive(areaData, null, null, null);
     return result;
+}
+
+async function getLocation1() {
+    try {
+        console.log('正在调用气象局天气接口获取天气和位置信息...');
+        const weatherLocationApiResponse = await fetch('https://weather.cma.cn/api/weather/view', {
+            timeout: 10000 // 设置10秒超时
+        });
+        
+        if (!weatherLocationApiResponse.ok) {
+            throw new Error(`气象局天气接口接口响应状态码: ${weatherLocationApiResponse.status}`);
+        }
+        
+        const weatherLocationData = await weatherLocationApiResponse.json();
+        console.log('成功获取气象局天气接口数据');
+        
+        // 位置数据
+        return {
+            province: weatherLocationData.data.location.path
+                ? weatherLocationData.data.location.path.split(',')[1].replace('省', '').trim()
+                : '未知省份',
+            city: '未知城市',
+            district: weatherLocationData.data.location.name
+                ? weatherLocationData.data.location.name.replace(/[区县]$/, '')
+                : '未知区县',
+        };
+    } catch (error) {
+        console.error('气象局天气接口获取和处理位置信息时发生错误:', error);
+        return null;
+    }
+}
+
+async function getLocation2() {
+    try {
+        // 1. 调用ip-api获取基础位置信息
+        console.log('正在调用ip-api获取位置信息...');
+        const ipApiUrl = 'http://ip-api.com/json/?lang=zh-CN';
+        
+        const ipApiResponse = await fetch(ipApiUrl, {
+            timeout: 5000 // 设置5秒超时
+        });
+        
+        if (!ipApiResponse.ok) {
+            throw new Error(`ip-api响应状态码: ${ipApiResponse.status}`);
+        }
+        
+        let ipLocationData = await ipApiResponse.json();
+        console.log('成功获取ip-api位置数据');
+        
+        // 验证是否成功获取到经纬度信息
+        if (ipLocationData && typeof ipLocationData.lat === 'number' && typeof ipLocationData.lon === 'number') {
+            console.log(`从ip-api获取到的经纬度：纬度=${ipLocationData.lat}, 经度=${ipLocationData.lon}`);
+        } else {
+            console.warn('从ip-api未能获取到有效的经纬度信息');
+        }
+        
+        // 2. 使用从ip-api获取的IP地址调用美团地理位置服务获取省市区县信息
+        let weatherLocationData = null;
+        if (ipLocationData && ipLocationData.query) {
+            const ipAddress = ipLocationData.query;
+            console.log('正在调用美团地理位置服务获取详细地区信息...');
+            // 从ip-api获取的IP地址，传递给美团API
+            const meituanUrl = `https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}`;
+            console.log(`使用从ip-api获取的IP地址构建美团API请求: ${meituanUrl}`);
+
+            const meituanResponse = await fetch(meituanUrl, {
+                timeout: 5000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!meituanResponse.ok) {
+                throw new Error(`美团地理位置服务响应状态码: ${meituanResponse.status}`);
+            }
+
+            weatherLocationData = await meituanResponse.json();
+            console.log('成功获取美团地理位置服务数据');
+        }
+        
+        // 3. 综合两个API的数据，只返回省市区县信息
+        return {
+            province: weatherLocationData && weatherLocationData.data && weatherLocationData.data.rgeo && weatherLocationData.data.rgeo.province
+                ? weatherLocationData.data.rgeo.province.replace('省', '')
+                : '未知省份',
+            city: weatherLocationData && weatherLocationData.data && weatherLocationData.data.rgeo && weatherLocationData.data.rgeo.city
+                ? weatherLocationData.data.rgeo.city.replace('市', '')
+                : '未知城市',
+            district: weatherLocationData && weatherLocationData.data && weatherLocationData.data.rgeo && weatherLocationData.data.rgeo.district
+                ? weatherLocationData.data.rgeo.district.replace(/[区县]$/, '')
+                : '未知区县'
+        };
+    } catch (error) {
+        console.error('ip-api&美团位置接口获取和处理位置信息时发生错误:', error);
+        return null;
+    }
 }
 
 // 根据IP地址获取位置信息 - 综合多个API获取准确的城市地区信息
@@ -196,6 +276,10 @@ function findDistrictInfo(areaData, districtName) {
 // https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}
 // https://weather.cma.cn/api/weather/view
 router.get('/ip-location-area', async (req, res) => {
+    if (USE_MOCK) {
+        const addressAreaContent = fs.readFileSync(path.join(CACHE_DIR, 'mock_ip_area.json'), 'utf-8');
+        return res.json(JSON.parse(addressAreaContent));
+    }
     try {
         // 获取客户端IP地址
         const clientIp = getClientIp(req);
@@ -212,33 +296,20 @@ router.get('/ip-location-area', async (req, res) => {
             });
         }
         
-        console.log('正在调用气象局天气接口获取天气和位置信息...');
-        const weatherLocationApiResponse = await fetch('https://weather.cma.cn/api/weather/view', {
-            timeout: 10000 // 设置10秒超时
-        });
+        console.log('正在调用接口获取位置信息...');
         
-        if (!weatherLocationApiResponse.ok) {
-            throw new Error(`气象局天气接口接口响应状态码: ${weatherLocationApiResponse.status}`);
-        }
-        
-        const weatherLocationData = await weatherLocationApiResponse.json();
-        console.log('成功获取气象局天气接口数据');
         
         // 位置数据
-        const addressData = {
-            province: weatherLocationData.data.location.path 
-                ? weatherLocationData.data.location.path.split(',')[1].replace('省', '').trim()
-                : '未知省份',
-            city: '未知城市',
-            district: weatherLocationData.data.location.name 
-                ? weatherLocationData.data.location.name.replace(/[区县]$/, '') 
-                : '未知区县',
-        };
-        
+        // 创建并行请求的Promise数组
+        const promises = [];
+        promises.push(getLocation1(), getLocation2());
+        const [addressData1, addressData2] = await Promise.all(promises);
+        const addressData = addressData1 || addressData2;
+
         // 读取地区编码数据，用于查找完整的省市县信息
-        if (areaCodesData && addressData.district !== '未知区县') {
+        if (areaCodesData && addressData.province !== '未知省份' && addressData.district !== '未知区县') {
             // 使用辅助函数查找完整的省市县信息
-            const districtInfo = findDistrictInfo(areaCodesData.data, addressData.district);
+            const districtInfo = findDistrictInfo(areaCodesData.data, addressData.province, addressData.district);
             if (districtInfo) {
                 addressData.province = districtInfo.province || addressData.province;
                 addressData.city = districtInfo.city || addressData.city;
@@ -248,8 +319,7 @@ router.get('/ip-location-area', async (req, res) => {
                 addressData.districtMojiCode = districtInfo.mojiCode;
             }
         }
-        
-        console.log('返回完整的位置数据:', addressData);
+        console.log('返回完整的位置数据:', addressData.toString());
         
         // 将最终响应数据缓存到接口级缓存
         cacheApiResponse('ip-location-area', clientIp, addressData);
@@ -370,7 +440,7 @@ function extractTodayWeatherData(html) {
                 weather: forecastDefault.weather,
                 temperature: forecastDefault.temp,
                 tempMax: forecastDefault.maxTemp,
-                tempMin: forecastDefault.mimTemp,
+                tempMin: forecastDefault.minTemp,
                 wind: forecastDefault.wind, // 风向风力
                 humidity: forecastDefault.humidity,
             };
@@ -454,6 +524,10 @@ function extractCalendarAndHistoryWeatherData(html) {
 
 // 获取天气数据（实时处理 - 并行方式）
 router.get('/weather-info', async (req, res) => {
+    if (USE_MOCK) {
+        const mockWeatherData = fs.readFileSync(path.join(CACHE_DIR, 'mock_weather_info.json'), 'utf-8');
+        return res.json(JSON.parse(mockWeatherData));
+    }
     console.log('收到今日天气请求，查询参数:', req.query);
     const mojiAreaCode = req.query.mojiAreaCode;
     const weatherCode = req.query.weatherCode;
@@ -649,13 +723,13 @@ router.get('/weather-info', async (req, res) => {
         };
         console.log('天气数据提取完成');
         // 日志记录结果数据是否为空 mojiWeatherData, todayWeatherData, todayDetailWeatherData, calendarAndHistoryWeatherData
-        // console.log('mojiWeatherData:', mojiWeatherData ? '有数据' : '无数据');
-        // console.log('todayWeatherData:', todayWeatherData ? '有数据' : '无数据');
-        // console.log('todayWeatherData.liveWeather:', todayWeatherData?.liveWeather ? '有数据' : '无数据');
-        // console.log('todayWeatherData.hourlyWeather:', todayWeatherData?.hourlyWeather ? '有数据' : '无数据');
-        // console.log('todayWeatherData.lifeHelper:', todayWeatherData?.lifeHelper ? '有数据' : '无数据');
-        // console.log('todayDetailWeatherData:', todayDetailWeatherData ? '有数据' : '无数据');
-        // console.log('calendarAndHistoryWeatherData:', calendarAndHistoryWeatherData ? '有数据' : '无数据');
+        // console.log('mojiWeatherData:', mojiWeatherData ? '有数据' : '无数据', mojiWeatherData);
+        // console.log('todayWeatherData:', todayWeatherData ? '有数据' : '无数据', todayWeatherData);
+        // console.log('todayWeatherData.liveWeather:', todayWeatherData?.liveWeather ? '有数据' : '无数据', todayWeatherData?.liveWeather);
+        // console.log('todayWeatherData.hourlyWeather:', todayWeatherData?.hourlyWeather ? '有数据' : '无数据', todayWeatherData?.hourlyWeather);
+        // console.log('todayWeatherData.lifeHelper:', todayWeatherData?.lifeHelper ? '有数据' : '无数据', todayWeatherData?.lifeHelper);
+        // console.log('todayDetailWeatherData:', todayDetailWeatherData ? '有数据' : '无数据', todayDetailWeatherData);
+        // console.log('calendarAndHistoryWeatherData:', calendarAndHistoryWeatherData ? '有数据' : '无数据', calendarAndHistoryWeatherData);
         
         // 检查是否所有必要的API结果都有数据，只有在所有数据都有效时才缓存
         // 定义有效性检查函数
@@ -681,9 +755,6 @@ router.get('/weather-info', async (req, res) => {
         // 返回数据
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.json(weatherData);
-        // 从 cache中取模拟数据，方便调试页面
-        // const mockWeatherData = fs.readFileSync(path.join(CACHE_DIR, 'mock_weather_info.json'), 'utf-8');
-        // res.json(JSON.parse(mockWeatherData));
     } catch (error) {
         console.error('获取天气数据失败:', error);
 

@@ -6,6 +6,123 @@ const WEATHER_API = {
     WEATHER_INFO: '/api/weather-info',
 };
 
+// 通用选择框操作函数
+function renderSelectOptions(selectElement, data, defaultText = '请选择', valueKey = 'code', textKey = 'name', filterFn = null) {
+    logStep(`开始渲染选择框，默认文本: ${defaultText}`);
+    
+    // 参数验证
+    if (!selectElement) {
+        logStep('错误: 选择框元素不存在');
+        return false;
+    }
+    
+    if (!data || !Array.isArray(data)) {
+        logStep('警告: 数据无效或未加载');
+        return false;
+    }
+    
+    // 清空选择框
+    selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+    
+    // 应用过滤函数（如果提供）
+    const filteredData = filterFn ? data.filter(filterFn) : data;
+    
+    logStep(`准备渲染数据，共有 ${filteredData.length} 个选项`);
+    
+    // 遍历数据，添加到选择框
+    filteredData.forEach(item => {
+        if (item && (item[valueKey] || item[textKey])) {
+            const option = document.createElement('option');
+            option.value = item[valueKey] || item[textKey];
+            option.textContent = item[textKey];
+            selectElement.appendChild(option);
+        }
+    });
+    
+    logStep('选择框渲染完成');
+    return true;
+}
+
+function selectOptionByValueOrText(selectElement, targetValue, targetText = '', attempt = 1, maxAttempts = 2, delay = 300) {
+    if (!selectElement) {
+        logStep('错误: 选择框元素不存在');
+        return false;
+    }
+    
+    // 清理文本（移除后缀）
+    const cleanTargetText = targetText ? targetText.replace(/[省市县区]$/, '').trim() : '';
+    
+    // 优先通过值查找
+    if (targetValue) {
+        for (let i = 0; i < selectElement.options.length; i++) {
+            if (selectElement.options[i].value === targetValue) {
+                selectElement.selectedIndex = i;
+                return true;
+            }
+        }
+    }
+    
+    // 通过文本查找（支持多种匹配方式）
+    if (cleanTargetText) {
+        for (let i = 0; i < selectElement.options.length; i++) {
+            const option = selectElement.options[i];
+            const optionText = option.text || '';
+            const cleanOptionText = optionText.replace(/[省市县区]$/, '').trim();
+            
+            // 支持多种匹配方式
+            if (option.value === targetValue || 
+                cleanOptionText === cleanTargetText || 
+                optionText.includes(cleanTargetText) || 
+                cleanTargetText.includes(cleanOptionText)) {
+                selectElement.selectedIndex = i;
+                return true;
+            }
+        }
+    }
+    
+    // 如果未找到且未达到最大尝试次数，重试
+    if (attempt < maxAttempts) {
+        logStep(`未找到匹配选项，${delay}ms后重试 (${attempt}/${maxAttempts})`);
+        setTimeout(() => {
+            selectOptionByValueOrText(selectElement, targetValue, targetText, attempt + 1, maxAttempts, delay * 2);
+        }, delay);
+        return false;
+    }
+    
+    logStep(`警告: 未找到匹配选项: ${targetValue || cleanTargetText}`);
+    return false;
+}
+
+function setupCascadingSelect(selectElement, value, text, onSelectCallback = null, delay = 0) {
+    if (!selectElement) {
+        logStep('错误: 选择框元素不存在');
+        return Promise.resolve(false);
+    }
+    
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const success = selectOptionByValueOrText(selectElement, value, text);
+            
+            if (success) {
+                // 强制触发DOM更新
+                selectElement.focus();
+                selectElement.blur();
+                
+                // 触发change事件
+                const event = new Event('change', { bubbles: true });
+                selectElement.dispatchEvent(event);
+                
+                // 执行回调
+                if (typeof onSelectCallback === 'function') {
+                    onSelectCallback();
+                }
+            }
+            
+            resolve(success);
+        }, delay);
+    });
+}
+
 // 数据缓存对象
 const dataCache = {
     fullAreaData: null,
@@ -394,28 +511,8 @@ function findDistrictInProvince(provinceName, districtName) {
 
 // 渲染省份选择框
 function renderProvinceSelect(areaData) {
-    logStep('开始渲染省份选择框');
     const provinceSelect = document.getElementById('province-select');
-    if (!provinceSelect || !areaData || !Array.isArray(areaData)) {
-        logStep('渲染失败: 缺少必要元素或数据');
-        return;
-    }
-    
-    // 清空现有选项（保留默认提示）
-    provinceSelect.innerHTML = '<option value="">请选择省份</option>';
-    
-    // 添加省份选项
-    areaData.forEach(province => {
-        if (province && province.name) {
-            const option = document.createElement('option');
-            // 省份可能没有code属性，使用name作为value
-            option.value = province.code || province.name;
-            option.textContent = province.name;
-            provinceSelect.appendChild(option);
-        }
-    });
-    
-    logStep(`省份选择框渲染完成，添加了${areaData.length}个省份选项`);
+    return renderSelectOptions(provinceSelect, areaData, '请选择省份', 'code', 'name');
 }
 
 // 添加事件监听
@@ -511,27 +608,9 @@ function handleProvinceChange() {
         logStep(`children数量: ${Array.isArray(selectedProvince.children) ? selectedProvince.children.length : '未知'}`);
     }
     if (selectedProvince && selectedProvince.children && Array.isArray(selectedProvince.children)) {
-        logStep(`开始渲染城市列表，共${selectedProvince.children.length}个城市`);
-        
-        // 创建文档片段以减少DOM操作
-        const fragment = document.createDocumentFragment();
-        
-        let addedCityCount = 0;
-        selectedProvince.children.forEach((city, index) => {
-            logStep(`处理城市[${index}]: name=${city.name}, code=${city.code || '无'}`);
-            if (city && city.name) {
-                const option = document.createElement('option');
-                // 城市可能没有code属性，使用name作为value
-                option.value = city.code || city.name;
-                option.textContent = city.name;
-                fragment.appendChild(option);
-                addedCityCount++;
-            }
-        });
-        
-        // 一次性添加所有城市选项
-        citySelect.appendChild(fragment);
-        logStep(`城市选择框渲染完成，省份:${selectedProvince.name} 添加了${addedCityCount}个城市选项`);
+        // 使用通用渲染函数渲染城市选择框
+        renderSelectOptions(citySelect, selectedProvince.children, '请选择城市', 'code', 'name');
+        logStep(`城市选择框渲染完成，省份:${selectedProvince.name}`);
         
         // 检查是否有需要匹配的城市信息，如果有，尝试自动选择城市
         if (dataCache.currentMatchingLocation && dataCache.currentMatchingLocation.cleanCity) {
@@ -544,37 +623,16 @@ function handleProvinceChange() {
                 if (citySelect && citySelect.disabled === false && citySelect.options.length > 1) {
                     logStep(`开始查找城市选项，当前城市选择框选项数量: ${citySelect.options.length}`);
                     
-                    // 尝试通过名称查找并选择城市
-                    let cityFound = false;
-                    for (let i = 0; i < citySelect.options.length; i++) {
-                        const option = citySelect.options[i];
-                        const optionName = option.text.replace(/市$/, '').trim();
-                        
-                        // 支持多种匹配方式
-                        if (optionName === matchingData.cleanCity || 
-                            option.text.includes(matchingData.cleanCity) || 
-                            matchingData.cleanCity.includes(optionName) ||
-                            // 增加拼音首字母匹配，增强鲁棒性
-                            getPinyinFirstLetter(optionName) === getPinyinFirstLetter(matchingData.cleanCity)) {
-                            citySelect.selectedIndex = i; // 直接设置索引确保选中
-                            citySelect.value = option.value;
-                            logStep(`找到匹配城市: ${option.text}，选中索引: ${i}`);
-                            
-                            // 强制触发DOM更新
-                            citySelect.focus();
-                            citySelect.blur();
-                            
-                            // 触发change事件确保视觉上显示为选中状态并触发区县联动
-                            const event = new Event('change', { bubbles: true });
-                            citySelect.dispatchEvent(event);
-                            logStep(`成功自动选择城市: ${option.text} 并触发变更事件`);
-                            cityFound = true;
-                            break;
-                        }
-                    }
-                    
-                    // 如果未找到城市，添加调试日志
-                    if (!cityFound) {
+                    // 使用通用选择函数选择城市
+                    const cityFound = selectOptionByValueOrText(citySelect, null, matchingData.cleanCity);
+                    if (cityFound) {
+                        const selectedOption = citySelect.options[citySelect.selectedIndex];
+                        logStep(`找到匹配城市: ${selectedOption.text}，成功自动选择城市并触发变更事件`);
+                        // 触发change事件确保视觉上显示为选中状态并触发区县联动
+                        const event = new Event('change', { bubbles: true });
+                        citySelect.dispatchEvent(event);
+                    } else {
+                        // 如果未找到城市，添加调试日志
                         logStep(`警告: 未找到匹配的城市选项。cleanCity=${matchingData.cleanCity}，城市选项列表: ${Array.from(citySelect.options).map(opt => opt.text).join(', ')}`);
                     }
                 } else {
@@ -624,8 +682,7 @@ function handleCityChange() {
         return;
     }
     
-    // 重置区县选择框
-    districtSelect.innerHTML = '<option value="">请选择区县</option>';
+    // 重置区县选择框并启用
     districtSelect.disabled = false;
     
     const selectedProvinceValue = provinceSelect.value;
@@ -659,22 +716,9 @@ function handleCityChange() {
             logStep('开始渲染区县列表');
             // 创建文档片段以减少DOM操作
             const fragment = document.createDocumentFragment();
-            let districtCount = 0;
-            
-            selectedCity.children.forEach((district, index) => {
-                if (district && district.name) {
-                    logStep(`处理区县[${index}]: ${district.name}, code: ${district.code || '无'}`);
-                    const option = document.createElement('option');
-                    option.value = district.code || district.name; // 支持无code时使用name作为value
-                    option.textContent = district.name;
-                    fragment.appendChild(option);
-                    districtCount++;
-                }
-            });
-            
-            // 一次性添加所有区县选项
-            districtSelect.appendChild(fragment);
-            logStep(`区县选择框渲染完成，城市: ${selectedCity.name}, 区县数量: ${districtCount}`);
+            // 使用通用渲染函数渲染区县选择框
+            renderSelectOptions(districtSelect, selectedCity.children, '请选择区县', 'code', 'name');
+            logStep(`区县选择框渲染完成，城市: ${selectedCity.name}`);
             
             // 检查是否有需要匹配的区县信息，如果有，尝试自动选择区县
             if (dataCache.currentMatchingLocation && dataCache.currentMatchingLocation.cleanDistrict) {
@@ -687,35 +731,8 @@ function handleCityChange() {
                     if (districtSelect && districtSelect.disabled === false && districtSelect.options.length > 1) {
                         logStep(`开始查找区县选项，当前区县选择框选项数量: ${districtSelect.options.length}`);
                         
-                        // 尝试通过名称查找并选择区县
-                        let districtFound = false;
-                        for (let i = 0; i < districtSelect.options.length; i++) {
-                            const option = districtSelect.options[i];
-                            const optionName = option.text.replace(/[区县]$/, '').trim();
-                            
-                            // 支持多种匹配方式
-                            if (optionName === matchingData.cleanDistrict || 
-                                option.text.includes(matchingData.cleanDistrict) || 
-                                matchingData.cleanDistrict.includes(optionName) ||
-                                // 模糊匹配，有些区县名称可能有前缀或后缀差异
-                                optionName.includes(matchingData.cleanDistrict.substring(0, 2)) ||
-                                matchingData.cleanDistrict.includes(optionName.substring(0, 2))) {
-                                districtSelect.selectedIndex = i; // 直接设置索引确保选中
-                                districtSelect.value = option.value;
-                                logStep(`找到匹配区县: ${option.text}，选中索引: ${i}`);
-                                
-                                // 强制触发DOM更新
-                                districtSelect.focus();
-                                districtSelect.blur();
-                                
-                                // 触发change事件确保视觉上显示为选中状态并可能触发后续逻辑
-                                const event = new Event('change', { bubbles: true });
-                                districtSelect.dispatchEvent(event);
-                                logStep(`成功自动选择区县: ${option.text} 并触发变更事件`);
-                                districtFound = true;
-                                break;
-                            }
-                        }
+                        // 使用通用选择函数选择区县
+                        const districtFound = selectOptionByValueOrText(districtSelect, null, matchingData.cleanDistrict);
                         
                         // 如果未找到区县，添加调试日志
                         if (!districtFound) {
@@ -2937,7 +2954,7 @@ function updateHourlyWeatherSummary(hourlyData) {
         // 添加温度显示，确保与下方图表数据一致
         const temp = document.createElement('div');
         temp.className = 'text-sm font-medium text-gray-800'; // 保持温度字体稍大
-        temp.textContent = hourData.temperature ? `${hourData.temperature}°` : '--';
+        temp.textContent = `${hourData.temperature}°C`;
         
         hourElement.appendChild(time);
         hourElement.appendChild(icon);
@@ -3196,9 +3213,9 @@ function updateCalendarWeather(calendarWeather) {
                 // 温度范围
                 const tempRange = document.createElement('div');
                 tempRange.className = 'text-xs';
-                const maxTemp = dayData.tempMax || dayData.maxTemp || dayData.realTempMax || '--';
-                const minTemp = dayData.tempMin || dayData.minTemp || dayData.realTempMin || '--';
-                tempRange.innerHTML = `<span class="text-gray-800">${maxTemp}°</span> / <span class="text-gray-500">${minTemp}°</span>`;
+                const maxTemp = dayData.tempMax || dayData.realTempMax || dayData.historyTempMax || '--';
+                const minTemp = dayData.tempMin || dayData.realTempMin || dayData.historyTempMin || '--';
+                tempRange.innerHTML = `<span class="text-gray-700">${minTemp}</span> / <span class="text-gray-900">${maxTemp}°C</span>`;
                 cell.appendChild(tempRange);
             } else {
                 // 无数据时显示占位符
