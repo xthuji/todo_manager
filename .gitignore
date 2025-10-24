@@ -6,8 +6,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-.history/
-
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -116,3 +114,9 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# History directory
+.history
+
+# TodoList cache directory
+/todolist/cache/
