@@ -87,7 +87,7 @@ function cacheIpLocation(clientIp, responseData = null) {
     const cacheKey = `${clientIp}`.replaceAll(':', "_");
     const defaultOptions = {
         cachePrefix: 'ip_',
-        ttl: 30 * 60 * 1000, // 30分钟缓存
+        ttl: 300 * 60 * 1000, // 5小时缓存
         cacheDir: CACHE_DIR,
         extension: 'json'
     };
@@ -119,7 +119,7 @@ function cacheWeatherInfo(weatherCode, mojiAreaCode = null, weatherData = null) 
     const cacheKey = `${weatherCode}_${mojiAreaCode || 'default'}`.replaceAll('/', '_');
     const defaultOptions = {
         cachePrefix: 'weather_',
-        ttl: 10 * 60 * 1000, // 10分钟缓存
+        ttl: 120 * 60 * 1000, // 2小时缓存
         cacheDir: CACHE_DIR,
         extension: 'json'
     };

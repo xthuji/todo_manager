@@ -240,7 +240,7 @@ async function loadAreaCodes() {
     dataCache.loadingPromise = new Promise(async (resolve, reject) => {
         try {
             logStep(`发送请求获取省市县数据: ${WEATHER_API.AREA_CODES}`);
-            const response = await fetch(WEATHER_API.AREA_CODES);
+            const response = await fetch(WEATHER_API.AREA_CODES, { cache: 'no-store' });
             
             if (!response.ok) {
                 throw new Error(`API请求失败: ${response.status}`);
@@ -275,27 +275,6 @@ async function loadAreaCodes() {
             // 渲染省份选择框
             logStep('渲染省份选择框');
             renderProvinceSelect(areaData);
-            
-            // 处理位置匹配（简化：只在非IP定位且有currentLocation时执行）
-            if (dataCache.lastLocationSource !== 'ip') {
-                const currentLocation = sessionStorage.getItem('currentLocation');
-                if (currentLocation) {
-                    try {
-                        const location = JSON.parse(currentLocation);
-                        if (location && location.province && (location.city || location.district)) {
-                            // 延迟匹配，确保DOM元素已完全渲染
-                            setTimeout(() => {
-                                logStep('延迟匹配手动选择的位置信息');
-                                matchLocationSelect(location.province, location.city, location.district);
-                            }, 300);
-                        }
-                    } catch (parseError) {
-                        console.error('解析缓存的位置数据失败:', parseError);
-                        // 清除无效缓存
-                        sessionStorage.removeItem('currentLocation');
-                    }
-                }
-            }
             
             resolve(areaData);
         } catch (error) {
@@ -351,7 +330,7 @@ function buildAreaMaps(areaData) {
             }
             
             // 记录省份信息
-            logStep(`处理省份: ${provinceName}, 代码: ${province.code || '无'}`);
+            // logStep(`处理省份: ${provinceName}, 代码: ${province.code || '无'}`);
             
             // 省份映射，处理可能的"省"后缀
             dataCache.provinceMap[provinceName] = province.code || '';
@@ -824,9 +803,9 @@ async function quickRelocateByIp() {
     updateCityDisplay({ name: '正在定位...', code: '...' });
     
     try {
-        // 只获取定位信息，不检查或使用缓存
-        logStep('发送请求获取位置信息: ${WEATHER_API.IP_API}');
-        const response = await fetch(WEATHER_API.IP_API);
+        // 发送请求获取位置信息，不使用缓存
+        logStep(`发送请求获取位置信息: ${WEATHER_API.IP_API}`);
+        const response = await fetch(WEATHER_API.IP_API, { cache: 'no-store' });
         
         if (!response.ok) {
             throw new Error(`API请求失败: ${response.status}`);
@@ -858,8 +837,8 @@ async function quickRelocateByIp() {
             timestamp: new Date().getTime()
         };
         try {
-            sessionStorage.setItem('currentLocation', JSON.stringify(locationToStore));
-            logStep('IP定位结果已成功保存到sessionStorage');
+            // 不再保存定位结果到sessionStorage，避免缓存
+            logStep('不保存定位结果到sessionStorage，每次获取最新数据');
         } catch (error) {
             logStep(`警告: 无法保存定位结果到sessionStorage: ${error.message}`);
         }
@@ -891,29 +870,8 @@ async function locateCityByIp() {
     updateCityDisplay({ name: '正在定位...', code: '...' });
     
     try {
-        // 检查sessionStorage缓存
-        const cachedLocation = sessionStorage.getItem('cachedLocation');
-        const cachedTime = sessionStorage.getItem('cachedLocationTime');
-        const now = Date.now();
-        
-        // 如果有缓存且在5分钟内
-        if (cachedLocation && cachedTime && (now - parseInt(cachedTime)) < 5 * 60 * 1000) {
-            logStep('使用缓存的位置信息（5分钟内有效）');
-            const cachedData = JSON.parse(cachedLocation);
-            const location = cachedData.data || cachedData;
-            
-            // 检查缓存是否包含完整的省市县数据
-            if (cachedData.weatherAreaCodes) {
-                // 有完整数据，按照成功流程处理
-                logStep('缓存包含完整省市县数据，直接处理定位结果');
-                processLocationSuccess(location, cachedData.weatherAreaCodes.data);
-            } else {
-                // 缓存不完整，重新获取
-                logStep('缓存数据不完整，需要重新获取位置信息');
-                await fetchLocationData();
-            }
-            return;
-        }
+        // 不再使用sessionStorage缓存，每次都获取最新数据
+        logStep('直接获取最新位置信息，不使用缓存');
         
         // 无缓存或缓存过期，获取新数据
         logStep('无缓存或缓存已过期，需要获取新位置信息');
@@ -929,7 +887,7 @@ async function locateCityByIp() {
 // 获取位置数据并处理
 async function fetchLocationData() {
     logStep(`发送请求获取位置信息: ${WEATHER_API.IP_API}`);
-    const response = await fetch(WEATHER_API.IP_API);
+    const response = await fetch(WEATHER_API.IP_API, { cache: 'no-store' });
     
     if (!response.ok) {
         throw new Error(`API请求失败: ${response.status}`);
@@ -956,13 +914,8 @@ async function fetchLocationData() {
     logStep('位置信息数据验证通过，开始处理');
     processLocationSuccess(locationData, responseData.weatherAreaCodes.data);
     
-    // 存储到缓存，使用新的数据结构格式
-    const cacheData = {
-        data: locationData,
-        weatherAreaCodes: responseData.weatherAreaCodes
-    };
-    sessionStorage.setItem('cachedLocation', JSON.stringify(cacheData));
-    sessionStorage.setItem('cachedLocationTime', Date.now().toString());
+    // 不再存储到sessionStorage缓存
+    logStep('不使用sessionStorage缓存位置数据');
 }
 
 // 处理位置数据获取成功的情况
@@ -1000,13 +953,8 @@ function processLocationSuccess(locationData, weatherAreaCodes) {
         ...locationData,
         timestamp: new Date().getTime()
     };
-    try {
-        sessionStorage.setItem('currentLocation', JSON.stringify(locationToStore));
-        logStep('IP定位结果已成功保存到sessionStorage');
-    } catch (error) {
-        logStep(`警告: 无法保存定位结果到sessionStorage: ${error.message}`);
-        // 继续执行，不因存储失败而中断流程
-    }
+    // 不再保存定位结果到sessionStorage，避免缓存
+    logStep('不保存定位结果到sessionStorage，每次获取最新数据');
     
     // 如果有weatherCode，直接尝试加载天气数据，提供更快的用户体验
     if (weatherCode) {
@@ -2047,15 +1995,8 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
                     } else if (isIpLocation) {
                         // IP定位时，如果匹配失败，保持使用IP定位的地址显示
                         logStep('IP定位地址匹配失败，保持使用IP定位地址显示');
-                        // 优先使用传入的locationData，如果没有则从sessionStorage获取
+                        // 只使用传入的locationData，移除了sessionStorage相关代码
                         let location = locationData;
-                        
-                        if (!location) {
-                            const cachedLocation = sessionStorage.getItem('currentLocation');
-                            if (cachedLocation) {
-                                location = JSON.parse(cachedLocation);
-                            }
-                        }
                         
                         if (location) {
                             let fullCityName = location.province;
@@ -2162,15 +2103,8 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
                     } else if (isIpLocation) {
                         // IP定位时，如果匹配失败，保持使用IP定位的地址显示
                         logStep('IP定位地址匹配失败，保持使用IP定位地址显示');
-                        // 优先使用传入的locationData，如果没有则从sessionStorage获取
+                        // 只使用传入的locationData，移除了sessionStorage相关代码
                         let location = locationData;
-                        
-                        if (!location) {
-                            const cachedLocation = sessionStorage.getItem('currentLocation');
-                            if (cachedLocation) {
-                                location = JSON.parse(cachedLocation);
-                            }
-                        }
                         
                         if (location) {
                             let fullCityName = location.province;
@@ -2467,8 +2401,8 @@ function loadWeatherData(weatherCode, mojiAreaCode, retryCount = 0) {
     
     logStep(`发送天气数据请求: ${url}`);
     
-    // 发送请求
-    fetch(url)
+    // 发送请求，不使用缓存
+    fetch(url, { cache: 'no-store' })
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP错误，状态码: ${response.status}`);
@@ -2583,48 +2517,6 @@ function showWeatherError(message) {
     logStep(`错误: 天气数据显示错误: ${message}`);
 }
 
-// 从日历天气数据中提取今天的天气信息
-function updateTodayWeatherFromCalendar(calendarWeather) {
-    if (!calendarWeather || !Array.isArray(calendarWeather)) {
-        logStep('错误: 日历天气数据无效');
-        return null;
-    }
-    
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD格式
-    
-    // 查找今天的天气数据
-    const todayData = calendarWeather.find(day => {
-        return day && day.date && day.date.split(' ')[0] === todayStr;
-    });
-    
-    if (!todayData) {
-        logStep('错误: 未找到今天的天气数据');
-        return null;
-    }
-    
-    // 创建完整的todayWeather对象，包含所有需要的信息
-    const todayWeather = {
-        temperature: todayData.realTemp || todayData.temp || todayData.historicalTemp,
-        weatherCondition: todayData.weather || todayData.weatherCondition,
-        windDirection: todayData.windDirection || todayData.wind,
-        windForce: todayData.windForce,
-        humidity: todayData.humidity,
-        airQuality: todayData.airQuality || todayData.aqi,
-        maxTemp: todayData.maxTemp || todayData.highTemp,
-        minTemp: todayData.minTemp || todayData.lowTemp,
-        // 添加新需要的字段
-        visibility: todayData.visibility || todayData.visibilityInfo || '--',
-        limit: todayData.limit || todayData.limitInfo || todayData.restriction || '--',
-        tips: todayData.tips || todayData.weatherTips || todayData.suggestion || '暂无提示',
-        time: todayData.time || todayData.updateTime || '--:--'
-    };
-    
-    // 更新今天天气显示
-    updateTodayWeather(todayWeather);
-    return todayWeather;
-}
-
 // 根据天气状况获取对应的背景色类
 function getWeatherBgColor(weatherCondition) {
     if (!weatherCondition) return 'bg-gray-50';
@@ -2676,13 +2568,13 @@ function updateTodayWeather(todayWeather) {
     }
     
     // 获取所有天气信息
-    const currentTemp = todayWeather.temperature || todayWeather.realTemp || todayWeather.temp || todayWeather.currentTemp || '--';
-    const weatherCond = todayWeather.weather || todayWeather.weatherCondition || todayWeather.condition || '--';
-    const minTemp = todayWeather.tempMin || todayWeather.minTemp || todayWeather.lowTemp || todayWeather.realTempMin || '--';
-    const maxTemp = todayWeather.tempMax || todayWeather.maxTemp || todayWeather.highTemp || todayWeather.realTempMax || '--';
+    const currentTemp = todayWeather.temperature || '--';
+    const weatherCond = todayWeather.weather || '--';
+    const minTemp = todayWeather.tempMin || '--';
+    const maxTemp = todayWeather.tempMax || '--';
     const humidityInfo = todayWeather.humidity || '--';
-    const airQuality = todayWeather.airQuality || todayWeather.aqi || '--';
-    const windInfo = todayWeather.wind || `${todayWeather.windDirection || ''} ${todayWeather.windForce || ''}`.trim() || '--';
+    const airQuality = todayWeather.airQuality || '--';
+    const windInfo = todayWeather.wind || '--';
     const visibilityInfo = todayWeather.visibility || '--';
     const limitInfo = todayWeather.limit || '--';
     const tips = todayWeather.tips || '暂无提示';
@@ -3087,11 +2979,6 @@ function updateCalendarWeather(calendarWeather) {
                 dateToDataMap.set(monthDayFormat, dayData);
             }
         }
-        
-        // 针对10月1日特殊处理
-        // if (formattedDate.includes('10-01')) {
-        //     dateToDataMap.set('2023-10-01', dayData);
-        // }
     });
     
     // 修正填充日历网格逻辑，确保日期和星期正确匹配
@@ -3158,6 +3045,7 @@ function updateCalendarWeather(calendarWeather) {
                     if (dayData) break;
                 }
             }
+
             
             // 特别为1号添加额外的匹配逻辑
             if (!dayData && dayCount === 1) {
@@ -3190,25 +3078,35 @@ function updateCalendarWeather(calendarWeather) {
             cell.appendChild(dateNumber);
             
             if (dayData) {
+                let shortWeather = dayData.weather || '--';
+                if (shortWeather.length > 2 && shortWeather.includes('转')) shortWeather = shortWeather.split('转')[0];
+                
                 // 天气图标
                 const icon = document.createElement('div');
                 icon.className = 'text-xl my-1 text-center';
-                let iconText = '☀️';
-                const weather = dayData.weather || dayData.weatherCondition || '';
-                if (weather.includes('雨')) iconText = '🌧️';
-                else if (weather.includes('云')) iconText = '☁️';
-                else if (weather.includes('阴')) iconText = '☁️';
-                else if (weather.includes('雪')) iconText = '❄️';
+                let iconText = '☁️';
+                if (shortWeather.includes('雨')) iconText = '🌧️';
+                else if (shortWeather.includes('阴')) iconText = '☁️';
+                else if (shortWeather.includes('多云')) iconText = '⛅';
+                else if (shortWeather.includes('雪')) iconText = '❄️';
+                else if (shortWeather.includes('晴')) iconText = '☀️';
+                else if (shortWeather.includes('雷')) iconText = '⚡';
                 icon.textContent = iconText;
                 cell.appendChild(icon);
                 
                 // 天气状况（简化）
                 const weatherElement = document.createElement('div');
                 weatherElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
-                let shortWeather = weather || '--';
-                if (shortWeather.length > 2) shortWeather = shortWeather.substring(0, 2);
                 weatherElement.textContent = shortWeather;
                 cell.appendChild(weatherElement);
+
+                // 风力
+                if (dayData.wind) {
+                    const windElement = document.createElement('div');
+                    windElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
+                    windElement.textContent = dayData.wind || '--';
+                    cell.appendChild(windElement);
+                }
                 
                 // 温度范围
                 const tempRange = document.createElement('div');
@@ -3624,49 +3522,6 @@ function updateWeatherDisplay(weatherData) {
             // 深拷贝以避免修改原始数据
             todayData = JSON.parse(JSON.stringify(todayWeather));
             logStep(`使用todayWeather: ${JSON.stringify(todayData).substring(0, 60)}...`);
-        } else if (calendarWeather && calendarWeather.length > 0) {
-            // 从calendarWeather中提取今天的数据，增强字段提取
-            const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
-            
-            // 查找今天的数据
-            let todayCalendarData = calendarWeather[0]; // 默认使用第一天
-            
-            // 尝试根据日期查找今天的数据
-            for (let i = 0; i < calendarWeather.length; i++) {
-                const day = calendarWeather[i];
-                if (day && day.date) {
-                    let formattedDate = day.date;
-                    // 如果是YYYYMMDD格式，转换为YYYY-MM-DD
-                    if (typeof day.date === 'string' && day.date.length === 8) {
-                        formattedDate = `${day.date.substring(0, 4)}-${day.date.substring(4, 6)}-${day.date.substring(6, 8)}`;
-                    }
-                    if (formattedDate.startsWith(todayStr)) {
-                        todayCalendarData = day;
-                        break;
-                    }
-                }
-            }
-            
-            if (todayCalendarData) {
-                todayData = {
-                temperature: todayCalendarData.realTemp || todayCalendarData.temperature || todayCalendarData.temp || todayCalendarData.currentTemp || todayCalendarData.realTempMax,
-                weather: todayCalendarData.weather || todayCalendarData.weatherCondition || todayCalendarData.condition,
-                tempMin: todayCalendarData.realTempMin || todayCalendarData.tempMin || todayCalendarData.minTemp || todayCalendarData.lowTemp || todayCalendarData.historyTempMin,
-                tempMax: todayCalendarData.realTempMax || todayCalendarData.tempMax || todayCalendarData.maxTemp || todayCalendarData.highTemp || todayCalendarData.historyTempMax,
-                wind: todayCalendarData.wind,
-                windDirection: todayCalendarData.windDirection,
-                windForce: todayCalendarData.windForce,
-                humidity: todayCalendarData.humidity,
-                airQuality: todayCalendarData.airQuality || todayCalendarData.aqi,
-                // 移除feelsLike字段，体感温度不再显示
-                visibility: todayCalendarData.visibility || '10公里',
-                limit: todayCalendarData.limit || '不限行',
-                tips: todayCalendarData.tips || '今日天气良好，适合外出活动。',
-                time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-            };
-                logStep(`从calendarWeather创建todayData: ${JSON.stringify(todayData).substring(0, 60)}...`);
-            }
         }
         
         // 强制更新今日天气，即使数据不完整也显示
