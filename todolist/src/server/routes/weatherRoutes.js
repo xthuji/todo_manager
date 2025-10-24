@@ -78,7 +78,6 @@ function handleCache(cacheKey, data = null, options = {}) {
 // 接口级别响应缓存处理函数
 /**
  * 接口级别响应缓存处理函数，用于缓存整个API的响应结果
- * @param {string} endpoint - 接口名称
  * @param {string} clientIp - 客户端IP地址
  * @param {Object|null} responseData - 要缓存的响应数据，如果为null则执行读取操作
  * @returns {Object|null} 读取模式下返回缓存的响应数据，写入模式下返回null
@@ -680,7 +679,7 @@ router.get('/weather-info', async (req, res) => {
         todayWeather.lifeHelper = todayWeatherData?.lifeHelper || [];
         
         // 合并 mojiWeatherData?.calendarWeather， calendarAndHistoryWeatherData 数据，补全 calendarAndHistoryWeatherData 中 今天之前的实时天气数据
-        const calendarWeather = calendarAndHistoryWeatherData || [];
+        let calendarWeather = calendarAndHistoryWeatherData || [];
         if (mojiWeatherData?.calendarWeather) {
             if (!calendarWeather) {
                 calendarWeather = mojiWeatherData?.calendarWeather;
@@ -733,15 +732,11 @@ router.get('/weather-info', async (req, res) => {
             return data && !data.error && Object.keys(data).length > 0;
         };
         
-        // 检查所有获取到的数据是否都有效
-        // 如果没有提供mojiAreaCode，则跳过mojiWeatherData的检查
-        const shouldCache = 
-            (!mojiAreaCode || isValidData(mojiWeatherData)) && 
-            isValidData(todayWeatherData) && 
-            isValidData(todayDetailWeatherData) && 
-            isValidData(calendarAndHistoryWeatherData);
-        
-        if (shouldCache) {
+        // 检查所有获取到的数据是否都有效。如果没有提供mojiAreaCode，则跳过mojiWeatherData的检查
+        if ((!mojiAreaCode || isValidData(mojiWeatherData)) &&
+                todayWeatherData && todayWeatherData?.liveWeather && todayWeatherData?.hourlyWeather && todayWeatherData?.lifeHelper &&
+                todayDetailWeatherData &&
+                calendarAndHistoryWeatherData) {
             console.log('所有API结果数据完整，缓存天气数据');
             cacheWeatherInfo(weatherCode, mojiAreaCode, weatherData);
         } else {
