@@ -92,37 +92,6 @@ function selectOptionByValueOrText(selectElement, targetValue, targetText = '', 
     logStep(`警告: 未找到匹配选项: ${targetValue || cleanTargetText}`);
     return false;
 }
-
-function setupCascadingSelect(selectElement, value, text, onSelectCallback = null, delay = 0) {
-    if (!selectElement) {
-        logStep('错误: 选择框元素不存在');
-        return Promise.resolve(false);
-    }
-    
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const success = selectOptionByValueOrText(selectElement, value, text);
-            
-            if (success) {
-                // 强制触发DOM更新
-                selectElement.focus();
-                selectElement.blur();
-                
-                // 触发change事件
-                const event = new Event('change', { bubbles: true });
-                selectElement.dispatchEvent(event);
-                
-                // 执行回调
-                if (typeof onSelectCallback === 'function') {
-                    onSelectCallback();
-                }
-            }
-            
-            resolve(success);
-        }, delay);
-    });
-}
-
 // 数据缓存对象
 const dataCache = {
     fullAreaData: null,
@@ -430,64 +399,6 @@ function buildAreaMaps(areaData) {
 }
 
 // 在省份下直接查找区县（用于IP定位只有province和district的情况）
-function findDistrictInProvince(provinceName, districtName) {
-    logStep(`在省份下查找区县: ${provinceName}, ${districtName}`);
-    
-    // 预处理名称
-    const cleanProvince = provinceName.replace(/省$/, '').trim();
-    const cleanDistrict = districtName.replace(/[区县]$/, '').trim();
-    
-    // 优先使用完整区县信息映射
-    const mapKey = cleanProvince + '_' + cleanDistrict;
-    if (dataCache.fullDistrictMap[mapKey]) {
-        logStep(`通过完整区县映射找到区县: ${dataCache.fullDistrictMap[mapKey].districtName}`);
-        return dataCache.fullDistrictMap[mapKey];
-    }
-    
-    // 如果映射表中找不到，遍历原始数据查找
-    if (!dataCache.fullAreaData || !Array.isArray(dataCache.fullAreaData)) {
-        logStep('错误: 省市县数据尚未加载，无法查找区县');
-        return null;
-    }
-    
-    // 遍历省份
-    for (const province of dataCache.fullAreaData) {
-        if (!province || !province.name) continue;
-        
-        const pName = province.name.replace(/省$/, '').trim();
-        if (pName === cleanProvince) {
-            // 遍历该省份下的所有城市
-            if (province.children && Array.isArray(province.children)) {
-                for (const city of province.children) {
-                    if (!city || !city.children || !Array.isArray(city.children)) continue;
-                    
-                    // 遍历该城市下的所有区县
-                    for (const district of city.children) {
-                        if (!district || !district.name || !district.code) continue;
-                        
-                        const dName = district.name.replace(/[区县]$/, '').trim();
-                        // 支持多种匹配方式
-                        if (dName === cleanDistrict || district.name.includes(cleanDistrict) || cleanDistrict.includes(dName)) {
-                            logStep(`通过遍历找到区县: ${district.name}, ${district.code}`);
-                            return {
-                                code: district.code,
-                                mojiCode: district.mojiCode || '',
-                                provinceMojiCode: province.mojiCode || '',
-                                cityName: city.name,
-                                districtName: district.name
-                            };
-                        }
-                    }
-                }
-            }
-            break; // 找到对应省份后退出外层循环
-        }
-    }
-    
-    logStep(`未找到匹配的区县: ${cleanProvince}, ${cleanDistrict}`);
-    return null;
-}
-
 // 渲染省份选择框
 function renderProvinceSelect(areaData) {
     const provinceSelect = document.getElementById('province-select');
@@ -624,17 +535,6 @@ function handleProvinceChange() {
             }, 300); // 增加延迟时间到300ms
         }
         
-        // 辅助函数：获取中文拼音首字母（用于增强匹配）
-        function getPinyinFirstLetter(str) {
-            // 简单的拼音首字母匹配，实际应用中可以使用更完善的拼音库
-            const pinyinMap = {
-                '北京': 'BJ', '上海': 'SH', '广州': 'GZ', '深圳': 'SZ', '成都': 'CD',
-                '杭州': 'HZ', '南京': 'NJ', '武汉': 'WH', '西安': 'XA', '重庆': 'CQ',
-                '天津': 'TJ', '苏州': 'SZ', '郑州': 'ZZ', '长沙': 'CS', '东莞': 'DG',
-                '宁波': 'NB', '青岛': 'QD', '沈阳': 'SY', '大连': 'DL', '厦门': 'XM'
-            };
-            return pinyinMap[str] || str;
-        }
     } else {
         logStep('未找到对应省份的城市数据或数据格式不正确');
         logStep(`selectedProvince: ${selectedProvince ? '存在' : '不存在'}`);
@@ -694,7 +594,7 @@ function handleCityChange() {
         if (selectedCity && selectedCity.children && Array.isArray(selectedCity.children)) {
             logStep('开始渲染区县列表');
             // 创建文档片段以减少DOM操作
-            const fragment = document.createDocumentFragment();
+            document.createDocumentFragment();
             // 使用通用渲染函数渲染区县选择框
             renderSelectOptions(districtSelect, selectedCity.children, '请选择区县', 'code', 'name');
             logStep(`区县选择框渲染完成，城市: ${selectedCity.name}`);
@@ -831,18 +731,6 @@ async function quickRelocateByIp() {
         // 标记这是IP定位的结果
         dataCache.lastLocationSource = 'ip';
         
-        // 存储定位结果到sessionStorage
-        const locationToStore = {
-            ...locationData,
-            timestamp: new Date().getTime()
-        };
-        try {
-            // 不再保存定位结果到sessionStorage，避免缓存
-            logStep('不保存定位结果到sessionStorage，每次获取最新数据');
-        } catch (error) {
-            logStep(`警告: 无法保存定位结果到sessionStorage: ${error.message}`);
-        }
-        
         // 如果有weatherCode，直接尝试加载天气数据
         if (locationData.weatherCode) {
             logStep('IP定位已获取weatherCode，优先加载天气数据');
@@ -947,14 +835,6 @@ function processLocationSuccess(locationData, weatherAreaCodes) {
     
     // 标记这是IP定位的结果
     dataCache.lastLocationSource = 'ip';
-    
-    // 存储定位结果到sessionStorage
-    const locationToStore = {
-        ...locationData,
-        timestamp: new Date().getTime()
-    };
-    // 不再保存定位结果到sessionStorage，避免缓存
-    logStep('不保存定位结果到sessionStorage，每次获取最新数据');
     
     // 如果有weatherCode，直接尝试加载天气数据，提供更快的用户体验
     if (weatherCode) {
@@ -1083,9 +963,6 @@ function updateLocationUI(location) {
         
         // 确保DOM元素存在
         const provinceSelect = document.getElementById('province-select');
-        const citySelect = document.getElementById('city-select');
-        const districtSelect = document.getElementById('district-select');
-        
         if (!provinceSelect || !provinceSelect.options || provinceSelect.options.length <= 1) {
             if (attempt <= maxAttempts) {
                 logStep(`选择框尚未完全加载，${delay}ms后重试`);
@@ -1096,15 +973,15 @@ function updateLocationUI(location) {
                 logStep(`已达到最大重试次数，放弃自动匹配`);
                 // 显示手动选择提示
                 if (!weatherCode) {
-                    updateCityDisplay({ 
-                        name: fullCityName + ' (请手动选择确认)', 
-                        code: '自动匹配失败' 
+                    updateCityDisplay({
+                        name: fullCityName + ' (请手动选择确认)',
+                        code: '自动匹配失败'
                     });
                 }
             }
             return;
         }
-        
+
         // 执行匹配
         try {
             matchLocationSelect(province, city, district, dataCache.lastLocationSource === 'ip', location);
@@ -1114,14 +991,14 @@ function updateLocationUI(location) {
             // 即使匹配失败，如果有weatherCode也保持天气数据显示
             if (!weatherCode) {
                 logStep('匹配失败且无weatherCode，显示手动选择提示');
-                updateCityDisplay({ 
-                    name: fullCityName + ' (定位结果仅供参考)', 
-                    code: weatherCode || '请手动选择确认' 
+                updateCityDisplay({
+                    name: fullCityName + ' (定位结果仅供参考)',
+                    code: weatherCode || '请手动选择确认'
                 });
             }
         }
     };
-    
+
     // 数据已加载时才匹配选框，避免无效操作
     if (dataCache.fullAreaData) {
         // 使用更长的延迟并添加重试机制
@@ -1630,7 +1507,8 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
             logStep(`【错误】无效参数: districtInfo=${!!districtInfo}, provinceName=${provinceName}`);
             return;
         }
-        
+
+        let provinceSelect = document.getElementById('province-select');
         if (!provinceSelect) {
             console.log('【天气页面调试】【错误】省份选择框元素不存在，尝试重新获取');
             logStep(`【错误】省份选择框元素不存在，尝试重新获取`);
@@ -1735,7 +1613,8 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
             console.log('【天气页面调试】【错误】无效参数: districtInfo不存在');
             return;
         }
-        
+
+        let citySelect = document.getElementById('city-select');
         if (!citySelect) {
             console.log('【天气页面调试】【错误】城市选择框不存在，尝试重新获取');
             citySelect = document.getElementById('city-select');
@@ -2033,17 +1912,7 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
     } else {
         logStep(`未找到匹配的省份，且无法选择默认省份: ${cleanProvince}`);
     }
-    
-    // 区县代码查找函数已在上方定义，此处省略重复代码
-    
-    // 省份查找逻辑已在上方实现，此处省略重复代码
-    
-    // 区县代码查找函数已在上方定义，此处省略重复代码
-    // 省份查找逻辑已在上方实现，此处省略重复代码
-    // 城市查找逻辑已在上方实现，此处省略重复代码
-    
-    // 区县代码查找函数已在上方定义，此处省略重复代码
-    
+
     // 设置省份选择
     if (selectedProvinceCode) {
         logStep(`设置省份选择: ${selectedProvinceCode}`);
@@ -2568,28 +2437,18 @@ function updateTodayWeather(todayWeather) {
     }
     
     // 获取所有天气信息
-    const currentTemp = todayWeather.temperature || '--';
-    const weatherCond = todayWeather.weather || '--';
-    const minTemp = todayWeather.tempMin || '--';
-    const maxTemp = todayWeather.tempMax || '--';
-    const humidityInfo = todayWeather.humidity || '--';
-    const airQuality = todayWeather.airQuality || '--';
-    const windInfo = todayWeather.wind || '--';
-    const visibilityInfo = todayWeather.visibility || '--';
-    const limitInfo = todayWeather.limit || '--';
-    const tips = todayWeather.tips || '暂无提示';
     const time = todayWeather.time || '--:--';
     
     // 更新today-weather-section中的元素，包括实时温度
-    safeUpdate('current-temp', currentTemp, '°C');
-    safeUpdate('weather-condition', weatherCond);
-    safeUpdate('temp-range', `${minTemp}°C / ${maxTemp}°C`);
-    safeUpdate('humidity-info', humidityInfo);
-    safeUpdate('air-quality', airQuality);
-    safeUpdate('wind-info', windInfo);
-    safeUpdate('visibility-info', visibilityInfo);
-    safeUpdate('traffic-restriction', limitInfo);
-    safeUpdate('weather-tips', tips);
+    safeUpdate('current-temp', todayWeather.temperature || '--', '°C');
+    safeUpdate('weather-condition', todayWeather.weather || '--');
+    safeUpdate('temp-range', `${(todayWeather.tempMin || '--')}°C / ${(todayWeather.tempMax || '--')}°C`);
+    safeUpdate('humidity-info', todayWeather.humidity || '--');
+    safeUpdate('air-quality', todayWeather.airQuality || '--');
+    safeUpdate('wind-info', todayWeather.wind || '--');
+    safeUpdate('visibility-info', todayWeather.visibility || '--');
+    safeUpdate('traffic-restriction', todayWeather.limit || '--');
+    safeUpdate('weather-tips', todayWeather.tips || '暂无提示');
     
 
     
@@ -2644,23 +2503,23 @@ function updateTodayWeather(todayWeather) {
         </div>
         <div class="extra-info-item">
             <div class="extra-info-label">能见度</div>
-            <div class="extra-info-value">${visibilityInfo}</div>
+            <div class="extra-info-value">${(todayWeather.visibility || '--')}</div>
         </div>
         <div class="extra-info-item">
             <div class="extra-info-label">限行提示</div>
-            <div class="extra-info-value">${limitInfo}</div>
+            <div class="extra-info-value">${(todayWeather.limit || '--')}</div>
         </div>
         <div class="extra-info-item">
             <div class="extra-info-label">今日提示</div>
-            <div class="extra-info-value">${tips}</div>
+            <div class="extra-info-value">${(todayWeather.tips || '暂无提示')}</div>
         </div>
     `;
     
     // 更新天气图标
     const weatherIcon = document.getElementById('weather-icon');
-    if (weatherIcon && weatherCond) {
+    if (weatherIcon && (todayWeather.weather || '--')) {
         let iconClass = 'default-weather-icon';
-        const condition = weatherCond.toLowerCase();
+        const condition = (todayWeather.weather || '--').toLowerCase();
         
         if (condition.includes('晴')) iconClass = 'sunny-icon';
         else if (condition.includes('云')) iconClass = 'cloudy-icon';
@@ -2688,7 +2547,7 @@ function updateTodayWeather(todayWeather) {
         // 移除所有可能的背景色类
         leftWeatherArea.className = leftWeatherArea.className.replace(/bg-[\w-]+/g, '').trim();
         // 添加根据天气状况的背景色类
-        leftWeatherArea.className += ' ' + getWeatherBgColor(weatherCond);
+        leftWeatherArea.className += ' ' + getWeatherBgColor(todayWeather.weather || '--');
     }
 }
 
@@ -2898,13 +2757,6 @@ function updateCalendarWeather(calendarWeather) {
         return `${year}-${month}-${day}`;
     }
     
-    // 获取星期几索引（0=周日，1=周一...）
-    function getWeekDayIndex(dateStr) {
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return -1;
-        return date.getDay();
-    }
-    
     // 创建星期标题行（周一到周日）
     const weekHeader = document.createElement('div');
     weekHeader.className = 'flex justify-between mb-2';
@@ -2944,8 +2796,6 @@ function updateCalendarWeather(calendarWeather) {
     let firstDayOfMonth = 0;
     if (firstDay) {
         firstDayOfMonth = firstDay.getDay();
-        // 调整索引：周日为6，其他星期减1
-        firstDayOfMonth = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
     }
     
     // 计算当月有多少天
