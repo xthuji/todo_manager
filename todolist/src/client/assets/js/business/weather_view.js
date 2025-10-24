@@ -3213,8 +3213,8 @@ function updateCalendarWeather(calendarWeather) {
                 // 温度范围
                 const tempRange = document.createElement('div');
                 tempRange.className = 'text-xs';
-                const maxTemp = dayData.tempMax || dayData.realTempMax || dayData.historyTempMax || '--';
-                const minTemp = dayData.tempMin || dayData.realTempMin || dayData.historyTempMin || '--';
+                const maxTemp = dayData.tempMax || dayData.realTempMax || '--';
+                const minTemp = dayData.tempMin || dayData.realTempMin || '--';
                 tempRange.innerHTML = `<span class="text-gray-700">${minTemp}</span> / <span class="text-gray-900">${maxTemp}°C</span>`;
                 cell.appendChild(tempRange);
             } else {
@@ -3336,7 +3336,25 @@ function draw24HourChart(hourlyData) {
                             return label;
                         },
                         label: function(context) {
-                            return `${context.parsed.y || '--'}°C`;
+                            // 获取当前数据点的索引
+                            const index = context.dataIndex;
+                            // 获取对应的小时数据
+                            const hourData = hourlyData[index];
+                            
+                            // 基础温度信息
+                            let tooltipContent = `${context.parsed.y || '--'}°C`;
+                            
+                            // 添加天气状况信息
+                            if (hourData && hourData.weather) {
+                                tooltipContent += `\t${hourData.weather.trim()}`;
+                            }
+                            
+                            // 添加风力风向信息
+                            if (hourData) {
+                                tooltipContent += `\t${hourData.wind.trim()}`;
+                            }
+                            
+                            return tooltipContent;
                         }
                     }
                 }

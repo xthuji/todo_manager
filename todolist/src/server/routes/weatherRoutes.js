@@ -9,7 +9,7 @@ const path = require('path');
 
 const router = express.Router();
 
-const USE_MOCK = true;
+const USE_MOCK = false;
 const USE_CACHE = true;
 const BASE_DIR = path.join(__dirname, '../../../');
 const CACHE_DIR = path.join(BASE_DIR, 'cache');
@@ -83,11 +83,11 @@ function handleCache(cacheKey, data = null, options = {}) {
  * @param {Object|null} responseData - 要缓存的响应数据，如果为null则执行读取操作
  * @returns {Object|null} 读取模式下返回缓存的响应数据，写入模式下返回null
  */
-function cacheApiResponse(endpoint, clientIp, responseData = null) {
-    const cacheKey = `${endpoint}_${clientIp}`.replaceAll(':', "_");
+function cacheIpLocation(clientIp, responseData = null) {
+    const cacheKey = `${clientIp}`.replaceAll(':', "_");
     const defaultOptions = {
-        cachePrefix: 'api_',
-        ttl: 15 * 60 * 1000, // 15分钟缓存
+        cachePrefix: 'ip_',
+        ttl: 30 * 60 * 1000, // 30分钟缓存
         cacheDir: CACHE_DIR,
         extension: 'json'
     };
@@ -286,7 +286,7 @@ router.get('/ip-location-area', async (req, res) => {
         console.log('接收到IP位置信息请求，客户端IP:', clientIp);
         
         // 尝试从接口级缓存获取结果
-        const cachedAddressData = cacheApiResponse('ip-location-area', clientIp);
+        const cachedAddressData = cacheIpLocation(clientIp);
         if (cachedAddressData) {
             console.log('使用接口级缓存的位置信息响应');
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -322,7 +322,7 @@ router.get('/ip-location-area', async (req, res) => {
         console.log('返回完整的位置数据:', addressData.toString());
         
         // 将最终响应数据缓存到接口级缓存
-        cacheApiResponse('ip-location-area', clientIp, addressData);
+        cacheIpLocation(clientIp, addressData);
         
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.status(200).json({
@@ -352,11 +352,7 @@ router.get('/weather-area-codes', async (req, res) => {
         if (fs.existsSync(AREA_CODES_FILE)) {
             const areaCodesContent = fs.readFileSync(AREA_CODES_FILE, 'utf-8');
             areaCodesData = JSON.parse(areaCodesContent);
-            
-            // 确保返回的数据格式符合merged_tianqi_moji_area_codes.json的结构要求
-            // 省份（第一级）有mojiCode，没有code
-            // 城市（第二级）没有code和mojiCode
-            // 区县（第三级/叶子节点）有code和mojiCode
+            // 省份（第一级）有mojiCode，没有code, 城市（第二级）没有code和mojiCode, 区县（第三级/叶子节点）有code和mojiCode
             return res.status(200).json({
                 timestamp: areaCodesData.timestamp,
                 data: areaCodesData.data
