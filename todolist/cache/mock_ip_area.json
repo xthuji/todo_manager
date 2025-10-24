@@ -1,0 +1,576 @@
+{
+    "data": {
+        "province": "浙江",
+        "city": "杭州",
+        "district": "萧山",
+        "code": "101210102",
+        "provinceMojiCode": "zhejiang",
+        "districtMojiCode": "xiaoshan-district"
+    },
+    "weatherAreaCodes": {
+        "timestamp": 1761201294378,
+        "data": [
+            {
+                "name": "浙江",
+                "children": [
+                    {
+                        "name": "杭州",
+                        "children": [
+                            {
+                                "name": "杭州",
+                                "code": "101210101",
+                                "mojiCode": "hangzhou"
+                            },
+                            {
+                                "name": "萧山",
+                                "code": "101210102",
+                                "mojiCode": "xiaoshan-district"
+                            },
+                            {
+                                "name": "桐庐",
+                                "code": "101210103",
+                                "mojiCode": "tonglu-county"
+                            },
+                            {
+                                "name": "淳安",
+                                "code": "101210104",
+                                "mojiCode": "chunan-county"
+                            },
+                            {
+                                "name": "建德",
+                                "code": "101210105",
+                                "mojiCode": "jiande"
+                            },
+                            {
+                                "name": "余杭",
+                                "code": "101210106",
+                                "mojiCode": "yuhang-district"
+                            },
+                            {
+                                "name": "临安",
+                                "code": "101210107",
+                                "mojiCode": "linanqu"
+                            },
+                            {
+                                "name": "富阳",
+                                "code": "101210108",
+                                "mojiCode": "fuyang-district"
+                            },
+                            {
+                                "name": "上城",
+                                "code": "101210109",
+                                "mojiCode": "shangcheng-district"
+                            },
+                            {
+                                "name": "下城",
+                                "code": "101210110",
+                                "mojiCode": "xiacheng-district"
+                            },
+                            {
+                                "name": "江干",
+                                "code": "101210111",
+                                "mojiCode": "jianggan-district"
+                            },
+                            {
+                                "name": "拱墅",
+                                "code": "101210112",
+                                "mojiCode": "gongshu-district"
+                            },
+                            {
+                                "name": "西湖",
+                                "code": "101210113",
+                                "mojiCode": "west-lake"
+                            },
+                            {
+                                "name": "滨江",
+                                "code": "101210114",
+                                "mojiCode": "binjiang-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "湖州",
+                        "children": [
+                            {
+                                "name": "湖州",
+                                "code": "101210201",
+                                "mojiCode": "huzhou"
+                            },
+                            {
+                                "name": "长兴",
+                                "code": "101210202",
+                                "mojiCode": "changxing-county"
+                            },
+                            {
+                                "name": "安吉",
+                                "code": "101210203",
+                                "mojiCode": "anji-county"
+                            },
+                            {
+                                "name": "德清",
+                                "code": "101210204",
+                                "mojiCode": "deqing-county"
+                            },
+                            {
+                                "name": "吴兴",
+                                "code": "101210205",
+                                "mojiCode": "wuxing-district"
+                            },
+                            {
+                                "name": "南浔",
+                                "code": "101210206",
+                                "mojiCode": "nanxun-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "嘉兴",
+                        "children": [
+                            {
+                                "name": "嘉兴",
+                                "code": "101210301",
+                                "mojiCode": "jiaxing"
+                            },
+                            {
+                                "name": "嘉善",
+                                "code": "101210302",
+                                "mojiCode": "jiashan-county"
+                            },
+                            {
+                                "name": "海宁",
+                                "code": "101210303",
+                                "mojiCode": "haining"
+                            },
+                            {
+                                "name": "桐乡",
+                                "code": "101210304",
+                                "mojiCode": "tongxiang"
+                            },
+                            {
+                                "name": "平湖",
+                                "code": "101210305",
+                                "mojiCode": "pinghu"
+                            },
+                            {
+                                "name": "海盐",
+                                "code": "101210306",
+                                "mojiCode": "haiyan-county"
+                            },
+                            {
+                                "name": "南湖",
+                                "code": "101210307",
+                                "mojiCode": "nanhu-district"
+                            },
+                            {
+                                "name": "秀洲",
+                                "code": "101210308",
+                                "mojiCode": "xiuzhou-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "宁波",
+                        "children": [
+                            {
+                                "name": "宁波",
+                                "code": "101210401",
+                                "mojiCode": "ningbo"
+                            },
+                            {
+                                "name": "海曙",
+                                "code": "101210402",
+                                "mojiCode": "haishu-district"
+                            },
+                            {
+                                "name": "慈溪",
+                                "code": "101210403",
+                                "mojiCode": "cixi"
+                            },
+                            {
+                                "name": "余姚",
+                                "code": "101210404",
+                                "mojiCode": "yuyao"
+                            },
+                            {
+                                "name": "奉化",
+                                "code": "101210405",
+                                "mojiCode": "fenghua-district"
+                            },
+                            {
+                                "name": "象山",
+                                "code": "101210406",
+                                "mojiCode": "xiangshan-county"
+                            },
+                            {
+                                "name": "宁海",
+                                "code": "101210408",
+                                "mojiCode": "ninghai-county"
+                            },
+                            {
+                                "name": "江北",
+                                "code": "101210409",
+                                "mojiCode": "jiangbei-district"
+                            },
+                            {
+                                "name": "北仑",
+                                "code": "101210410",
+                                "mojiCode": "beilun-district"
+                            },
+                            {
+                                "name": "鄞州",
+                                "code": "101210411",
+                                "mojiCode": "yinzhou-district"
+                            },
+                            {
+                                "name": "镇海",
+                                "code": "101210412",
+                                "mojiCode": "zhenhai-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "绍兴",
+                        "children": [
+                            {
+                                "name": "越城",
+                                "code": "101210501",
+                                "mojiCode": "yuecheng-district"
+                            },
+                            {
+                                "name": "诸暨",
+                                "code": "101210502",
+                                "mojiCode": "zhuji"
+                            },
+                            {
+                                "name": "上虞",
+                                "code": "101210503",
+                                "mojiCode": "shangyu-district"
+                            },
+                            {
+                                "name": "新昌",
+                                "code": "101210504",
+                                "mojiCode": "xinchang-county"
+                            },
+                            {
+                                "name": "嵊州",
+                                "code": "101210505",
+                                "mojiCode": "shengzhou"
+                            },
+                            {
+                                "name": "柯桥",
+                                "code": "101210506",
+                                "mojiCode": "keqiao-district"
+                            },
+                            {
+                                "name": "绍兴",
+                                "code": "101210507",
+                                "mojiCode": "shaoxing"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "台州",
+                        "children": [
+                            {
+                                "name": "台州",
+                                "code": "101210601",
+                                "mojiCode": "taizhou"
+                            },
+                            {
+                                "name": "玉环",
+                                "code": "101210603",
+                                "mojiCode": "yuhuan-county"
+                            },
+                            {
+                                "name": "三门",
+                                "code": "101210604",
+                                "mojiCode": "sanmen-county"
+                            },
+                            {
+                                "name": "天台",
+                                "code": "101210605",
+                                "mojiCode": "tiantai-county"
+                            },
+                            {
+                                "name": "仙居",
+                                "code": "101210606",
+                                "mojiCode": "xianju-county"
+                            },
+                            {
+                                "name": "温岭",
+                                "code": "101210607",
+                                "mojiCode": "wenling"
+                            },
+                            {
+                                "name": "临海",
+                                "code": "101210610",
+                                "mojiCode": "linhai"
+                            },
+                            {
+                                "name": "椒江",
+                                "code": "101210611",
+                                "mojiCode": "jiaojiang-district"
+                            },
+                            {
+                                "name": "黄岩",
+                                "code": "101210612",
+                                "mojiCode": "huangyan-district"
+                            },
+                            {
+                                "name": "路桥",
+                                "code": "101210613",
+                                "mojiCode": "luqiao-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "温州",
+                        "children": [
+                            {
+                                "name": "温州",
+                                "code": "101210701",
+                                "mojiCode": "wenzhou"
+                            },
+                            {
+                                "name": "泰顺",
+                                "code": "101210702",
+                                "mojiCode": "taishun-county"
+                            },
+                            {
+                                "name": "文成",
+                                "code": "101210703",
+                                "mojiCode": "wencheng-county"
+                            },
+                            {
+                                "name": "平阳",
+                                "code": "101210704",
+                                "mojiCode": "pingyang-county"
+                            },
+                            {
+                                "name": "瑞安",
+                                "code": "101210705",
+                                "mojiCode": "rui'an"
+                            },
+                            {
+                                "name": "洞头",
+                                "code": "101210706",
+                                "mojiCode": "dongtou-district"
+                            },
+                            {
+                                "name": "乐清",
+                                "code": "101210707",
+                                "mojiCode": "yueqing"
+                            },
+                            {
+                                "name": "永嘉",
+                                "code": "101210708",
+                                "mojiCode": "yongjia-county"
+                            },
+                            {
+                                "name": "苍南",
+                                "code": "101210709",
+                                "mojiCode": "cangnan-county"
+                            },
+                            {
+                                "name": "鹿城",
+                                "code": "101210710",
+                                "mojiCode": "lucheng-district"
+                            },
+                            {
+                                "name": "龙湾",
+                                "code": "101210711",
+                                "mojiCode": "longwan-district"
+                            },
+                            {
+                                "name": "瓯海",
+                                "code": "101210712",
+                                "mojiCode": "ouhai-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "丽水",
+                        "children": [
+                            {
+                                "name": "丽水",
+                                "code": "101210801",
+                                "mojiCode": "lishui"
+                            },
+                            {
+                                "name": "遂昌",
+                                "code": "101210802",
+                                "mojiCode": "suichang-county"
+                            },
+                            {
+                                "name": "龙泉",
+                                "code": "101210803",
+                                "mojiCode": "longquan"
+                            },
+                            {
+                                "name": "缙云",
+                                "code": "101210804",
+                                "mojiCode": "jinyun-county"
+                            },
+                            {
+                                "name": "青田",
+                                "code": "101210805",
+                                "mojiCode": "qingtian-county"
+                            },
+                            {
+                                "name": "云和",
+                                "code": "101210806",
+                                "mojiCode": "yunhe-county"
+                            },
+                            {
+                                "name": "庆元",
+                                "code": "101210807",
+                                "mojiCode": "qingyuan-county"
+                            },
+                            {
+                                "name": "松阳",
+                                "code": "101210808",
+                                "mojiCode": "songyang-county"
+                            },
+                            {
+                                "name": "景宁",
+                                "code": "101210809",
+                                "mojiCode": "jingning-she-autonomous-county"
+                            },
+                            {
+                                "name": "莲都",
+                                "code": "101210810",
+                                "mojiCode": "liandu-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "金华",
+                        "children": [
+                            {
+                                "name": "金华",
+                                "code": "101210901",
+                                "mojiCode": "jinhua"
+                            },
+                            {
+                                "name": "浦江",
+                                "code": "101210902",
+                                "mojiCode": "pujiang-county"
+                            },
+                            {
+                                "name": "兰溪",
+                                "code": "101210903",
+                                "mojiCode": "lanxi"
+                            },
+                            {
+                                "name": "义乌",
+                                "code": "101210904",
+                                "mojiCode": "yiwu"
+                            },
+                            {
+                                "name": "东阳",
+                                "code": "101210905",
+                                "mojiCode": "dongyang"
+                            },
+                            {
+                                "name": "武义",
+                                "code": "101210906",
+                                "mojiCode": "wuyi-county"
+                            },
+                            {
+                                "name": "永康",
+                                "code": "101210907",
+                                "mojiCode": "yongkang"
+                            },
+                            {
+                                "name": "磐安",
+                                "code": "101210908",
+                                "mojiCode": "pan'an-county"
+                            },
+                            {
+                                "name": "婺城",
+                                "code": "101210909",
+                                "mojiCode": "wuchengdistrict"
+                            },
+                            {
+                                "name": "金东",
+                                "code": "101210910",
+                                "mojiCode": "jindong-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "衢州",
+                        "children": [
+                            {
+                                "name": "衢州",
+                                "code": "101211001",
+                                "mojiCode": "quzhou"
+                            },
+                            {
+                                "name": "常山",
+                                "code": "101211002",
+                                "mojiCode": "changshan-county"
+                            },
+                            {
+                                "name": "开化",
+                                "code": "101211003",
+                                "mojiCode": "kaihua-county"
+                            },
+                            {
+                                "name": "龙游",
+                                "code": "101211004",
+                                "mojiCode": "longyou-county"
+                            },
+                            {
+                                "name": "江山",
+                                "code": "101211005",
+                                "mojiCode": "jiangshan-city"
+                            },
+                            {
+                                "name": "衢江",
+                                "code": "101211006",
+                                "mojiCode": "qujiang-district"
+                            },
+                            {
+                                "name": "柯城",
+                                "code": "101211007",
+                                "mojiCode": "kecheng-district"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "舟山",
+                        "children": [
+                            {
+                                "name": "舟山",
+                                "code": "101211101",
+                                "mojiCode": "zhoushan"
+                            },
+                            {
+                                "name": "嵊泗",
+                                "code": "101211102",
+                                "mojiCode": "shengsi-county"
+                            },
+                            {
+                                "name": "岱山",
+                                "code": "101211104",
+                                "mojiCode": "daishan-county"
+                            },
+                            {
+                                "name": "普陀",
+                                "code": "101211105",
+                                "mojiCode": "putuo-district"
+                            },
+                            {
+                                "name": "定海",
+                                "code": "101211106",
+                                "mojiCode": "dinghai-district"
+                            }
+                        ]
+                    }
+                ],
+                "mojiCode": "zhejiang"
+            }
+        ]
+    }
+}

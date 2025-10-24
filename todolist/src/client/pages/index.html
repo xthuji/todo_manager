@@ -134,6 +134,12 @@
                 <i class="fa fa-calendar text-white"></i>
                 <span class="sidebar-btn-text">日历视图</span>
             </div>
+            
+            <!-- 天气页面按钮 -->
+            <div class="sidebar-btn bg-amber-500 hover:bg-amber-600 page-button" data-page="weather">
+                <i class="fa fa-cloud text-white"></i>
+                <span class="sidebar-btn-text">天气查询</span>
+            </div>
         </div>
 
     <!-- 主内容区域 -->
@@ -175,6 +181,18 @@
                     onload="onIframeLoaded('calendar')"
                 ></iframe>
             </div>
+            
+            <!-- 天气查询页面 -->
+            <div class="page-content" id="page-weather">
+                <!-- 使用iframe加载weather_view.html -->
+                <iframe 
+                    id="weather-view-iframe"
+                    src="/src/client/pages/weather_view.html" 
+                    class="w-full h-screen border-0"
+                    title="天气查询"
+                    onload="onIframeLoaded('weather')"
+                ></iframe>
+            </div>
         </div>
     </div>
 
@@ -191,6 +209,8 @@
                     iframe = document.getElementById('festival-manager-iframe');
                 } else if (pageType === 'calendar') {
                     iframe = document.getElementById('calendar-view-iframe');
+                } else if (pageType === 'weather') {
+                    iframe = document.getElementById('weather-view-iframe');
                 }
                 
                 if (iframe && iframe.contentWindow && iframe.contentWindow.postMessage) {

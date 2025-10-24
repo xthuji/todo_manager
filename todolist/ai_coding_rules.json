@@ -58,6 +58,11 @@
       "path": "/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/data/",
       "file_types": ["json", "txt", "config"]
     },
+    "data_scripts": {
+      "description": "所有数据文件的处理脚本都应该放在此目录",
+      "path": "/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/src/server/data_scripts/",
+      "file_pattern": "*.js"
+    },
     "logs_directory": {
       "description": "所有日志输出都应该放在此目录",
       "path": "/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/logs/"
