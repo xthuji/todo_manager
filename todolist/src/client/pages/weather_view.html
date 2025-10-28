@@ -416,18 +416,21 @@
                         <div class="grid grid-cols-5 gap-4 mb-4 items-center h-full">
                             <!-- 天气气温 - 左侧 -->
                             <div class="col-span-3 flex flex-col items-center justify-center w-full h-full">
-                                <div id="weather-icon" class="text-6xl mb-2 default-weather-icon">
-                                    <i class="fa fa-cloud"></i>
+                                <!-- 天气和温度信息作为一个整体，在tips上方空白处居中显示 -->
+                                <div class="flex flex-col items-center justify-center flex-grow">
+                                    <div id="weather-icon" class="text-6xl mb-2 default-weather-icon">
+                                        <i class="fa fa-cloud"></i>
+                                    </div>
+                                    <div id="weather-condition" class="text-xl text-gray-600"><!-- --></div>
+                                    <div id="current-temp" class="text-4xl font-bold text-gray-800 mt-1"><!-- --></div>
+                                    <div id="temp-range" class="text-gray-500 mt-1"><!-- --></div>
                                 </div>
-                                <div id="weather-condition" class="text-xl text-gray-600"><!-- --></div>
-                                <div id="current-temp" class="text-4xl font-bold text-gray-800 mt-1"><!-- --></div>
-                                <div id="temp-range" class="text-gray-500 mt-1"><!-- --></div>
                                 
-                                <!-- 天气提示 - 移动到天气和温度的正下方 -->
-                                <div class="w-full mt-4 flex justify-center">
-                                    <div class="flex items-center bg-blue-50 border-l-4 border-blue-400 p-3 rounded w-full">
+                                <!-- 天气提示 - 移动到天气和温度的正下方，并靠底部显示，Tips与内容显示在同一行 -->
+                                <div class="w-full mt-auto">
+                                    <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded w-full">
                                         <span class="text-gray-500 text-sm mr-2">Tips:</span>
-                                        <div id="weather-tips" class="text-gray-700 text-sm flex-grow">--</div>
+                                          <span id="weather-tips" class="text-gray-700 text-sm">--</span>
                                     </div>
                                 </div>
                             </div>

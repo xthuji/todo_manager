@@ -3966,10 +3966,61 @@ function updateRecentDaysWeather(recentDaysWeather) {
     }
     container.style.display = 'block';
     
+    // 创建一个相对定位的容器作为表格和滚动提示的父元素
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'relative';
+    
     // 创建横向表格容器，添加高度限制和垂直滚动
     // 根据右侧24小时天气区域的整体高度调整表格高度
     const tableContainer = document.createElement('div');
     tableContainer.className = 'overflow-x-auto overflow-y-auto h-80 scrollbar-thin';
+    
+    // 创建向下滚动提示箭头（悬浮在滚动条区域底部）
+    const downArrow = document.createElement('div');
+    downArrow.className = 'absolute right-0 bottom-0 z-10 bg-white/80 p-1 rounded-t-full shadow-sm cursor-pointer transition-opacity duration-300';
+    downArrow.innerHTML = '⬇';
+    downArrow.style.opacity = '0.7';
+    
+    // 创建向上滚动提示箭头（悬浮在滚动条区域顶部）
+    const upArrow = document.createElement('div');
+    upArrow.className = 'absolute right-0 top-0 z-10 bg-white/80 p-1 rounded-b-full shadow-sm cursor-pointer transition-opacity duration-300';
+    upArrow.innerHTML = '⬆';
+    upArrow.style.opacity = '0.7';
+    upArrow.style.display = 'none'; // 初始隐藏
+    
+    // 添加滚动监听事件，控制箭头图标的显示/隐藏
+    tableContainer.addEventListener('scroll', function() {
+        // 检查是否可以向下滚动（是否有内容被遮挡）
+        const canScrollDown = tableContainer.scrollHeight > tableContainer.clientHeight && 
+                              tableContainer.scrollTop < tableContainer.scrollHeight - tableContainer.clientHeight - 1;
+        
+        // 检查是否可以向上滚动（是否已经滚动过）
+        const canScrollUp = tableContainer.scrollTop > 0;
+        
+        // 更新箭头显示状态
+        downArrow.style.display = canScrollDown ? 'block' : 'none';
+        upArrow.style.display = canScrollUp ? 'block' : 'none';
+    });
+    
+    // 添加点击事件，点击向下箭头滚动到底部
+    downArrow.addEventListener('click', function() {
+        tableContainer.scrollBy({ top: 100, behavior: 'smooth' });
+    });
+    
+    // 添加点击事件，点击向上箭头滚动到顶部
+    upArrow.addEventListener('click', function() {
+        tableContainer.scrollBy({ top: -100, behavior: 'smooth' });
+    });
+    
+    // 将箭头添加到包装器中
+    tableWrapper.appendChild(downArrow);
+    tableWrapper.appendChild(upArrow);
+    
+    // 初始检查是否需要显示向下箭头
+    setTimeout(function() {
+        const canScrollDown = tableContainer.scrollHeight > tableContainer.clientHeight;
+        downArrow.style.display = canScrollDown ? 'block' : 'none';
+    }, 100);
     
     // 创建表格 - 优化样式
     const table = document.createElement('table');
@@ -4076,9 +4127,12 @@ function updateRecentDaysWeather(recentDaysWeather) {
     // 添加表格到容器
     tableContainer.appendChild(table);
     
-    // 清空容器并添加新的表格
+    // 清空容器并添加新的表格到包装器
     container.innerHTML = '';
-    container.appendChild(tableContainer);
+    // 将表格容器添加到包装器中
+    tableWrapper.appendChild(tableContainer);
+    // 将包装器添加到主容器
+    container.appendChild(tableWrapper);
     
     // 添加响应式调整，在小屏幕上优化显示
     adjustTableResponsive();
