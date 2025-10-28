@@ -3966,9 +3966,10 @@ function updateRecentDaysWeather(recentDaysWeather) {
     }
     container.style.display = 'block';
     
-    // 创建横向表格容器
+    // 创建横向表格容器，添加高度限制和垂直滚动
+    // 根据右侧24小时天气区域的整体高度调整表格高度
     const tableContainer = document.createElement('div');
-    tableContainer.className = 'overflow-x-auto scrollbar-thin';
+    tableContainer.className = 'overflow-x-auto overflow-y-auto h-80 scrollbar-thin';
     
     // 创建表格 - 优化样式
     const table = document.createElement('table');
@@ -4046,7 +4047,7 @@ function updateRecentDaysWeather(recentDaysWeather) {
                     <!-- 第一行：天气图标和文字 -->
                     <div class="flex items-center space-x-2 mb-1">
                         <div class="text-sm">${iconText}</div>
-                        <div class="text-[9px] truncate max-w-[45px]">${weather}</div>
+                        <div class="text-sx truncate">${weather}</div>
                     </div>
                     <!-- 第二行：最低/最高温度 -->
                     <div class="flex items-center space-x-2 text-sx">
