@@ -52,6 +52,9 @@
             .sidebar-btn.todo {
                 @apply bg-blue-500 hover:bg-blue-600;
             }
+            .sidebar-btn.weather {
+                @apply bg-sky-500 hover:bg-sky-600;
+            }
             .sidebar-btn.festival {
                 @apply bg-green-500 hover:bg-green-600;
             }
@@ -123,10 +126,10 @@
                 <span class="sidebar-btn-text">任务管理器</span>
             </div>
             
-            <!-- 节日管理按钮 -->
-            <div class="sidebar-btn festival page-button" data-page="festival">
-                <i class="fa fa-calendar-plus-o text-white"></i>
-                <span class="sidebar-btn-text">节日管理</span>
+            <!-- 天气页面按钮 -->
+            <div class="sidebar-btn weather page-button" data-page="weather">
+                <i class="fa fa-cloud text-white"></i>
+                <span class="sidebar-btn-text">天气查询</span>
             </div>
             
             <!-- 日历视图按钮 -->
@@ -135,10 +138,10 @@
                 <span class="sidebar-btn-text">日历视图</span>
             </div>
             
-            <!-- 天气页面按钮 -->
-            <div class="sidebar-btn bg-amber-500 hover:bg-amber-600 page-button" data-page="weather">
-                <i class="fa fa-cloud text-white"></i>
-                <span class="sidebar-btn-text">天气查询</span>
+            <!-- 节日管理按钮 -->
+            <div class="sidebar-btn festival page-button" data-page="festival">
+                <i class="fa fa-calendar-plus-o text-white"></i>
+                <span class="sidebar-btn-text">节日管理</span>
             </div>
         </div>
 

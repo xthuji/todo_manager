@@ -57,7 +57,7 @@
         <header class="mb-8 flex flex-col md:flex-row items-start md:items-center">
             <div class="flex-1 flex flex-col justify-center items-center mb-4 md:mb-0">
                 <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-gray-800 mb-2">节日管理</h1>
-                <p class="text-gray-600 text-center">管理系统中的所有节日和节气信息</p>
+                <p class="text-gray-600 text-center md:text-left">管理系统中的所有节日和节气信息</p>
             </div>
             
 
@@ -75,15 +75,12 @@
             
             <div class="space-y-4">
                 <!-- API地址设置和刷新按钮 -->
-                <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                <div class="flex flex-col md:flex-row gap-4 items-start md:items-center text-sm">
                     <label for="holiday-api-url" class="md:w-20 text-gray-700 font-medium">API地址：</label>
                     <div class="flex-grow flex gap-3 flex-col sm:flex-row">
-                        <input type="text" id="holiday-api-url" class="form-input flex-grow bg-gray-50 border-gray-200 focus:bg-white transition-colors duration-200"
-                               placeholder="请输入节假日API地址" 
-                               value="https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json">
-                        <button id="btn-refresh-holiday-cache" class="btn-secondary whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105"
-                                onclick="refreshHolidayCache()">
-                            <i class="fa fa-refresh mr-1.5"></i> 刷新节假日缓存
+                        <input type="text" id="holiday-api-url" class="form-input flex-grow bg-gray-50 border-gray-200 focus:bg-white transition-colors duration-200 text-sm" placeholder="请输入节假日API地址" value="https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json">
+                        <button id="btn-refresh-holiday-cache" class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 text-sm flex items-center gap-2 shadow-md hover:shadow-lg active:shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 group" onclick="refreshHolidayCache()">
+                            <i class="fa fa-refresh mr-1.5 transition-transform duration-300 group-hover:rotate-180"></i> 刷新节假日缓存
                         </button>
                     </div>
                 </div>
