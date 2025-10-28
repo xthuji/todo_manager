@@ -3865,13 +3865,13 @@ function drawWeatherTrendChart(dailyData) {
     });
 }
 
-// 更新近7日天气横向卡片
+// 更新近几日天气横向卡片
 function updateRecentDaysWeather(recentDaysWeather) {
     const container = document.getElementById('recent-days-weather');
     const recentDaysSection = container ? container.closest('[id$="recent-days-section"]') || container.closest('.recent-days-section') : null;
     
     if (!container) {
-        logStep('错误: 近7日天气容器元素不存在');
+        logStep('错误: 近日天气容器元素不存在');
         return;
     }
     
@@ -3880,7 +3880,7 @@ function updateRecentDaysWeather(recentDaysWeather) {
         if (recentDaysSection) {
             recentDaysSection.style.display = 'none';
         } else {
-            container.innerHTML = '<div class="no-data-message">暂无近7日天气数据</div>';
+            container.innerHTML = '<div class="no-data-message">暂无近日天气数据</div>';
             container.style.display = 'block';
         }
         return;
@@ -3894,13 +3894,13 @@ function updateRecentDaysWeather(recentDaysWeather) {
     
     // 创建横向滚动容器
     const scrollContainer = document.createElement('div');
-    scrollContainer.className = 'flex space-x-4 overflow-x-auto pb-4 scrollbar-thin';
+    scrollContainer.className = 'flex space-x-2 overflow-x-auto pb-2 scrollbar-thin';
     
     // 添加每日天气卡片
     recentDaysWeather.forEach(dayData => {
         // 创建卡片容器
         const card = document.createElement('div');
-        card.className = 'flex-shrink-0 w-40 bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100';
+        card.className = 'flex-shrink-0 w-28 bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100';
         
         // 格式化日期
         let dateStr = dayData.date || '';
@@ -3927,24 +3927,24 @@ function updateRecentDaysWeather(recentDaysWeather) {
         
         // 构建卡片内容
         card.innerHTML = `
-            <div class="p-4">
-                <div class="text-center mb-2">
-                    <div class="text-gray-800 font-medium">${dateStr}</div>
-                    <div class="text-gray-500 text-sm">${weekday}</div>
+            <div class="p-2">
+                <div class="text-center mb-1">
+                    <div class="text-gray-800 text-sm font-medium">${dateStr}</div>
+                    <div class="text-gray-500 text-xs">${weekday}</div>
                 </div>
-                <div class="flex flex-col items-center mb-3">
-                    <div class="text-4xl mb-2">${iconText}</div>
-                    <div class="text-gray-600 text-sm">${dayData.weather || '--'}</div>
+                <div class="flex flex-col items-center mb-1">
+                    <div class="text-3xl mb-1">${iconText}</div>
+                    <div class="text-gray-600 text-xs truncate w-full text-center">${dayData.weather || '--'}</div>
                 </div>
-                <div class="text-center mb-2">
-                    <div class="flex justify-center items-center gap-2">
-                        <span class="text-blue-500">${dayData.tempMin || '--'}°</span>
+                <div class="text-center mb-1">
+                    <div class="flex justify-center items-center gap-1">
+                        <span class="text-blue-500 text-sm">${dayData.tempMin || '--'}°</span>
                         <span class="text-gray-300">/</span>
-                        <span class="text-red-500">${dayData.tempMax || '--'}°</span>
+                        <span class="text-red-500 text-sm">${dayData.tempMax || '--'}°</span>
                     </div>
                 </div>
                 <div class="text-center">
-                    <div class="text-gray-500 text-xs">${dayData.wind || '--'}</div>
+                    <div class="text-gray-500 text-xs truncate w-full text-center">${dayData.wind || '--'}</div>
                 </div>
             </div>
         `;
@@ -4044,7 +4044,7 @@ function updateWeatherDisplay(weatherData) {
             }
         }
         
-        // 更新近7日天气横向表格
+        // 更新近日天气横向表格
         if (recentDaysWeather) {
             updateRecentDaysWeather(recentDaysWeather);
         }
