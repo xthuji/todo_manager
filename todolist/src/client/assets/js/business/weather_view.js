@@ -2934,7 +2934,7 @@ function updateTodayWeather(todayWeather) {
     // 更新today-weather-section中的元素，包括实时温度
     safeUpdate('current-temp', todayWeather.temperature || '--', '°C');
     safeUpdate('weather-condition', todayWeather.weather || '--');
-    safeUpdate('temp-range', `${(todayWeather.tempMin || '--')}°C / ${(todayWeather.tempMax || '--')}°C`);
+    safeUpdate('temp-range', `${(todayWeather.tempMin || '--')} / ${(todayWeather.tempMax || '--')}°C`);
     safeUpdate('humidity-info', todayWeather.humidity || '--');
     safeUpdate('air-quality', todayWeather.airQuality || '--');
     safeUpdate('wind-info', todayWeather.wind || '--');
@@ -3156,12 +3156,92 @@ function updateHourlyWeatherSummary(hourlyData) {
     }
     
     // 添加每小时天气摘要 - 缩小宽度和字体
+    // 获取当前小时
+    const currentHour = new Date().getHours();
+    console.log('当前小时:', currentHour);
+    
     hourlyData.forEach((hourData, index) => {
         if (!hourData) return;
         
+        console.log(`小时数据 ${index}:`, hourData);
+        
+        // 简化处理：为当前小时数据添加高亮
+        // 获取小时数据中的小时值
+        let hourValue = null;
+        if (hourData.hour !== undefined) {
+            hourValue = parseInt(hourData.hour);
+        } else if (hourData.time) {
+            const timeStr = String(hourData.time);
+            const hourMatch = timeStr.match(/^(\d{1,2})/);
+            if (hourMatch) {
+                hourValue = parseInt(hourMatch[1]);
+            }
+        }
+        
+        // 简单逻辑：高亮当前小时或最接近的小时
+        let isCurrentHour = false;
+        if (hourValue !== null) {
+            // 如果小时完全匹配
+            isCurrentHour = hourValue === currentHour;
+        } else if (index === 0) {
+            // 如果没有小时值，默认高亮第一个
+            isCurrentHour = true;
+        }
+        
+        console.log(`小时数据 ${index}, 值: ${hourValue}, 当前小时: ${currentHour}, 是否高亮: ${isCurrentHour}`);
+        
         const hourElement = document.createElement('div');
         // 缩小宽度，确保与图表坐标节点一一对应
-        hourElement.className = 'inline-flex flex-col items-center justify-center p-1 bg-gray-50 rounded-lg text-center min-w-[70px] max-w-[70px]';
+        const baseClasses = 'inline-flex flex-col items-center justify-center p-1 bg-gray-50 rounded-lg text-center min-w-[70px] max-w-[70px]';
+        
+        // 应用类名
+        if (isCurrentHour) {
+            hourElement.className = `${baseClasses} border-2 border-blue-400 bg-blue-50`;
+            console.log(`小时 ${index} 已应用当前时段高亮样式`);
+        } else {
+            hourElement.className = baseClasses;
+        }
+        
+        // 增强的自动滚动功能
+        setTimeout(() => {
+            if (hourElement && isCurrentHour) { // 只在当前时段时执行滚动
+                console.log('自动滚动到当前时段数据');
+                
+                // 方法2: 找到最近的可滚动容器并滚动 - 作为备选方案
+                let parent = hourElement.parentElement;
+                let containerFound = false;
+                
+                while (parent && parent !== document.body && !containerFound) {
+                    const isScrollable = parent.scrollWidth > parent.clientWidth || 
+                                      parent.scrollHeight > parent.clientHeight;
+                    
+                    if (isScrollable) {
+                        console.log('找到可滚动容器:', parent.tagName);
+                        // 计算元素相对于容器的位置
+                        const rect = hourElement.getBoundingClientRect();
+                        const parentRect = parent.getBoundingClientRect();
+                        
+                        // 计算滚动偏移，使元素位于容器中心
+                        const scrollX = parent.scrollLeft + 
+                                      (rect.left - parentRect.left) - 
+                                      (parent.clientWidth / 2) + 
+                                      (rect.width / 2);
+                        
+                        // 确保滚动位置有效
+                        const maxScroll = parent.scrollWidth - parent.clientWidth;
+                        const safeScrollX = Math.max(0, Math.min(scrollX, maxScroll));
+                        
+                        // 平滑滚动到计算的位置
+                        parent.scrollTo({
+                            left: safeScrollX,
+                            behavior: 'smooth'
+                        });
+                        containerFound = true;
+                    }
+                    parent = parent.parentElement;
+                }
+            }
+        }, 500); // 增加延迟，确保所有DOM元素都已渲染完成并添加到页面中
         hourElement.style.width = '70px'; // 固定宽度确保精确对齐
         
         const time = document.createElement('div');
@@ -3186,11 +3266,11 @@ function updateHourlyWeatherSummary(hourlyData) {
         condition.className = 'text-[10px] text-gray-600 mb-1 truncate'; // 进一步缩小字体
         let shortWeather = weather || '--';
         // 简化天气描述
-        if (shortWeather.includes('晴')) shortWeather = '晴';
-        else if (shortWeather.includes('多云')) shortWeather = '多云';
-        else if (shortWeather.includes('阴')) shortWeather = '阴';
-        else if (shortWeather.includes('雨')) shortWeather = '雨';
-        else if (shortWeather.includes('雪')) shortWeather = '雪';
+        // if (shortWeather.includes('晴')) shortWeather = '晴';
+        // else if (shortWeather.includes('多云')) shortWeather = '多云';
+        // else if (shortWeather.includes('阴')) shortWeather = '阴';
+        // else if (shortWeather.includes('雨')) shortWeather = '雨';
+        // else if (shortWeather.includes('雪')) shortWeather = '雪';
         condition.textContent = shortWeather;
         
         // 显示完整的风力风向信息
@@ -3865,7 +3945,7 @@ function drawWeatherTrendChart(dailyData) {
     });
 }
 
-// 更新近几日天气横向卡片
+// 更新近几日天气横向表格（无表头，优化宽度）
 function updateRecentDaysWeather(recentDaysWeather) {
     const container = document.getElementById('recent-days-weather');
     const recentDaysSection = container ? container.closest('[id$="recent-days-section"]') || container.closest('.recent-days-section') : null;
@@ -3880,7 +3960,7 @@ function updateRecentDaysWeather(recentDaysWeather) {
         if (recentDaysSection) {
             recentDaysSection.style.display = 'none';
         } else {
-            container.innerHTML = '<div class="no-data-message">暂无近日天气数据</div>';
+            container.innerHTML = '<div class="no-data-message text-center text-sm text-gray-500 py-2">暂无近日天气数据</div>';
             container.style.display = 'block';
         }
         return;
@@ -3892,69 +3972,92 @@ function updateRecentDaysWeather(recentDaysWeather) {
     }
     container.style.display = 'block';
     
-    // 创建横向滚动容器
-    const scrollContainer = document.createElement('div');
-    scrollContainer.className = 'flex space-x-2 overflow-x-auto pb-2 scrollbar-thin';
+    // 创建横向表格容器
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'overflow-x-auto scrollbar-thin';
     
-    // 添加每日天气卡片
-    recentDaysWeather.forEach(dayData => {
-        // 创建卡片容器
-        const card = document.createElement('div');
-        card.className = 'flex-shrink-0 w-28 bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100';
+    // 创建表格 - 优化宽度
+    const table = document.createElement('table');
+    table.className = 'min-w-full border-collapse';
+    
+    // 创建表体 - 直接创建表体，不使用表头
+    const tbody = document.createElement('tbody');
+    
+    // 获取今天的月和日，用于匹配
+    const today = new Date();
+    const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+    const currentDay = String(today.getDate()).padStart(2, '0');
+    const todayMonthDay = currentMonth + currentDay;
+    
+    console.log('今日月日:', todayMonthDay);
+    
+    // 添加每日天气数据行 - 优化宽度
+    recentDaysWeather.forEach((dayData, index) => {
+        const row = document.createElement('tr');
         
-        // 格式化日期
-        let dateStr = dayData.date || '';
-        let weekday = '';
-        if (dateStr.length === 8) {
-            const year = dateStr.substring(0, 4);
-            const month = dateStr.substring(4, 6);
-            const day = dateStr.substring(6, 8);
-            dateStr = `${month}月${day}日`;
-            
-            // 计算星期几
-            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-            weekday = weekdays[date.getDay()];
+            // 直接高亮第一行作为今日数据
+        const isToday = index === 0;
+        
+        // 强制应用样式和类名
+        if (isToday) {
+            row.className = 'border-2 border-blue-400 rounded bg-blue-50';
+            console.log(`第${index+1}行天气数据已应用今日高亮样式`);
+        } else {
+            row.className = 'hover:bg-gray-50';
+            console.log(`第${index+1}行天气数据为非今日`);
         }
         
-        // 确定天气图标
-        let iconText = '☀️';
-        const weather = dayData.weather || '';
-        if (weather.includes('雨')) iconText = '🌧️';
-        else if (weather.includes('云')) iconText = '☁️';
-        else if (weather.includes('阴')) iconText = '☁️';
-        else if (weather.includes('雪')) iconText = '❄️';
+        // 格式化日期 - 简化显示
+        let dateStr = dayData.date || '';
+        if (dateStr.length === 8) {
+            const month = dateStr.substring(4, 6).replace(/^0/, '');
+            const day = dateStr.substring(6, 8).replace(/^0/, '');
+            dateStr = `${month}/${day}`;
+        }
         
-        // 构建卡片内容
-        card.innerHTML = `
-            <div class="p-2">
-                <div class="text-center mb-1">
-                    <div class="text-gray-800 text-sm font-medium">${dateStr}</div>
-                    <div class="text-gray-500 text-xs">${weekday}</div>
-                </div>
-                <div class="flex flex-col items-center mb-1">
-                    <div class="text-3xl mb-1">${iconText}</div>
-                    <div class="text-gray-600 text-xs truncate w-full text-center">${dayData.weather || '--'}</div>
-                </div>
-                <div class="text-center mb-1">
-                    <div class="flex justify-center items-center gap-1">
-                        <span class="text-blue-500 text-sm">${dayData.tempMin || '--'}°</span>
-                        <span class="text-gray-300">/</span>
-                        <span class="text-red-500 text-sm">${dayData.tempMax || '--'}°</span>
-                    </div>
-                </div>
-                <div class="text-center">
-                    <div class="text-gray-500 text-xs truncate w-full text-center">${dayData.wind || '--'}</div>
-                </div>
-            </div>
-        `;
+        // 创建单元格数据
+        const dataCells = [
+            dateStr,
+            dayData.weather || '--',
+            `${dayData.tempMin || '--'} / ${dayData.tempMax || '--'}°C`,
+            // 简化风向风力显示
+            dayData.wind || '--'
+        ];
         
-        scrollContainer.appendChild(card);
+        // 添加单元格 - 优化宽度和样式
+        dataCells.forEach((cellData, index) => {
+            const td = document.createElement('td');
+            // 最小化内边距，缩减表格宽度
+            td.className = 'px-1 py-1 text-xs text-gray-800 whitespace-nowrap';
+            
+            // 为天气列添加图标
+            if (index === 1) {
+                let iconText = '☀️';
+                const weather = cellData || '';
+                if (weather.includes('雨')) iconText = '🌧️';
+                else if (weather.includes('云')) iconText = '☁️';
+                else if (weather.includes('阴')) iconText = '☁️';
+                else if (weather.includes('雪')) iconText = '❄️';
+                // 只显示图标，不显示文字以节省空间，并添加悬停提示
+                td.title = weather; // 添加title属性显示详细天气信息
+                td.innerHTML = `${iconText}`;
+            } else {
+                td.textContent = cellData;
+            }
+            
+            row.appendChild(td);
+        });
+        
+        tbody.appendChild(row);
     });
     
-    // 清空容器并添加滚动卡片
+    // 组装表格 - 不添加表头
+    table.appendChild(tbody);
+    tableContainer.appendChild(table);
+    
+    // 清空容器并添加表格（标题已在HTML中添加）
     container.innerHTML = '';
-    container.appendChild(scrollContainer);
+    container.appendChild(tableContainer);
 }
 
 // 更新天气显示
