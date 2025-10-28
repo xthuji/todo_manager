@@ -3265,12 +3265,6 @@ function updateHourlyWeatherSummary(hourlyData) {
         const condition = document.createElement('div');
         condition.className = 'text-[10px] text-gray-600 mb-1 truncate'; // 进一步缩小字体
         let shortWeather = weather || '--';
-        // 简化天气描述
-        // if (shortWeather.includes('晴')) shortWeather = '晴';
-        // else if (shortWeather.includes('多云')) shortWeather = '多云';
-        // else if (shortWeather.includes('阴')) shortWeather = '阴';
-        // else if (shortWeather.includes('雨')) shortWeather = '雨';
-        // else if (shortWeather.includes('雪')) shortWeather = '雪';
         condition.textContent = shortWeather;
         
         // 显示完整的风力风向信息
@@ -3278,7 +3272,7 @@ function updateHourlyWeatherSummary(hourlyData) {
         wind.className = 'text-[9px] text-gray-500 mb-1'; // 进一步缩小字体以显示完整信息
         
         // 处理wind字段（可能是合并的字符串）
-        let windInfo = hourData.wind || `${hourData.windDirection || ''} ${hourData.windForce || ''}`.trim();
+        let windInfo = hourData.wind.trim().replace(/[\s<>]+/g, '');
         
         // 保留完整的风力风向信息，不进行过度简化
         wind.textContent = windInfo || '--';
@@ -3686,7 +3680,7 @@ function draw24HourChart(hourlyData) {
                             
                             // 添加风力风向信息
                             if (hourData) {
-                                tooltipContent += `\t${hourData.wind.trim()}`;
+                                tooltipContent += `\t${hourData.wind.trim().replace(/[\s<>]+/g, '')}`;
                             }
                             
                             return tooltipContent;
@@ -3945,7 +3939,7 @@ function drawWeatherTrendChart(dailyData) {
     });
 }
 
-// 更新近几日天气横向表格（无表头，优化宽度）
+// 更新近几日天气横向表格（无表头，优化显示样式）
 function updateRecentDaysWeather(recentDaysWeather) {
     const container = document.getElementById('recent-days-weather');
     const recentDaysSection = container ? container.closest('[id$="recent-days-section"]') || container.closest('.recent-days-section') : null;
@@ -3976,9 +3970,9 @@ function updateRecentDaysWeather(recentDaysWeather) {
     const tableContainer = document.createElement('div');
     tableContainer.className = 'overflow-x-auto scrollbar-thin';
     
-    // 创建表格 - 优化宽度
+    // 创建表格 - 优化样式
     const table = document.createElement('table');
-    table.className = 'min-w-full border-collapse';
+    table.className = 'min-w-full';
     
     // 创建表体 - 直接创建表体，不使用表头
     const tbody = document.createElement('tbody');
@@ -3989,22 +3983,17 @@ function updateRecentDaysWeather(recentDaysWeather) {
     const currentDay = String(today.getDate()).padStart(2, '0');
     const todayMonthDay = currentMonth + currentDay;
     
-    console.log('今日月日:', todayMonthDay);
-    
-    // 添加每日天气数据行 - 优化宽度
+    // 添加每日天气数据行 - 优化显示效果
     recentDaysWeather.forEach((dayData, index) => {
         const row = document.createElement('tr');
         
-            // 直接高亮第一行作为今日数据
+        // 直接高亮第一行作为今日数据
         const isToday = index === 0;
         
-        // 强制应用样式和类名
+        // 设置行样式
+        row.className = 'h-7 border-b border-gray-200'; // 设置固定行高和底部分隔线
         if (isToday) {
-            row.className = 'border-2 border-blue-400 rounded bg-blue-50';
-            console.log(`第${index+1}行天气数据已应用今日高亮样式`);
-        } else {
-            row.className = 'hover:bg-gray-50';
-            console.log(`第${index+1}行天气数据为非今日`);
+            row.className += ' bg-blue-50';
         }
         
         // 格式化日期 - 简化显示
@@ -4015,50 +4004,169 @@ function updateRecentDaysWeather(recentDaysWeather) {
             dateStr = `${month}/${day}`;
         }
         
-        // 创建单元格数据
+        // 创建单元格数据 - 合并天气和温度信息
         const dataCells = [
             dateStr,
-            dayData.weather || '--',
-            `${dayData.tempMin || '--'} / ${dayData.tempMax || '--'}°C`,
-            // 简化风向风力显示
+            {
+                weather: dayData.weather || '--',
+                minTemp: dayData.tempMin || '--',
+                maxTemp: dayData.tempMax || '--'
+            },
             dayData.wind || '--'
         ];
         
-        // 添加单元格 - 优化宽度和样式
-        dataCells.forEach((cellData, index) => {
+        // 添加单元格 - 优化样式和显示效果
+        dataCells.forEach((cellData, cellIndex) => {
             const td = document.createElement('td');
-            // 最小化内边距，缩减表格宽度
-            td.className = 'px-1 py-1 text-xs text-gray-800 whitespace-nowrap';
             
-            // 为天气列添加图标
-            if (index === 1) {
-                let iconText = '☀️';
-                const weather = cellData || '';
-                if (weather.includes('雨')) iconText = '🌧️';
-                else if (weather.includes('云')) iconText = '☁️';
-                else if (weather.includes('阴')) iconText = '☁️';
-                else if (weather.includes('雪')) iconText = '❄️';
-                // 只显示图标，不显示文字以节省空间，并添加悬停提示
-                td.title = weather; // 添加title属性显示详细天气信息
-                td.innerHTML = `${iconText}`;
-            } else {
+            // 设置单元格样式 - 添加右边框作为列分割线和底部边框作为行分割线
+            td.className = 'text-xs font-medium text-center p-0.5 border-r border-b border-gray-200';
+            
+            // 根据不同列设置不同的样式和内容
+            if (cellIndex === 0) { // 日期列
                 td.textContent = cellData;
+                td.classList.add('text-gray-700', 'font-semibold');
+            } else if (cellIndex === 1) { // 天气和温度合并列
+                let iconText = '☀️';
+                const weather = cellData.weather || '';
+                const minTemp = cellData.minTemp || '--';
+                const maxTemp = cellData.maxTemp || '--';
+                
+                // 根据天气类型选择更合适的图标
+                if (weather.includes('暴雨') || weather.includes('大雨')) iconText = '⛈️';
+                else if (weather.includes('中雨')) iconText = '🌧️';
+                else if (weather.includes('小雨') || weather.includes('阵雨')) iconText = '🌦️';
+                else if (weather.includes('多云') || weather.includes('晴间多云')) iconText = '⛅';
+                else if (weather.includes('阴') || weather.includes('阴天')) iconText = '☁️';
+                else if (weather.includes('雪')) iconText = '❄️';
+                else if (weather.includes('雾') || weather.includes('霾')) iconText = '🌫️';
+                
+                // 显示两行：第一行天气图标和文字，第二行最低/最高温度
+                td.innerHTML = `<div class="flex flex-col items-center">
+                    <!-- 第一行：天气图标和文字 -->
+                    <div class="flex items-center space-x-2 mb-1">
+                        <div class="text-sm">${iconText}</div>
+                        <div class="text-[9px] truncate max-w-[45px]">${weather}</div>
+                    </div>
+                    <!-- 第二行：最低/最高温度 -->
+                    <div class="flex items-center space-x-2 text-sx">
+                        <div class="text-blue-500">${minTemp}</div>
+                        <div>/</div>
+                        <div class="text-red-500">${maxTemp}°C</div>
+                    </div>
+                </div>`;
+                td.title = `${weather} ${minTemp} / ${maxTemp}°C`; // 添加title属性显示详细信息
+            } else if (cellIndex === 2) { // 风向风力列（最后一列）
+                td.innerHTML = `<div class="text-xs truncate max-w-[60px]">${cellData.replace(/[\s<>]+/g, '')}</div>`;
+                td.classList.add('text-gray-600');
+                td.classList.remove('border-r'); // 移除最后一列的右边框
             }
             
             row.appendChild(td);
         });
         
+        // 将行添加到表体
         tbody.appendChild(row);
     });
     
-    // 组装表格 - 不添加表头
+    // 添加表体到表格
     table.appendChild(tbody);
+    
+    // 添加表格到容器
     tableContainer.appendChild(table);
     
-    // 清空容器并添加表格（标题已在HTML中添加）
+    // 清空容器并添加新的表格
     container.innerHTML = '';
     container.appendChild(tableContainer);
+    
+    // 添加响应式调整，在小屏幕上优化显示
+    adjustTableResponsive();
 }
+
+// 简化天气描述文本
+function simplifyWeatherText(text) {
+    if (!text) return '--';
+    
+    // 保留关键字，移除冗余描述
+    const keywordMap = {
+        '晴': '晴',
+        '多云': '多云',
+        '阴': '阴',
+        '小雨': '小雨',
+        '中雨': '中雨',
+        '大雨': '大雨',
+        '暴雨': '暴雨',
+        '阵雨': '阵雨',
+        '雷阵雨': '雷阵雨',
+        '雪': '雪',
+        '雾': '雾',
+        '霾': '霾'
+    };
+    
+    for (const [key, value] of Object.entries(keywordMap)) {
+        if (text.includes(key)) {
+            return value;
+        }
+    }
+    
+    // 如果没有匹配的关键字，返回原始文本的前两个字符
+    return text.length > 2 ? text.substring(0, 2) : text;
+}
+
+// 简化风向风力文本
+function simplifyWindText(text) {
+    if (!text) return '--';
+    
+    // 常见风向的简化
+    const directionMap = {
+        '东北': 'NE',
+        '东南': 'SE',
+        '西北': 'NW',
+        '西南': 'SW',
+        '东': 'E',
+        '南': 'S',
+        '西': 'W',
+        '北': 'N'
+    };
+    
+    // 尝试匹配风向
+    let result = text;
+    for (const [key, value] of Object.entries(directionMap)) {
+        if (text.includes(key)) {
+            result = result.replace(key, value);
+            break;
+        }
+    }
+    
+    // 如果文本太长，截断显示
+    return result.length > 8 ? result.substring(0, 8) + '...' : result;
+}
+
+// 响应式调整表格显示
+function adjustTableResponsive() {
+    // 检测屏幕宽度
+    const isMobile = window.innerWidth < 768;
+    const table = document.querySelector('#recent-days-weather table');
+    
+    if (!table) return;
+    
+    const tds = table.querySelectorAll('td');
+    
+    if (isMobile) {
+        // 在移动端减小字体大小
+        tds.forEach(td => {
+            td.style.fontSize = '12px';
+        });
+    } else {
+        // 在桌面端恢复正常大小
+        tds.forEach(td => {
+            td.style.fontSize = '';
+        });
+    }
+}
+
+// 页面加载完成后初始化响应式调整
+window.addEventListener('resize', adjustTableResponsive);
 
 // 更新天气显示
 function updateWeatherDisplay(weatherData) {
