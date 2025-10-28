@@ -537,7 +537,7 @@ router.get('/weather-info', async (req, res) => {
     const cachedWeatherData = cacheWeatherInfo(weatherCode, mojiAreaCode);
     
     if (cachedWeatherData) {
-        console.log('使用缓存的天气数据');
+        console.log('使用缓存的天气数据', weatherCode, mojiAreaCode);
         return res.json(cachedWeatherData);
     }
 
@@ -662,12 +662,12 @@ router.get('/weather-info', async (req, res) => {
         // 并行执行所有请求
         const [mojiWeatherData, todayWeatherData, todayDetailWeatherData, calendarAndHistoryWeatherData] = await Promise.all(promises);
         
-        // 构建响应数据 - 返回所有提取到的天气信息
-        // 合并 mojiWeatherData?.liveWeather， todayWeatherData?.liveWeather， todayDetailWeatherData 数据，字段缺失的进行补全（取并集）
-        const todayWeather = { ...todayDetailWeatherData, ...mojiWeatherData?.liveWeather, ...todayWeatherData?.liveWeather };
-        // 如果相同字段都有值时，根据数据源的时间字段，取时间更晚的那个数据源的值
+        // 构建响应数据 - 返回所有提取到的天气信息。优先取更新时间更晚的那个数据
         const todayWeatherList = [mojiWeatherData?.liveWeather, todayWeatherData?.liveWeather, todayDetailWeatherData].sort((a, b) => (b.time || 0) - (a.time || 0));
-        // 遍历 todayWeather 的各个字段
+        // 合并 mojiWeatherData?.liveWeather， todayWeatherData?.liveWeather， todayDetailWeatherData 数据，字段缺失的进行补全（取并集）
+        // const todayWeather = { ...todayDetailWeatherData, ...mojiWeatherData?.liveWeather, ...todayWeatherData?.liveWeather };
+        const todayWeather = { ...todayWeatherList[0], ...todayDetailWeatherData, ...mojiWeatherData?.liveWeather, ...todayWeatherData?.liveWeather };
+        // 遍历 todayWeather 的各个字段。 如果相同字段都有值时，根据数据源的时间字段，取时间更晚的那个数据源的值
         for (const key in todayWeather) {
             // 如果字段在 todayWeatherList 中都有值，且时间更晚的数据源的值不为空，则取该值
             let list = todayWeatherList.filter(item => item?.[key] !== undefined && item?.[key] !== '');
@@ -706,41 +706,32 @@ router.get('/weather-info', async (req, res) => {
         }
         
         const weatherData = {
-            timestamp: timestamp,
-            mojiAreaCode: mojiAreaCode,
-            weatherCode: weatherCode,
-            todayWeather:todayWeather,
-            calendarWeather:calendarWeather,
-            // mojiWeatherData: mojiWeatherData, 
-            // todayWeatherData: todayWeatherData, 
-            // todayDetailWeatherData: todayDetailWeatherData, 
-            // calendarAndHistoryWeatherData: calendarAndHistoryWeatherData
+            timestamp: timestamp, mojiAreaCode: mojiAreaCode, weatherCode: weatherCode,
+            todayWeather:todayWeather, calendarWeather:calendarWeather,
         };
         console.log('天气数据提取完成');
-        // 日志记录结果数据是否为空 mojiWeatherData, todayWeatherData, todayDetailWeatherData, calendarAndHistoryWeatherData
-        // console.log('mojiWeatherData:', mojiWeatherData ? '有数据' : '无数据', mojiWeatherData);
-        // console.log('todayWeatherData:', todayWeatherData ? '有数据' : '无数据', todayWeatherData);
-        // console.log('todayWeatherData.liveWeather:', todayWeatherData?.liveWeather ? '有数据' : '无数据', todayWeatherData?.liveWeather);
-        // console.log('todayWeatherData.hourlyWeather:', todayWeatherData?.hourlyWeather ? '有数据' : '无数据', todayWeatherData?.hourlyWeather);
-        // console.log('todayWeatherData.lifeHelper:', todayWeatherData?.lifeHelper ? '有数据' : '无数据', todayWeatherData?.lifeHelper);
-        // console.log('todayDetailWeatherData:', todayDetailWeatherData ? '有数据' : '无数据', todayDetailWeatherData);
-        // console.log('calendarAndHistoryWeatherData:', calendarAndHistoryWeatherData ? '有数据' : '无数据', calendarAndHistoryWeatherData);
-        
-        // 检查是否所有必要的API结果都有数据，只有在所有数据都有效时才缓存
-        // 定义有效性检查函数
-        const isValidData = (data) => {
-            return data && !data.error && Object.keys(data).length > 0;
-        };
-        
-        // 检查所有获取到的数据是否都有效。如果没有提供mojiAreaCode，则跳过mojiWeatherData的检查
-        if ((!mojiAreaCode || isValidData(mojiWeatherData)) &&
-                todayWeatherData && todayWeatherData?.liveWeather && todayWeatherData?.hourlyWeather && todayWeatherData?.lifeHelper &&
-                todayDetailWeatherData &&
-                calendarAndHistoryWeatherData) {
+        // 检查是否所有必要的API结果都有数据，只有在所有数据都有效时才缓存。如果没有提供mojiAreaCode，则跳过mojiWeatherData的检查
+        const hasMoji = !mojiAreaCode || Object.keys(mojiWeatherData || {}).length;
+        const hasToday = Object.keys(todayWeatherData || {}).length;
+        const hasTodayLiveWeather = todayWeatherData?.liveWeather && Object.keys(todayWeatherData.liveWeather).length;
+        const hasTodayHourlyWeather = todayWeatherData?.hourlyWeather && todayWeatherData.hourlyWeather?.length;
+        const hasTodayLifeHelper = todayWeatherData?.lifeHelper && todayWeatherData.lifeHelper?.length;
+        const hasDetail = Object.keys(todayDetailWeatherData || {}).length;
+        const hasCalendar = Object.keys(calendarAndHistoryWeatherData || {}).length;
+
+        if (hasMoji && hasToday && hasTodayLiveWeather && hasTodayHourlyWeather && hasTodayLifeHelper && hasDetail && hasCalendar) {
             console.log('所有API结果数据完整，缓存天气数据');
             cacheWeatherInfo(weatherCode, mojiAreaCode, weatherData);
         } else {
             console.log('部分API结果数据不完整，不缓存天气数据');
+            // 日志记录结果数据是否为空 mojiWeatherData, todayWeatherData, todayDetailWeatherData, calendarAndHistoryWeatherData
+            if (!hasMoji) { console.log('天气数据为空, mojiWeatherData:', mojiWeatherData); }
+            if (!hasToday) { console.log('天气数据为空, todayWeatherData:', todayWeatherData); }
+            if (!hasTodayLiveWeather) { console.log('天气数据为空, todayWeatherData.liveWeather:', todayWeatherData.liveWeather); }
+            if (!hasTodayHourlyWeather) { console.log('天气数据为空, todayWeatherData.hourlyWeather:', todayWeatherData.hourlyWeather); }
+            if (!hasTodayLifeHelper) { console.log('天气数据为空, todayWeatherData.lifeHelper:', todayWeatherData.lifeHelper); }
+            if (!hasDetail) { console.log('天气数据为空, todayDetailWeatherData:', todayDetailWeatherData); }
+            if (!hasCalendar) { console.log('天气数据为空, calendarAndHistoryWeatherData:', calendarAndHistoryWeatherData); }
         }
         
         // 返回数据

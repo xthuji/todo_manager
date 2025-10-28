@@ -196,7 +196,7 @@ async function loadAreaCodes() {
     // 避免重复加载
     if (dataCache.loading) {
         logStep('省市县数据正在加载中，返回现有Promise避免重复请求');
-        return dataCache.loadingPromise; // 返回现有Promise以避免重复请求
+        return dataCache.loadingPromise;
     }
     
     if (dataCache.fullAreaData) {
@@ -218,51 +218,54 @@ async function loadAreaCodes() {
             const result = await response.json();
             logStep('成功获取省市县数据');
             
-            // 验证数据格式是否正确，支持两种格式：
-            // 1. 直接的省份数组: {data: [province1, province2, ...]}
-            // 2. mock数据格式: {weatherAreaCodes: {data: [province1, province2, ...]}}
-            let areaData;
-            if (result && Array.isArray(result.data) && result.data.length > 0) {
-                // 格式1：直接从data字段获取
-                areaData = result.data;
-                logStep('使用直接格式的区域数据');
-            } else if (result && result.weatherAreaCodes && Array.isArray(result.weatherAreaCodes.data) && result.weatherAreaCodes.data.length > 0) {
-                // 格式2：从weatherAreaCodes.data字段获取（mock数据格式）
-                areaData = result.weatherAreaCodes.data;
-                logStep('使用mock格式的区域数据');
-            } else {
-                throw new Error('API返回的数据格式不正确，无法提取省份数据');
-            }
+            // 验证数据格式并提取数据，支持多种格式
+            const areaData = extractAreaData(result);
             
-            // 存储完整数据
+            // 存储数据并执行后续处理
             dataCache.fullAreaData = areaData;
-            
-            // 构建查找映射，用于快速定位
-            logStep('开始构建区域映射');
             buildAreaMaps(areaData);
-            
-            // 渲染省份选择框
-            logStep('渲染省份选择框');
             renderProvinceSelect(areaData);
             
             resolve(areaData);
         } catch (error) {
-                logStep(`加载省市县数据失败: ${error.message}`);
-                // 显示错误提示
-                const weatherDataElement = document.getElementById('weather-data');
-                if (weatherDataElement) {
-                    weatherDataElement.innerHTML += '<div class="text-center text-red-500 mt-2">数据加载失败，请刷新页面重试</div>';
-                }
-                reject(error);
-            } finally {
-                // 清理状态
-                dataCache.loading = false;
-                dataCache.loadingPromise = null;
-                logStep('省市县数据加载流程完成，清理加载状态');
-            }
+            handleAreaCodeError(error);
+            reject(error);
+        } finally {
+            // 清理状态
+            dataCache.loading = false;
+            dataCache.loadingPromise = null;
+            logStep('省市县数据加载流程完成，清理加载状态');
+        }
     });
     
     return dataCache.loadingPromise;
+}
+
+// 从API响应中提取区域数据
+function extractAreaData(result) {
+    // 支持多种数据格式
+    if (result && Array.isArray(result.data) && result.data.length > 0) {
+        logStep('使用直接格式的区域数据');
+        return result.data;
+    } else if (result && result.weatherAreaCodes && Array.isArray(result.weatherAreaCodes.data) && result.weatherAreaCodes.data.length > 0) {
+        logStep('使用mock格式的区域数据');
+        return result.weatherAreaCodes.data;
+    } else if (Array.isArray(result)) {
+        logStep('使用数组格式的区域数据');
+        return result;
+    } else {
+        throw new Error('API返回的数据格式不正确，无法提取省份数据');
+    }
+}
+
+// 处理区域代码加载错误
+function handleAreaCodeError(error) {
+    logStep(`加载省市县数据失败: ${error.message}`);
+    // 显示错误提示
+    const weatherDataElement = document.getElementById('weather-data');
+    if (weatherDataElement) {
+        weatherDataElement.innerHTML += '<div class="text-center text-red-500 mt-2">数据加载失败，请刷新页面重试</div>';
+    }
 }
 
 // 构建区域查找映射
@@ -270,11 +273,7 @@ function buildAreaMaps(areaData) {
     logStep('开始构建区域查找映射表');
     
     // 初始化映射对象，确保它们始终存在
-    dataCache.provinceMap = dataCache.provinceMap || {};
-    dataCache.cityMap = dataCache.cityMap || {};
-    dataCache.districtMap = dataCache.districtMap || {};
-    dataCache.mojiCodeMap = dataCache.mojiCodeMap || {}; // 用于存储墨迹天气编码
-    dataCache.fullDistrictMap = dataCache.fullDistrictMap || {}; // 用于快速查找完整区县信息
+    initializeMaps();
     
     // 数据有效性验证
     if (!areaData || !Array.isArray(areaData) || areaData.length === 0) {
@@ -285,117 +284,166 @@ function buildAreaMaps(areaData) {
     try {
         // 遍历并构建映射（适配children嵌套结构）
         areaData.forEach(province => {
-            // 跳过无效的省份数据
-            if (!province || typeof province !== 'object') {
-                logStep('跳过无效的省份数据');
-                return;
-            }
-            
-            // 处理可能的"省"后缀
-            const provinceName = String(province.name || '').replace(/省$/, '').trim();
-            if (!provinceName) {
-                logStep('跳过缺少名称的省份数据');
-                return;
-            }
-            
-            // 记录省份信息
-            // logStep(`处理省份: ${provinceName}, 代码: ${province.code || '无'}`);
-            
-            // 省份映射，处理可能的"省"后缀
-            dataCache.provinceMap[provinceName] = province.code || '';
-            
-            // 城市映射
-            if (province.children && Array.isArray(province.children)) {
-                province.children.forEach(city => {
-                    // 跳过无效的城市数据
-                    if (!city || typeof city !== 'object') {
-                        return;
-                    }
-                    
-                    // 处理可能的"市"后缀
-                    const cityName = String(city.name || '').replace(/市$/, '').trim();
-                    if (!cityName) {
-                        return;
-                    }
-                    
-                    // 城市可能没有code，只使用名称作为映射
-                    dataCache.cityMap[provinceName + '_' + cityName] = city.code || '';
-                    
-                    // 区县映射
-                    if (city.children && Array.isArray(city.children)) {
-                        city.children.forEach(district => {
-                            // 跳过无效的区县数据
-                            if (!district || typeof district !== 'object') {
-                                return;
-                            }
-                            
-                            // 处理可能的"区"、"县"后缀
-                            const districtName = String(district.name || '').replace(/[区县]$/, '').trim();
-                            if (!districtName || !district.code) {
-                                return;
-                            }
-                            
-                            // 构建区县映射键
-                            const mapKey = provinceName + '_' + cityName + '_' + districtName;
-                            dataCache.districtMap[mapKey] = district.code;
-                            
-                            // 存储完整区县信息映射（用于省份下直接查找区县）
-                            const districtMapKey = provinceName + '_' + districtName;
-                            dataCache.fullDistrictMap[districtMapKey] = {
-                                code: district.code,
-                                mojiCode: district.mojiCode || '',
-                                provinceMojiCode: province.mojiCode || '',
-                                cityName: city.name || '',
-                                districtName: district.name || '',
-                                fullName: `${province.name || ''}${city.name || ''}${district.name || ''}`
-                            };
-                            
-                            // 存储墨迹天气编码映射 - 支持多种编码格式
-                            if (district.mojiCode) {
-                                // 格式1: 完整编码（省级编码/区县级编码）
-                                if (province.mojiCode && typeof province.mojiCode === 'string' && typeof district.mojiCode === 'string') {
-                                    const fullMojiCode = `${province.mojiCode}/${district.mojiCode}`;
-                                    dataCache.mojiCodeMap[district.code] = fullMojiCode;
-                                } 
-                                // 格式2: 仅区县编码
-                                else {
-                                    dataCache.mojiCodeMap[district.code] = String(district.mojiCode);
-                                }
-                            } 
-                            // 兼容IP定位的特殊情况
-                            else if (district.code) {
-                                // 如果没有墨迹编码但有区县代码，也记录下来
-                                dataCache.mojiCodeMap[district.code] = dataCache.mojiCodeMap[district.code] || '';
-                            }
-                            
-                            // 反向映射：从名称快速查找编码
-                            if (district.code) {
-                                dataCache.mojiCodeMap[district.name] = district.code;
-                            }
-                        });
-                    }
-                });
-            }
+            processProvinceData(province);
         });
         
-        // 记录构建结果统计
-        const stats = {
-            provinceCount: Object.keys(dataCache.provinceMap).length,
-            cityCount: Object.keys(dataCache.cityMap).length,
-            districtCount: Object.keys(dataCache.districtMap).length,
-            mojiCodeCount: Object.keys(dataCache.mojiCodeMap).length,
-            fullDistrictCount: Object.keys(dataCache.fullDistrictMap).length
-        };
-        
-        logStep(`区域映射构建完成 - 省份: ${stats.provinceCount}, 城市: ${stats.cityCount}, 区县: ${stats.districtCount}, 墨迹编码: ${stats.mojiCodeCount}, 完整区县信息: ${stats.fullDistrictCount}`);
-        
-        // 存储构建时间，用于调试
+        // 记录构建结果统计和时间
+        logBuildStats();
         dataCache.areaMapsBuildTime = new Date().getTime();
         
     } catch (error) {
         logStep(`构建区域映射时发生错误: ${error.message || error}`);
         // 错误发生时保留已构建的映射，避免完全失败
     }
+}
+
+// 初始化映射对象
+function initializeMaps() {
+    dataCache.provinceMap = dataCache.provinceMap || {};
+    dataCache.cityMap = dataCache.cityMap || {};
+    dataCache.districtMap = dataCache.districtMap || {};
+    dataCache.mojiCodeMap = dataCache.mojiCodeMap || {};
+    dataCache.fullDistrictMap = dataCache.fullDistrictMap || {};
+}
+
+// 处理省份数据
+function processProvinceData(province) {
+    // 跳过无效的省份数据
+    if (!province || typeof province !== 'object') {
+        logStep('跳过无效的省份数据');
+        return;
+    }
+    
+    // 处理可能的"省"后缀
+    const provinceName = normalizeProvinceName(province.name);
+    if (!provinceName) {
+        logStep('跳过缺少名称的省份数据');
+        return;
+    }
+    
+    // 省份映射
+    dataCache.provinceMap[provinceName] = province.code || '';
+    
+    // 处理城市数据
+    if (province.children && Array.isArray(province.children)) {
+        province.children.forEach(city => {
+            processCityData(city, provinceName, province);
+        });
+    }
+}
+
+// 处理城市数据
+function processCityData(city, provinceName, province) {
+    // 跳过无效的城市数据
+    if (!city || typeof city !== 'object') {
+        return;
+    }
+    
+    // 处理可能的"市"后缀
+    const cityName = normalizeCityName(city.name);
+    if (!cityName) {
+        return;
+    }
+    
+    // 城市映射
+    dataCache.cityMap[provinceName + '_' + cityName] = city.code || '';
+    
+    // 处理区县数据
+    if (city.children && Array.isArray(city.children)) {
+        city.children.forEach(district => {
+            processDistrictData(district, provinceName, cityName, province, city);
+        });
+    }
+}
+
+// 处理区县数据
+function processDistrictData(district, provinceName, cityName, province, city) {
+    // 跳过无效的区县数据
+    if (!district || typeof district !== 'object') {
+        return;
+    }
+    
+    // 处理可能的"区"、"县"后缀
+    const districtName = normalizeDistrictName(district.name);
+    if (!districtName || !district.code) {
+        return;
+    }
+    
+    // 构建区县映射键
+    const mapKey = provinceName + '_' + cityName + '_' + districtName;
+    dataCache.districtMap[mapKey] = district.code;
+    
+    // 存储完整区县信息映射（用于省份下直接查找区县）
+    createFullDistrictMap(provinceName, districtName, district, province, city);
+    
+    // 存储墨迹天气编码映射
+    storeMojiCodeMapping(district, province);
+    
+    // 反向映射：从名称快速查找编码
+    if (district.code) {
+        dataCache.mojiCodeMap[district.name] = district.code;
+    }
+}
+
+// 标准化省份名称
+function normalizeProvinceName(name) {
+    return String(name || '').replace(/省$/, '').trim();
+}
+
+// 标准化城市名称
+function normalizeCityName(name) {
+    return String(name || '').replace(/市$/, '').trim();
+}
+
+// 标准化区县名称
+function normalizeDistrictName(name) {
+    return String(name || '').replace(/[区县]$/, '').trim();
+}
+
+// 创建完整区县信息映射
+function createFullDistrictMap(provinceName, districtName, district, province, city) {
+    const districtMapKey = provinceName + '_' + districtName;
+    dataCache.fullDistrictMap[districtMapKey] = {
+        code: district.code,
+        mojiCode: district.mojiCode || '',
+        provinceMojiCode: province.mojiCode || '',
+        cityName: city.name || '',
+        districtName: district.name || '',
+        fullName: `${province.name || ''}${city.name || ''}${district.name || ''}`
+    };
+}
+
+// 存储墨迹天气编码映射
+function storeMojiCodeMapping(district, province) {
+    if (district.mojiCode) {
+        // 格式1: 完整编码（省级编码/区县级编码）
+        if (province.mojiCode && typeof province.mojiCode === 'string' && typeof district.mojiCode === 'string') {
+            const fullMojiCode = `${province.mojiCode}/${district.mojiCode}`;
+            dataCache.mojiCodeMap[district.code] = fullMojiCode;
+        } 
+        // 格式2: 仅区县编码
+        else {
+            dataCache.mojiCodeMap[district.code] = String(district.mojiCode);
+        }
+    } 
+    // 兼容IP定位的特殊情况
+    else if (district.code) {
+        // 如果没有墨迹编码但有区县代码，也记录下来
+        dataCache.mojiCodeMap[district.code] = dataCache.mojiCodeMap[district.code] || '';
+    }
+}
+
+// 记录构建结果统计
+function logBuildStats() {
+    const stats = {
+        provinceCount: Object.keys(dataCache.provinceMap).length,
+        cityCount: Object.keys(dataCache.cityMap).length,
+        districtCount: Object.keys(dataCache.districtMap).length,
+        mojiCodeCount: Object.keys(dataCache.mojiCodeMap).length,
+        fullDistrictCount: Object.keys(dataCache.fullDistrictMap).length
+    };
+    
+    logStep(`区域映射构建完成 - 省份: ${stats.provinceCount}, 城市: ${stats.cityCount}, 区县: ${stats.districtCount}, 墨迹编码: ${stats.mojiCodeCount}, 完整区县信息: ${stats.fullDistrictCount}`);
 }
 
 // 在省份下直接查找区县（用于IP定位只有province和district的情况）
@@ -1087,46 +1135,79 @@ function updateCityDisplay(locationInfo) {
 function findDistrictInProvince(provinceName, districtName) {
     logStep(`在省份 ${provinceName} 下查找区县 ${districtName}`);
     
-    if (!dataCache.fullAreaData || !Array.isArray(dataCache.fullAreaData) || !provinceName || !districtName) {
+    // 输入验证
+    if (!validateSearchInputs(provinceName, districtName)) {
         return null;
     }
     
-    const cleanProvince = provinceName.replace(/省$/, '').trim();
-    const cleanDistrict = districtName.replace(/[区县]$/, '').trim();
+    // 快速查找：使用fullDistrictMap进行O(1)查找
+    const quickResult = findDistrictByMap(provinceName, districtName);
+    if (quickResult) {
+        return quickResult;
+    }
     
+    // 标准化输入名称
+    const cleanProvince = normalizeProvinceName(provinceName);
+    const cleanDistrict = normalizeDistrictName(districtName);
+    
+    // 遍历查找：作为备选方案
+    return searchDistrictByTraversal(cleanProvince, cleanDistrict);
+}
+
+// 验证搜索输入
+function validateSearchInputs(provinceName, districtName) {
+    return (
+        dataCache.fullAreaData && 
+        Array.isArray(dataCache.fullAreaData) && 
+        provinceName && 
+        districtName
+    );
+}
+
+// 通过映射表快速查找区县
+function findDistrictByMap(provinceName, districtName) {
+    const cleanProvince = normalizeProvinceName(provinceName);
+    const cleanDistrict = normalizeDistrictName(districtName);
+    
+    // 尝试使用映射表进行O(1)查找
+    const mapKey = `${cleanProvince}_${cleanDistrict}`;
+    if (dataCache.fullDistrictMap && dataCache.fullDistrictMap[mapKey]) {
+        const districtInfo = dataCache.fullDistrictMap[mapKey];
+        logStep(`通过映射表快速找到区县: ${districtInfo.districtName}`);
+        return {
+            districtName: districtInfo.districtName,
+            cityName: districtInfo.cityName,
+            provinceName: districtInfo.fullName.replace(districtInfo.cityName, '').replace(districtInfo.districtName, '').trim(),
+            code: districtInfo.code,
+            mojiCode: districtInfo.mojiCode,
+            provinceMojiCode: districtInfo.provinceMojiCode
+        };
+    }
+    
+    return null;
+}
+
+// 通过遍历查找区县
+function searchDistrictByTraversal(cleanProvince, cleanDistrict) {
     // 遍历省份数据
     for (const province of dataCache.fullAreaData) {
-        if (province && province.name) {
-            const pName = province.name.replace(/省$/, '').trim();
+        if (!province || !province.name) continue;
+        
+        const pName = normalizeProvinceName(province.name);
+        
+        // 匹配省份
+        if (isProvinceMatch(pName, cleanProvince)) {
+            logStep(`找到匹配省份: ${province.name}`);
             
-            // 匹配省份
-            if (pName === cleanProvince || province.name.includes(cleanProvince) || cleanProvince.includes(pName)) {
-                logStep(`找到匹配省份: ${province.name}`);
-                
-                // 遍历城市
-                if (province.children && Array.isArray(province.children)) {
-                    for (const city of province.children) {
-                        if (city && city.children && Array.isArray(city.children)) {
-                            // 遍历区县
-                            for (const district of city.children) {
-                                if (district && district.name) {
-                                    const dName = district.name.replace(/[区县]$/, '').trim();
-                                    
-                                    // 匹配区县
-                                    if (dName === cleanDistrict || district.name.includes(cleanDistrict) || cleanDistrict.includes(dName)) {
-                                        logStep(`找到匹配区县: ${district.name}`);
-                                        return {
-                                            districtName: district.name,
-                                            cityName: city.name,
-                                            provinceName: province.name,
-                                            code: district.code,
-                                            mojiCode: district.mojiCode || '',
-                                            provinceMojiCode: province.mojiCode || ''
-                                        };
-                                    }
-                                }
-                            }
-                        }
+            // 遍历城市
+            if (province.children && Array.isArray(province.children)) {
+                for (const city of province.children) {
+                    if (!city || !city.children || !Array.isArray(city.children)) continue;
+                    
+                    // 遍历区县
+                    const foundDistrict = findDistrictInCity(city, cleanDistrict, province);
+                    if (foundDistrict) {
+                        return foundDistrict;
                     }
                 }
             }
@@ -1136,348 +1217,550 @@ function findDistrictInProvince(provinceName, districtName) {
     return null;
 }
 
-// 匹配省市区选择框 - 优化数据联动渲染和异步处理
-function matchLocationSelect(province, city, district, isIpLocation = false, locationData = null) {
-    logStep(`开始匹配位置选择框: 省份=${province}, 城市=${city}, 区县=${district}, 是否IP定位=${isIpLocation}`);
+// 判断省份是否匹配
+function isProvinceMatch(pName, cleanProvince) {
+    return pName === cleanProvince || 
+           pName.includes(cleanProvince) || 
+           cleanProvince.includes(pName);
+}
+
+// 在城市中查找区县
+function findDistrictInCity(city, cleanDistrict, province) {
+    for (const district of city.children) {
+        if (!district || !district.name) continue;
+        
+        const dName = normalizeDistrictName(district.name);
+        
+        // 匹配区县
+        if (isDistrictMatch(dName, cleanDistrict, district.name)) {
+            logStep(`找到匹配区县: ${district.name}`);
+            return {
+                districtName: district.name,
+                cityName: city.name,
+                provinceName: province.name,
+                code: district.code,
+                mojiCode: district.mojiCode || '',
+                provinceMojiCode: province.mojiCode || ''
+            };
+        }
+    }
     
-    // 保存当前需要匹配的位置信息到缓存，用于后续联动
+    return null;
+}
+
+// 判断区县是否匹配
+function isDistrictMatch(dName, cleanDistrict, originalDistrictName) {
+    return dName === cleanDistrict || 
+           originalDistrictName.includes(cleanDistrict) || 
+           cleanDistrict.includes(dName);
+}
+
+// 匹配省市区选择框 - 优化数据联动渲染和异步处理
+// 验证选择框元素
+function validateSelectElements() {
+    try {
+        const provinceSelect = document.getElementById('province-select');
+        const citySelect = document.getElementById('city-select');
+        const districtSelect = document.getElementById('district-select');
+        
+        if (!provinceSelect || !citySelect || !districtSelect) {
+            logStep('错误: 缺少必要的选择框元素');
+            return null;
+        }
+        
+        return { provinceSelect, citySelect, districtSelect };
+    } catch (error) {
+        logStep(`验证选择框元素时出错: ${error.message || error}`);
+        return null;
+    }
+}
+
+// 确保区域数据已加载
+function ensureAreaDataLoaded() {
+    return new Promise((resolve, reject) => {
+        try {
+            // 添加超时处理
+            const timeoutId = setTimeout(() => {
+                const error = new Error('加载区域数据超时');
+                logStep(error.message);
+                reject(error);
+            }, 10000); // 10秒超时
+
+            if (!dataCache.fullAreaData && !dataCache.loading) {
+                logStep('数据尚未加载，开始加载');
+                loadAreaCodes()
+                    .then(() => {
+                        clearTimeout(timeoutId);
+                        setTimeout(() => resolve(true), 100);
+                    })
+                    .catch(error => {
+                        clearTimeout(timeoutId);
+                        logStep(`错误: 加载区域数据失败: ${error.message || error}`);
+                        reject(error);
+                    });
+            } else if (dataCache.loading) {
+                logStep('数据正在加载中，等待完成');
+                // 使用轮询方式等待数据加载完成
+                const maxRetries = 30; // 最多重试30次
+                let retryCount = 0;
+                
+                const checkLoaded = () => {
+                    if (retryCount >= maxRetries) {
+                        clearTimeout(timeoutId);
+                        const error = new Error('数据加载等待超时');
+                        logStep(error.message);
+                        reject(error);
+                        return;
+                    }
+                    
+                    if (!dataCache.loading && dataCache.fullAreaData) {
+                        clearTimeout(timeoutId);
+                        resolve(true);
+                    } else {
+                        retryCount++;
+                        setTimeout(checkLoaded, 300);
+                    }
+                };
+                checkLoaded();
+            } else {
+                clearTimeout(timeoutId);
+                resolve(true);
+            }
+        } catch (error) {
+            logStep(`确保区域数据加载时出错: ${error.message || error}`);
+            reject(error);
+        }
+    });
+}
+
+// 清理位置名称
+function cleanLocationNames(province, city, district) {
+    return {
+        cleanProvince: province ? province.replace(/省$/, '').trim() : '',
+        cleanCity: city ? city.replace(/市$/, '').trim() : null,
+        cleanDistrict: district ? district.replace(/[区县]$/, '').trim() : null
+    };
+}
+
+// 保存匹配位置信息到缓存
+function saveMatchingLocationToCache(province, city, district, isIpLocation, locationData) {
+    const { cleanProvince, cleanCity, cleanDistrict } = cleanLocationNames(province, city, district);
+    
     dataCache.currentMatchingLocation = {
         province: province,
         city: city,
         district: district,
-        cleanProvince: province ? province.replace(/省$/, '').trim() : '',
-        cleanCity: city ? city.replace(/市$/, '').trim() : null,
-        cleanDistrict: district ? district.replace(/[区县]$/, '').trim() : null,
+        cleanProvince,
+        cleanCity,
+        cleanDistrict,
         isIpLocation: isIpLocation,
         locationData: locationData
     };
-    logStep('保存当前匹配位置信息到缓存，用于后续联动');
     
-    // 保存locationData到dataCache以便后续使用
     if (locationData) {
         dataCache.ipLocationData = locationData;
-        logStep('保存IP定位的weatherCode和mojiAreaCode到缓存');
     }
-    
-    const provinceSelect = document.getElementById('province-select');
-    const citySelect = document.getElementById('city-select');
-    const districtSelect = document.getElementById('district-select');
-    
-    // 健壮性检查
-    if (!provinceSelect || !citySelect || !districtSelect || !province) {
-        logStep('匹配失败: 缺少必要参数或元素');
-        return;
-    }
-    
-    // 预处理位置名称，移除可能的后缀
-    const cleanProvince = province.replace(/省$/, '').trim();
-    const cleanCity = city ? city.replace(/市$/, '').trim() : null;
-    const cleanDistrict = district ? district.replace(/[区县]$/, '').trim() : null;
-    
-    // 提前声明selectedProvinceCode变量，避免在初始化前访问
-    let selectedProvinceCode = null;
-    
-    logStep(`清理后的位置名称: 省份=${cleanProvince}, 城市=${cleanCity || '无'}, 区县=${cleanDistrict || '无'}`);
-    
-    // 确保省市区选择框重置
-    citySelect.innerHTML = '<option value="">请选择城市</option>';
-    citySelect.disabled = false;
-    districtSelect.innerHTML = '<option value="">请选择区县</option>';
-    districtSelect.disabled = true;
-    
-    // 如果数据还没加载完成，等待加载后再匹配
-    if (!dataCache.fullAreaData && !dataCache.loading) {
-        logStep('数据尚未加载，重新尝试加载');
-        loadAreaCodes().then(() => {
-            // 数据加载完成后重新匹配
-            setTimeout(() => {
-                matchLocationSelect(province, city, district, isIpLocation);
-            }, 100);
-        });
-        return;
-    }
-    
-    // 如果正在加载中，延迟再试
-    if (dataCache.loading) {
-        logStep('数据正在加载中，稍后再匹配');
+}
+
+// 处理IP定位场景 - 完整三级数据
+function handleIpLocationWithFullData(cleanProvince, cleanCity, cleanDistrict) {
+    return new Promise((resolve, reject) => {
+        const { provinceSelect, citySelect, districtSelect } = validateSelectElements() || {};
+        if (!provinceSelect || !citySelect || !districtSelect) {
+            reject(new Error('缺少必要的选择框元素'));
+            return;
+        }
+        
+        // 1. 选择省份
+        const selectProvince = () => {
+            return new Promise((resolve) => {
+                for (let i = 0; i < provinceSelect.options.length; i++) {
+                    const option = provinceSelect.options[i];
+                    if (option.text === cleanProvince || 
+                        option.text.includes(cleanProvince) ||
+                        option.text.replace(/省$/, '') === cleanProvince) {
+                        provinceSelect.selectedIndex = i;
+                        provinceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        handleProvinceChange();
+                        logStep(`IP定位: 成功选择省份: ${cleanProvince}`);
+                        resolve(true);
+                        return;
+                    }
+                }
+                resolve(false);
+            });
+        };
+        
+        // 2. 选择城市
+        const selectCity = () => {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    for (let i = 0; i < citySelect.options.length; i++) {
+                        const option = citySelect.options[i];
+                        if (option.text === cleanCity || 
+                            option.text.includes(cleanCity) ||
+                            option.text.replace(/市$/, '') === cleanCity) {
+                            citySelect.selectedIndex = i;
+                            citySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                            handleCityChange();
+                            logStep(`IP定位: 成功选择城市: ${cleanCity}`);
+                            resolve(true);
+                            return;
+                        }
+                    }
+                    resolve(false);
+                }, 500);
+            });
+        };
+        
+        // 3. 选择区县
+        const selectDistrict = () => {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    for (let i = 0; i < districtSelect.options.length; i++) {
+                        const option = districtSelect.options[i];
+                        if (option.text === cleanDistrict || 
+                            option.text.includes(cleanDistrict) ||
+                            option.text.replace(/[区县]$/, '') === cleanDistrict) {
+                            districtSelect.selectedIndex = i;
+                            districtSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                            logStep(`IP定位: 成功选择区县: ${cleanDistrict}`);
+                            resolve(true);
+                            return;
+                        }
+                    }
+                    resolve(false);
+                }, 800);
+            });
+        };
+        
+        // 按顺序执行选择
         setTimeout(() => {
-            matchLocationSelect(province, city, district, isIpLocation);
-        }, 300);
+            selectProvince()
+                .then(provinceSelected => {
+                    if (!provinceSelected) {
+                        throw new Error(`未找到匹配的省份: ${cleanProvince}`);
+                    }
+                    return selectCity();
+                })
+                .then(citySelected => {
+                    if (!citySelected) {
+                        throw new Error(`未找到匹配的城市: ${cleanCity}`);
+                    }
+                    return selectDistrict();
+                })
+                .then(districtSelected => {
+                    if (!districtSelected) {
+                        throw new Error(`未找到匹配的区县: ${cleanDistrict}`);
+                    }
+                    resolve(true);
+                })
+                .catch(error => {
+                    logStep(`IP定位失败: ${error.message}`);
+                    reject(error);
+                });
+        }, 500);
+    });
+}
+
+// 处理IP定位场景 - 只有省份和区县
+function handleIpLocationWithProvinceAndDistrict(province, cleanProvince, cleanDistrict, locationData) {
+    const districtInfo = findDistrictInProvince(cleanProvince, cleanDistrict);
+    if (!districtInfo || !districtInfo.districtName) {
+        // 如果有weatherCode，直接使用
+        if (locationData && locationData.weatherCode) {
+            loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
+            updateCityDisplay({
+                name: `${province}${cleanDistrict}`,
+                code: locationData.weatherCode
+            });
+        }
+        return false;
+    }
+    
+    // 构建完整的城市名称
+    let fullCityName = province;
+    if (districtInfo.cityName && districtInfo.cityName !== province && !districtInfo.cityName.includes(province)) {
+        fullCityName += districtInfo.cityName;
+    }
+    fullCityName += districtInfo.districtName;
+    
+    // 更新城市显示
+    updateCityDisplay({
+        name: fullCityName,
+        code: districtInfo.code || locationData.weatherCode || '未找到'
+    });
+    
+    // 优先使用IP定位返回的weatherCode和mojiAreaCode
+    let weatherCode = districtInfo.code;
+    let mojiAreaCode = '';
+    
+    if (locationData && locationData.weatherCode) {
+        weatherCode = locationData.weatherCode;
+        mojiAreaCode = locationData.mojiAreaCode || '';
+    } else if (districtInfo.provinceMojiCode && districtInfo.mojiCode) {
+        mojiAreaCode = `${districtInfo.provinceMojiCode}/${districtInfo.mojiCode}`;
+    }
+    
+    // 加载天气数据
+    loadWeatherData(weatherCode, mojiAreaCode);
+    
+    // 尝试匹配省份选择框
+    findAndSelectProvinceByDistrict(districtInfo, cleanProvince);
+    
+    return true;
+}
+
+// 处理IP定位场景 - 只有省份信息
+function handleIpLocationWithProvinceOnly(province, locationData) {
+    if (locationData && locationData.weatherCode) {
+        loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
+        updateCityDisplay({
+            name: province,
+            code: locationData.weatherCode
+        });
+        return true;
+    }
+    return false;
+}
+
+// 查找省份代码
+function findProvinceCode(cleanProvince) {
+    if (!cleanProvince || !dataCache.fullAreaData || !Array.isArray(dataCache.fullAreaData)) {
+        return null;
+    }
+    
+    // 优先使用映射表
+    let selectedProvinceCode = dataCache.provinceMap[cleanProvince];
+    
+    // 如果映射表中找不到，遍历原始数据查找
+    if (!selectedProvinceCode) {
+        for (const p of dataCache.fullAreaData) {
+            if (p && p.name) {
+                const pName = p.name.replace(/省$/, '').trim();
+                if (pName === cleanProvince || p.name.includes(cleanProvince) || cleanProvince.includes(pName)) {
+                    selectedProvinceCode = p.code || '';
+                    break;
+                }
+            }
+        }
+    }
+    
+    return selectedProvinceCode;
+}
+
+// 设置选择框值并触发事件
+function setSelectValue(selectElement, value) {
+    for (let i = 0; i < selectElement.options.length; i++) {
+        if (selectElement.options[i].value === value) {
+            selectElement.selectedIndex = i;
+            selectElement.value = value;
+            // 强制触发DOM更新
+            selectElement.focus();
+            selectElement.blur();
+            // 触发change事件
+            const event = new Event('change', { bubbles: true });
+            selectElement.dispatchEvent(event);
+            return true;
+        }
+    }
+    return false;
+}
+
+// 主函数：匹配位置选择框
+function matchLocationSelect(province, city, district, isIpLocation = false, locationData = null) {
+    try {
+        logStep(`开始匹配位置选择框: 省份=${province}, 城市=${city}, 区县=${district}, 是否IP定位=${isIpLocation}`);
+        
+        // 健壮性检查
+        if (!province) {
+            logStep('匹配失败: 缺少必要的省份参数');
+            return;
+        }
+        
+        // 保存匹配位置信息到缓存
+        saveMatchingLocationToCache(province, city, district, isIpLocation, locationData);
+        
+        // 验证选择框元素
+        const selectElements = validateSelectElements();
+        if (!selectElements) {
+            // 即使选择框不存在，IP定位场景下仍尝试加载天气数据
+            if (isIpLocation && locationData && locationData.weatherCode) {
+                logStep('选择框不存在但有IP定位数据，直接加载天气');
+                let fullCityName = locationData.province || '';
+                if (locationData.city) fullCityName += locationData.city;
+                if (locationData.district) fullCityName += locationData.district;
+                updateCityDisplay({
+                    name: fullCityName,
+                    code: locationData.weatherCode
+                });
+                loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
+            }
+            return;
+        }
+        
+        const { provinceSelect, citySelect, districtSelect } = selectElements;
+        const { cleanProvince, cleanCity, cleanDistrict } = cleanLocationNames(province, city, district);
+        
+        logStep(`清理后的位置名称: 省份=${cleanProvince}, 城市=${cleanCity || '无'}, 区县=${cleanDistrict || '无'}`);
+        
+        // 确保省市区选择框重置
+        try {
+            citySelect.innerHTML = '<option value="">请选择城市</option>';
+            citySelect.disabled = false;
+            districtSelect.innerHTML = '<option value="">请选择区县</option>';
+            districtSelect.disabled = true;
+        } catch (domError) {
+            logStep(`重置选择框时出错: ${domError.message || domError}`);
+        }
+        
+        // 确保数据已加载
+        ensureAreaDataLoaded()
+            .then(() => {
+                // 处理IP定位场景
+                if (isIpLocation) {
+                    handleIpLocationMatching(province, cleanProvince, cleanCity, cleanDistrict, locationData);
+                    return;
+                }
+                
+                // 常规匹配流程
+                processRegularMatching(province, cleanProvince, cleanCity, cleanDistrict, isIpLocation, locationData, provinceSelect, citySelect, districtSelect);
+            })
+            .catch(error => {
+                logStep(`匹配过程中出错: ${error.message || error}`);
+                // 错误情况下的兜底策略
+                handleMatchingError(province, city, district, isIpLocation, locationData);
+            });
+    } catch (error) {
+        logStep(`matchLocationSelect函数执行出错: ${error.message || error}`);
+        // 全局兜底逻辑
+        if (isIpLocation && locationData && locationData.weatherCode) {
+            handleIpFallback(locationData);
+        }
+    }
+}
+
+// 处理匹配错误时的兜底逻辑
+function handleMatchingError(province, city, district, isIpLocation, locationData) {
+    logStep('执行匹配错误兜底逻辑');
+    
+    // IP定位的兜底策略
+    if (isIpLocation && locationData && locationData.weatherCode) {
+        return handleIpFallback(locationData);
+    }
+    
+    // 常规匹配失败的兜底策略
+    // 尝试使用已有的城市代码直接加载天气
+    const cachedDistrict = dataCache.selectedDistrict;
+    if (cachedDistrict && cachedDistrict.code) {
+        logStep('使用缓存的区县代码作为兜底');
+        loadWeatherData(cachedDistrict.code, cachedDistrict.mojiCode || '');
         return;
     }
     
-    // 处理IP定位场景
-    if (isIpLocation) {
-        console.log('【天气页面调试】处理IP定位场景: 完整定位流程开始');
+    // 尝试选择默认城市（北京）
+    try {
+        logStep('尝试选择默认城市作为兜底');
+        const provinceSelect = document.getElementById('province-select');
+        if (provinceSelect) {
+            // 尝试选择北京或第一个省份
+            let beijingIndex = -1;
+            for (let i = 0; i < provinceSelect.options.length; i++) {
+                if (provinceSelect.options[i].text.includes('北京') || 
+                    provinceSelect.options[i].text.includes('北京市')) {
+                    beijingIndex = i;
+                    break;
+                }
+            }
+            
+            if (beijingIndex >= 0) {
+                provinceSelect.selectedIndex = beijingIndex;
+                provinceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                handleProvinceChange();
+            } else if (provinceSelect.options.length > 1) {
+                provinceSelect.selectedIndex = 1; // 选择第一个实际省份
+                provinceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                handleProvinceChange();
+            }
+        }
+    } catch (fallbackError) {
+        logStep(`兜底策略执行失败: ${fallbackError.message || fallbackError}`);
+    }
+}
+
+// IP定位失败时的兜底处理
+function handleIpFallback(locationData) {
+    try {
+        logStep('执行IP定位兜底策略');
+        let fullCityName = locationData.province || '';
+        if (locationData.city && locationData.city !== locationData.province) {
+            fullCityName += locationData.city;
+        }
+        if (locationData.district) {
+            fullCityName += locationData.district;
+        }
+        
+        // 更新城市显示并加载天气数据
+        updateCityDisplay({
+            name: fullCityName,
+            code: locationData.weatherCode
+        });
+        loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode || '');
+        
+        return true;
+    } catch (error) {
+        logStep(`IP定位兜底失败: ${error.message || error}`);
+        return false;
+    }
+}
+
+// 处理IP定位匹配
+function handleIpLocationMatching(province, cleanProvince, cleanCity, cleanDistrict, locationData) {
+    try {
+        logStep('处理IP定位场景');
         
         // 情况1：完整的三级数据
         if (cleanProvince && cleanCity && cleanDistrict) {
-            console.log('【天气页面调试】IP定位返回完整三级数据');
-            console.log(`【天气页面调试】定位数据详情: 省份=${cleanProvince}, 城市=${cleanCity}, 区县=${cleanDistrict}`);
-            
-            // 使用简单直接的方法设置选择框的值
-            const setLocationSelects = () => {
-                console.log('【天气页面调试】开始直接设置省市县选择框');
-                
-                // 首先确保获取所有选择框元素
-                const provinceSelect = document.getElementById('province-select');
-                const citySelect = document.getElementById('city-select');
-                const districtSelect = document.getElementById('district-select');
-                
-                console.log('【天气页面调试】选择框元素获取结果:', {
-                    provinceSelect: !!provinceSelect,
-                    citySelect: !!citySelect,
-                    districtSelect: !!districtSelect
+            handleIpLocationWithFullData(cleanProvince, cleanCity, cleanDistrict)
+                .catch((error) => {
+                    logStep(`IP定位完整数据匹配失败: ${error.message || error}`);
+                    // 如果匹配失败，尝试使用weatherCode直接加载
+                    if (locationData && locationData.weatherCode) {
+                        loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
+                        updateCityDisplay({
+                            name: `${province}${cleanCity}${cleanDistrict}`,
+                            code: locationData.weatherCode
+                        });
+                    }
                 });
-                
-                // 1. 选择省份
-                if (provinceSelect && provinceSelect.options.length > 0) {
-                    console.log('【天气页面调试】开始选择省份:', cleanProvince);
-                    let provinceFound = false;
-                    for (let i = 0; i < provinceSelect.options.length; i++) {
-                        const option = provinceSelect.options[i];
-                        console.log('【天气页面调试】检查省份选项:', i, '文本:', option.text);
-                        
-                        if (option.text === cleanProvince || 
-                            option.text.includes(cleanProvince.replace(/省$/, '')) ||
-                            option.text.replace(/省$/, '') === cleanProvince.replace(/省$/, '')) {
-                            console.log('【天气页面调试】找到匹配的省份选项:', i, option.text);
-                            provinceSelect.selectedIndex = i;
-                            console.log('【天气页面调试】触发省份选择框change事件');
-                            provinceSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                            provinceFound = true;
-                            break;
-                        }
-                    }
-                    
-                    // 如果找到省份，延迟设置城市
-                    if (provinceFound) {
-                        setTimeout(() => {
-                            if (citySelect && citySelect.options.length > 0) {
-                                console.log('【天气页面调试】开始选择城市:', cleanCity);
-                                let cityFound = false;
-                                for (let i = 0; i < citySelect.options.length; i++) {
-                                    const option = citySelect.options[i];
-                                    console.log('【天气页面调试】检查城市选项:', i, '文本:', option.text);
-                                    
-                                    if (option.text === cleanCity || 
-                                        option.text.includes(cleanCity.replace(/市$/, '')) ||
-                                        option.text.replace(/市$/, '') === cleanCity.replace(/市$/, '')) {
-                                        console.log('【天气页面调试】找到匹配的城市选项:', i, option.text);
-                                        citySelect.selectedIndex = i;
-                                        console.log('【天气页面调试】触发城市选择框change事件');
-                                        citySelect.dispatchEvent(new Event('change', { bubbles: true }));
-                                        cityFound = true;
-                                        break;
-                                    }
-                                }
-                                
-                                // 如果找到城市，延迟设置区县
-                                if (cityFound) {
-                                    setTimeout(() => {
-                                        if (districtSelect && districtSelect.options.length > 0) {
-                                            console.log('【天气页面调试】开始选择区县:', cleanDistrict);
-                                            for (let i = 0; i < districtSelect.options.length; i++) {
-                                                const option = districtSelect.options[i];
-                                                console.log('【天气页面调试】检查区县选项:', i, '文本:', option.text);
-                                                
-                                                if (option.text === cleanDistrict || 
-                                                    option.text.includes(cleanDistrict.replace(/[区县]$/, '')) ||
-                                                    option.text.replace(/[区县]$/, '') === cleanDistrict.replace(/[区县]$/, '')) {
-                                                    console.log('【天气页面调试】找到匹配的区县选项:', i, option.text);
-                                                    districtSelect.selectedIndex = i;
-                                                    console.log('【天气页面调试】触发区县选择框change事件');
-                                                    districtSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }, 800); // 区县延迟稍长，确保区县列表完全加载
-                                }
-                            }
-                        }, 500); // 城市延迟
-                    }
-                }
-            };
-            
-            // 等待数据加载完成后执行
-            setTimeout(setLocationSelects, 500);
-            
-            // IP定位场景下不再执行常规匹配流程，避免冲突
-            console.log('【天气页面调试】IP定位流程结束，返回');
-            return;
         }
-        // 情况2：只有province和district的特殊情况
+        // 情况2：只有省份和区县
         else if (cleanProvince && cleanDistrict && !cleanCity) {
-            logStep('IP定位特殊情况：只有省份和区县，无城市信息');
-            
-            // 在省份下直接查找区县
-            const districtInfo = findDistrictInProvince(cleanProvince, cleanDistrict);
-            if (districtInfo && districtInfo.districtName) {
-                logStep(`成功找到区县信息: ${districtInfo.districtName}`);
-                
-                // 构建完整的城市名称
-                let fullCityName = province;
-                if (districtInfo.cityName && districtInfo.cityName !== province && !districtInfo.cityName.includes(province)) {
-                    fullCityName += districtInfo.cityName;
-                }
-                fullCityName += districtInfo.districtName;
-                
-                // 更新城市显示
-                updateCityDisplay({
-                    name: fullCityName,
-                    code: districtInfo.code || locationData.weatherCode || '未找到'
-                });
-                
-                // 优先使用IP定位返回的weatherCode和mojiAreaCode
-                let weatherCode = districtInfo.code;
-                let mojiAreaCode = '';
-                
-                if (locationData && locationData.weatherCode) {
-                    weatherCode = locationData.weatherCode;
-                    mojiAreaCode = locationData.mojiAreaCode || '';
-                    logStep('使用IP定位返回的weatherCode和mojiAreaCode');
-                } else if (districtInfo.provinceMojiCode && districtInfo.mojiCode) {
-                    mojiAreaCode = `${districtInfo.provinceMojiCode}/${districtInfo.mojiCode}`;
-                    logStep('使用构建的mojiAreaCode');
-                }
-                
-                // 立即加载天气数据，确保数据渲染
-                loadWeatherData(weatherCode, mojiAreaCode);
-                
-                // 尝试匹配省份选择框
-                findAndSelectProvinceByDistrict(districtInfo, cleanProvince);
-                
-                return;
-            } else {
-                logStep('警告: 未找到匹配的区县信息');
-                // 如果有IP定位的weatherCode，直接使用它加载天气数据
-                if (locationData && locationData.weatherCode) {
-                    logStep('未找到区县信息但有weatherCode，直接加载天气数据');
-                    loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
-                    updateCityDisplay({
-                        name: `${province}${district || ''}`,
-                        code: locationData.weatherCode
-                    });
-                }
+            if (!handleIpLocationWithProvinceAndDistrict(province, cleanProvince, cleanDistrict, locationData)) {
+                // 如果处理失败，执行兜底策略
+                handleIpFallback(locationData);
             }
         }
         // 情况3：只有省份信息
         else if (cleanProvince && !cleanCity && !cleanDistrict) {
-            logStep('IP定位特殊情况：只有省份信息');
-            if (locationData && locationData.weatherCode) {
-                logStep('只有省份信息但有weatherCode，直接加载天气数据');
-                loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
-                updateCityDisplay({
-                    name: province,
-                    code: locationData.weatherCode
-                });
-            }
-        }
-    }
-    
-    // 优化的省份查找算法
-    if (cleanProvince && dataCache.fullAreaData && Array.isArray(dataCache.fullAreaData)) {
-        // 优先使用精确匹配
-        selectedProvinceCode = dataCache.provinceMap[cleanProvince];
-        
-        // 如果映射表中找不到，遍历原始数据查找（支持模糊匹配）
-        if (!selectedProvinceCode) {
-            for (const p of dataCache.fullAreaData) {
-                if (p && p.name) {
-                    const pName = p.name.replace(/省$/, '').trim();
-                    // 支持多种匹配方式：精确匹配、包含关系
-                    if (pName === cleanProvince || p.name.includes(cleanProvince) || cleanProvince.includes(pName)) {
-                        selectedProvinceCode = p.code || '';
-                        logStep(`通过遍历找到省份: ${p.name} ${selectedProvinceCode}`);
-                        
-                        // 延迟设置省份选择框并触发变更事件，确保DOM已更新
-                        if (provinceSelect) {
-                            // 使用setTimeout确保省份选项已渲染到DOM中
-                            setTimeout(() => {
-                                // 检查选项是否存在
-                                let optionExists = false;
-                                for (let j = 0; j < provinceSelect.options.length; j++) {
-                                    if (provinceSelect.options[j].value === selectedProvinceCode) {
-                                        optionExists = true;
-                                        provinceSelect.selectedIndex = j; // 直接设置索引确保选中
-                                        provinceSelect.value = selectedProvinceCode;
-                                        logStep(`设置省份选择框选中索引: ${j}, 值: ${selectedProvinceCode}`);
-                                        
-                                        // 强制触发DOM更新
-                                        provinceSelect.focus();
-                                        provinceSelect.blur();
-                                        
-                                        // 触发change事件确保视觉上显示为选中状态并触发联动
-                                        const event = new Event('change', { bubbles: true });
-                                        provinceSelect.dispatchEvent(event);
-                                        logStep('延迟设置省份选择框并成功触发变更事件');
-                                        break;
-                                    }
-                                }
-                                
-                                // 如果选项不存在，尝试重新加载区域数据
-                                if (!optionExists) {
-                                    logStep(`警告: 省份选项不存在，重新加载区域数据。provinceSelect选项数量: ${provinceSelect.options.length}`);
-                                    // 清空数据缓存，重新加载
-                                    dataCache.loading = false;
-                                    dataCache.fullAreaData = null;
-                                    loadAreaCodes().then(() => {
-                                        setTimeout(() => {
-                                            matchLocationSelect(province, city, district, isIpLocation);
-                                        }, 200);
-                                    });
-                                }
-                            }, 200);
-                        }
-                        break;
-                    }
-                }
+            if (!handleIpLocationWithProvinceOnly(province, locationData)) {
+                // 如果处理失败，执行兜底策略
+                handleIpFallback(locationData);
             }
         } else {
-            logStep(`通过映射表找到省份: ${cleanProvince}, ${selectedProvinceCode}`);
-            
-            // 延迟设置省份选择框并触发变更事件，确保DOM已更新
-            if (provinceSelect) {
-                // 使用setTimeout确保省份选项已渲染到DOM中
-                setTimeout(() => {
-                    // 检查选项是否存在
-                    let optionExists = false;
-                    for (let j = 0; j < provinceSelect.options.length; j++) {
-                        if (provinceSelect.options[j].value === selectedProvinceCode) {
-                            optionExists = true;
-                            provinceSelect.selectedIndex = j; // 直接设置索引确保选中
-                            provinceSelect.value = selectedProvinceCode;
-                            logStep(`通过映射表设置省份选择框选中索引: ${j}, 值: ${selectedProvinceCode}`);
-                            
-                            // 强制触发DOM更新
-                            provinceSelect.focus();
-                            provinceSelect.blur();
-                            
-                            // 触发change事件确保视觉上显示为选中状态并触发联动
-                            const event = new Event('change', { bubbles: true });
-                            provinceSelect.dispatchEvent(event);
-                            logStep('通过映射表找到省份后延迟设置选框并成功触发变更事件');
-                            break;
-                        }
-                    }
-                    
-                    // 如果选项不存在，尝试重新加载区域数据
-                    if (!optionExists) {
-                        logStep(`警告: 映射表找到的省份选项不存在，重新加载区域数据。provinceSelect选项数量: ${provinceSelect.options.length}`);
-                        // 清空数据缓存，重新加载
-                        dataCache.loading = false;
-                        dataCache.fullAreaData = null;
-                        loadAreaCodes().then(() => {
-                            setTimeout(() => {
-                                matchLocationSelect(province, city, district, isIpLocation);
-                            }, 200);
-                        });
-                    }
-                }, 200);
-            }
+            logStep('IP定位数据不完整，执行兜底策略');
+            handleIpFallback(locationData);
         }
+    } catch (error) {
+        logStep(`处理IP定位时出错: ${error.message || error}`);
+        handleIpFallback(locationData);
     }
+}
+
+// 处理常规匹配流程
+function processRegularMatching(province, cleanProvince, cleanCity, cleanDistrict, isIpLocation, locationData, provinceSelect, citySelect, districtSelect) {
+    // 查找省份代码
+    let selectedProvinceCode = findProvinceCode(cleanProvince);
     
     // 如果未找到匹配的省份，选择第一个省份
     if (!selectedProvinceCode && dataCache.fullAreaData && Array.isArray(dataCache.fullAreaData) && dataCache.fullAreaData.length > 0) {
@@ -1488,185 +1771,493 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
         }
     }
     
-    // 辅助函数：通过区县信息查找并选择省份 - 增强版带重试机制
-    function findAndSelectProvinceByDistrict(districtInfo, provinceName) {
-        // 使用console.log确保能在浏览器控制台看到日志
-        console.log('【天气页面调试】findAndSelectProvinceByDistrict函数开始执行');
-        console.log('【天气页面调试】参数:', { districtInfo, provinceName });
+    if (!selectedProvinceCode) {
+        logStep(`未找到匹配的省份，且无法选择默认省份: ${cleanProvince}`);
+        return;
+    }
+    
+    // 设置省份选择
+    if (setSelectValue(provinceSelect, selectedProvinceCode)) {
+        handleProvinceChange();
         
+        // 使用Promise链管理异步流程
+        new Promise(resolve => setTimeout(resolve, 300))
+            .then(() => {
+                if (cleanProvince && cleanCity) {
+                    return findAndSelectCity(selectedProvinceCode, cleanProvince, cleanCity);
+                }
+                return Promise.resolve(null);
+            })
+            .then(selectedCityCode => {
+                if (selectedCityCode && cleanProvince && cleanCity && cleanDistrict) {
+                    const districtResult = findAndSelectDistrict(selectedProvinceCode, selectedCityCode, cleanProvince, cleanCity, cleanDistrict);
+                    return districtResult.then(selectedDistrictCode => {
+                        // 如果是IP定位且有locationData，确保使用IP定位返回的weatherCode
+                        if (isIpLocation && locationData && locationData.weatherCode) {
+                            dataCache.selectedDistrict = dataCache.selectedDistrict || {};
+                            dataCache.selectedDistrict.code = locationData.weatherCode;
+                            dataCache.selectedDistrict.mojiCode = locationData.mojiAreaCode || '';
+                            return locationData.weatherCode;
+                        }
+                        return selectedDistrictCode;
+                    });
+                }
+                return Promise.resolve(null);
+            })
+            .then(selectedDistrictCode => {
+                if (selectedDistrictCode) {
+                    logStep(`省市区选择匹配成功，区县代码: ${selectedDistrictCode}`);
+                    
+                    // 确保区县选择框已正确勾选
+                    setTimeout(() => {
+                        if (districtSelect.value !== selectedDistrictCode) {
+                            districtSelect.value = selectedDistrictCode;
+                        }
+                        
+                        // 加载天气数据
+                        if (isIpLocation && locationData && locationData.weatherCode) {
+                            loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
+                        } else {
+                            const districtInfo = dataCache.selectedDistrict;
+                            const mojiAreaCode = districtInfo && districtInfo.mojiCode ? 
+                                `${dataCache.selectedProvince?.mojiCode || ''}/${districtInfo.mojiCode}` : '';
+                            loadWeatherData(selectedDistrictCode, mojiAreaCode);
+                        }
+                    }, 100);
+                }
+            })
+            .catch(error => {
+                logStep(`错误: 匹配省市区选择框出错: ${error.message || error}`);
+            });
+    } else {
+        logStep(`警告: 省份选择框中未找到代码为 ${selectedProvinceCode} 的选项`);
+        // 尝试重新加载区域数据
+        dataCache.loading = false;
+        dataCache.fullAreaData = null;
+        ensureAreaDataLoaded().then(() => {
+            setTimeout(() => {
+                matchLocationSelect(province, city, district, isIpLocation, locationData);
+            }, 200);
+        });
+    }
+}
+
+// 辅助函数：通过区县信息查找并选择省份 - 增强版带重试机制
+function findAndSelectProvinceByDistrict(districtInfo, provinceName) {
+    try {
         logStep(`【调试】findAndSelectProvinceByDistrict函数开始执行`);
         
-        // 首先使用window._tempDistrictInfo作为备选
+        // 使用备选数据
         if (!districtInfo && window._tempDistrictInfo) {
-            console.log('【天气页面调试】使用window._tempDistrictInfo作为备选');
             districtInfo = window._tempDistrictInfo;
         }
         
+        // 参数验证
         if (!districtInfo || !provinceName) {
-            console.log('【天气页面调试】【错误】无效参数:', { districtInfo: !!districtInfo, provinceName });
             logStep(`【错误】无效参数: districtInfo=${!!districtInfo}, provinceName=${provinceName}`);
-            return;
+            // 设置默认值作为最后的兜底
+            if (!provinceName && districtInfo && districtInfo.provinceName) {
+                provinceName = districtInfo.provinceName;
+                logStep(`【兜底】使用districtInfo中的provinceName: ${provinceName}`);
+            } else {
+                logStep(`【兜底】无法获取有效的省份名称，使用默认省份`);
+                selectDefaultProvince();
+                return;
+            }
         }
 
         let provinceSelect = document.getElementById('province-select');
         if (!provinceSelect) {
-            console.log('【天气页面调试】【错误】省份选择框元素不存在，尝试重新获取');
-            logStep(`【错误】省份选择框元素不存在，尝试重新获取`);
-            provinceSelect = document.getElementById('province-select');
-            if (!provinceSelect) {
-                console.log('【天气页面调试】【严重错误】无法获取省份选择框元素');
-                logStep('【严重错误】无法获取省份选择框元素');
-                return;
-            }
+            logStep(`【错误】无法获取省份选择框元素`);
+            // 延迟重试获取选择框
+            setTimeout(() => {
+                findAndSelectProvinceByDistrict(districtInfo, provinceName);
+            }, 500);
+            return;
         }
         
-        console.log('【天气页面调试】参数验证通过，开始查找省份:', provinceName);
-        logStep(`【调试】参数验证通过，开始查找省份: ${provinceName}`);
-        
-        logStep(`通过区县信息查找省份: ${provinceName}`);
+        // 检查选择框是否有选项
+        if (!provinceSelect.options || provinceSelect.options.length <= 1) {
+            logStep('【警告】省份选择框尚未加载完整或无选项');
+            // 尝试重新加载省份数据
+            try {
+                if (typeof ensureAreaDataLoaded === 'function') {
+                    ensureAreaDataLoaded().then(() => {
+                        setTimeout(() => {
+                            findAndSelectProvinceByDistrict(districtInfo, provinceName);
+                        }, 500);
+                    }).catch(loadError => {
+                        logStep(`【错误】重新加载区域数据失败: ${loadError.message || loadError}`);
+                        selectDefaultProvince();
+                    });
+                } else {
+                    selectDefaultProvince();
+                }
+            } catch (reloadError) {
+                logStep(`【错误】尝试重新加载省份数据失败: ${reloadError.message || reloadError}`);
+                selectDefaultProvince();
+            }
+            return;
+        }
         
         // 重试函数
-        const attemptProvinceSelection = (attempt = 1, maxAttempts = 2, delay = 300) => {
-            console.log('【天气页面调试】尝试选择省份，尝试次数:', attempt);
-            console.log('【天气页面调试】省份选择框选项数量:', provinceSelect.options.length);
-            
-            let found = false;
-            
-            // 查找对应的省份
-            for (let i = 0; i < provinceSelect.options.length; i++) {
-                const option = provinceSelect.options[i];
-                const optionText = option.text || '';
-                const optionValue = option.value || '';
-                const optionName = optionText.replace(/省$/, '').trim();
-                const cleanProvinceName = provinceName.replace(/省$/, '').trim();
+        const attemptProvinceSelection = (attempt = 1, maxAttempts = 3, delay = 500) => {
+            try {
+                let found = false;
+                const cleanProvinceName = provinceName.replace(/[省市自治区]$/, '').trim();
                 
-                console.log('【天气页面调试】检查省份选项:', i, '文本:', optionText, '值:', optionValue);
+                // 支持多种匹配方式，使用优先级排序
+                let bestMatchIndex = -1;
+                let bestMatchScore = 0;
                 
-                // 支持更多的匹配方式
-                if (optionName === cleanProvinceName || 
-                    optionText.includes(cleanProvinceName) || 
-                    cleanProvinceName.includes(optionName) ||
-                    optionValue === districtInfo.provinceMojiCode ||
-                    optionText.includes(provinceName)) {
-                    console.log('【天气页面调试】找到匹配的省份选项:', i, optionText);
-                    
-                    logStep(`成功找到省份选项: ${optionText} (尝试 ${attempt})`);
-                    
-                    console.log('【天气页面调试】设置省份选择框选中索引:', i);
+                logStep(`【匹配】尝试查找省份: ${cleanProvinceName} (尝试 ${attempt}/${maxAttempts})`);
+                
+                // 查找对应的省份
+                for (let i = 0; i < provinceSelect.options.length; i++) {
+                    try {
+                        const option = provinceSelect.options[i];
+                        const optionText = option.text || '';
+                        const optionValue = option.value || '';
+                        const optionName = optionText.replace(/[省市自治区]$/, '').trim();
                         
-                        // 确保DOM更新
-                        provinceSelect.selectedIndex = i;
+                        // 跳过空值选项
+                        if (!optionValue) continue;
+                        
+                        // 精确匹配最高优先级
+                        if (optionName === cleanProvinceName) {
+                            bestMatchIndex = i;
+                            bestMatchScore = 5;
+                            break;
+                        }
+                        // 完整包含次之
+                        else if (optionText.includes(cleanProvinceName)) {
+                            if (3 > bestMatchScore) {
+                                bestMatchIndex = i;
+                                bestMatchScore = 3;
+                            }
+                        }
+                        // 部分包含
+                        else if (cleanProvinceName.includes(optionName)) {
+                            if (2 > bestMatchScore) {
+                                bestMatchIndex = i;
+                                bestMatchScore = 2;
+                            }
+                        }
+                        // MojiCode匹配
+                        else if (optionValue === districtInfo.provinceMojiCode) {
+                            if (4 > bestMatchScore) {
+                                bestMatchIndex = i;
+                                bestMatchScore = 4;
+                            }
+                        }
+                        // 原始名称包含
+                        else if (optionText.includes(provinceName)) {
+                            if (1 > bestMatchScore) {
+                                bestMatchIndex = i;
+                                bestMatchScore = 1;
+                            }
+                        }
+                    } catch (matchError) {
+                        logStep(`【警告】匹配选项时出错: ${matchError.message || matchError}`);
+                    }
+                }
+                
+                // 执行选中操作
+                if (bestMatchIndex !== -1) {
+                    try {
+                        const option = provinceSelect.options[bestMatchIndex];
+                        
+                        logStep(`【成功】找到最优省份匹配: ${option.text || '未知'} (匹配分数: ${bestMatchScore})`);
+                        
+                        // 设置选中状态
+                        provinceSelect.selectedIndex = bestMatchIndex;
                         provinceSelect.value = option.value;
                         
-                        // 强制触发DOM更新
-                        console.log('【天气页面调试】强制触发DOM更新');
-                        provinceSelect.focus();
-                        provinceSelect.blur();
+                        // 强制刷新UI
+                        try {
+                            provinceSelect.focus();
+                            provinceSelect.blur();
+                        } catch (uiError) {
+                            logStep(`UI刷新错误: ${uiError.message || uiError}`);
+                        }
                         
-                        // 触发change事件确保视觉上显示为选中状态
-                        console.log('【天气页面调试】触发省份选择框change事件');
-                        const event = new Event('change', { bubbles: true });
-                        provinceSelect.dispatchEvent(event);
+                        // 触发事件，增加错误处理和备用方案
+                        try {
+                            provinceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                            // 备用方案：直接调用处理函数
+                            if (typeof handleProvinceChange === 'function') {
+                                try {
+                                    handleProvinceChange();
+                                } catch (handlerError) {
+                                    logStep(`调用handleProvinceChange函数失败: ${handlerError.message || handlerError}`);
+                                }
+                            }
+                        } catch (eventError) {
+                            logStep(`事件触发错误: ${eventError.message || eventError}`);
+                            // 备用方案：直接调用处理函数
+                            if (typeof handleProvinceChange === 'function') {
+                                try {
+                                    handleProvinceChange();
+                                } catch (handlerError) {
+                                    logStep(`调用handleProvinceChange函数失败: ${handlerError.message || handlerError}`);
+                                }
+                            }
+                        }
                         
-                        console.log('【天气页面调试】调用handleProvinceChange');
-                        handleProvinceChange();
+                        found = true;
                         
-                        // 增加延迟时间，确保城市列表完全加载
-                        console.log('【天气页面调试】设置500ms延迟后调用findAndSelectCityByDistrict');
+                        // 延迟调用城市选择，增加更完善的错误处理
                         setTimeout(() => {
-                            console.log('【天气页面调试】执行findAndSelectCityByDistrict');
-                            findAndSelectCityByDistrict(districtInfo, 1);
-                        }, 500); // 增加延迟到500ms
-                    
-                    found = true;
-                    break;
+                            try {
+                                findAndSelectCityByDistrict(districtInfo, 1);
+                            } catch (cityError) {
+                                logStep(`城市选择失败: ${cityError.message || cityError}`);
+                                // 备用方案：直接触发城市列表刷新
+                                try {
+                                    const citySelect = document.getElementById('city-select');
+                                    if (citySelect) {
+                                        citySelect.selectedIndex = 0;
+                                        citySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                } catch (fallbackError) {
+                                    logStep(`备用方案执行失败: ${fallbackError.message || fallbackError}`);
+                                }
+                            }
+                        }, 800); // 增加延迟时间以确保城市数据已加载
+                        
+                    } catch (selectionError) {
+                        logStep(`错误: 设置省份选择状态失败: ${selectionError.message || selectionError}`);
+                        found = false;
+                    }
                 }
-            }
-            
-            // 如果未找到，重试
-            if (!found && attempt < maxAttempts) {
-                logStep(`未找到省份选项，${delay}ms后重试 (${attempt}/${maxAttempts})`);
-                setTimeout(() => {
-                    attemptProvinceSelection(attempt + 1, maxAttempts, delay * 2);
-                }, delay);
-            } else if (!found) {
-                logStep(`达到最大重试次数，未找到省份选项: ${provinceName}`);
+                
+                // 如果未找到且未达到最大尝试次数，重试
+                if (!found && attempt < maxAttempts) {
+                    logStep(`未找到省份选项，${delay}ms后重试 (${attempt}/${maxAttempts})`);
+                    setTimeout(() => {
+                        // 增加延迟并减少最大尝试次数
+                        attemptProvinceSelection(attempt + 1, maxAttempts, delay * 1.5);
+                    }, delay);
+                } else if (!found) {
+                    logStep(`【兜底】多次尝试后仍未找到匹配省份，使用默认省份`);
+                    selectDefaultProvince();
+                }
+            } catch (error) {
+                logStep(`尝试选择省份时出错: ${error.message || error}`);
+                if (attempt < maxAttempts) {
+                    // 异常情况下也重试
+                    setTimeout(() => {
+                        attemptProvinceSelection(attempt + 1, maxAttempts, 1000);
+                    }, 1000);
+                } else {
+                    selectDefaultProvince();
+                }
             }
         };
         
         // 开始尝试选择省份
         attemptProvinceSelection();
+    } catch (error) {
+        logStep(`findAndSelectProvinceByDistrict函数执行出错: ${error.message || error}`);
+        // 全局兜底处理
+        selectDefaultProvince();
     }
     
-    // 辅助函数：通过区县信息查找并选择城市
-    function findAndSelectCityByDistrict(districtInfo, attempt = 1) {
-        console.log('【天气页面调试】findAndSelectCityByDistrict函数开始执行');
-        console.log('【天气页面调试】参数:', { districtInfo, attempt });
-        
-        // 首先使用window._tempDistrictInfo作为备选
+    // 辅助函数：选择默认省份
+    function selectDefaultProvince() {
+        try {
+            logStep(`【兜底】执行默认省份选择`);
+            const provinceSelect = document.getElementById('province-select');
+            if (provinceSelect && provinceSelect.options && provinceSelect.options.length > 1) {
+                // 优先选择常用省份（北京、上海等）
+                const commonProvinces = ['北京', '上海', '广东', '江苏'];
+                let selected = false;
+                
+                for (let i = 0; i < provinceSelect.options.length; i++) {
+                    const option = provinceSelect.options[i];
+                    const optionText = option.text || '';
+                    
+                    if (commonProvinces.some(provin => optionText.includes(provin)) && option.value) {
+                        provinceSelect.selectedIndex = i;
+                        selected = true;
+                        logStep(`【兜底】选择常用省份: ${optionText}`);
+                        break;
+                    }
+                }
+                
+                // 如果没有找到常用省份，选择第一个非空值选项
+                if (!selected) {
+                    for (let i = 0; i < provinceSelect.options.length; i++) {
+                        if (provinceSelect.options[i].value) {
+                            provinceSelect.selectedIndex = i;
+                            logStep(`【兜底】选择第一个有效省份: ${provinceSelect.options[i].text || '未知'}`);
+                            selected = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // 触发事件
+                if (selected) {
+                    try {
+                        provinceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        if (typeof handleProvinceChange === 'function') {
+                            try {
+                                handleProvinceChange();
+                            } catch (handlerError) {
+                                logStep(`调用handleProvinceChange函数失败: ${handlerError.message || handlerError}`);
+                            }
+                        }
+                    } catch (eventError) {
+                        logStep(`触发默认省份选择change事件失败: ${eventError.message || eventError}`);
+                    }
+                }
+            }
+        } catch (fallbackError) {
+            logStep(`错误: 设置默认省份失败: ${fallbackError.message || fallbackError}`);
+        }
+    }
+}
+
+// 辅助函数：通过区县信息查找并选择城市
+function findAndSelectCityByDistrict(districtInfo, attempt = 1) {
+    try {
+        // 使用备选数据
         if (!districtInfo && window._tempDistrictInfo) {
-            console.log('【天气页面调试】使用window._tempDistrictInfo作为备选');
             districtInfo = window._tempDistrictInfo;
         }
         
+        // 参数验证
         if (!districtInfo) {
-            console.log('【天气页面调试】【错误】无效参数: districtInfo不存在');
+            logStep('【错误】无效参数: districtInfo不存在');
             return;
         }
 
         let citySelect = document.getElementById('city-select');
         if (!citySelect) {
-            console.log('【天气页面调试】【错误】城市选择框不存在，尝试重新获取');
-            citySelect = document.getElementById('city-select');
-            if (!citySelect) {
-                console.log('【天气页面调试】【严重错误】无法获取城市选择框元素');
-                return;
+            logStep('【错误】无法获取城市选择框元素');
+            return;
+        }
+        
+        const maxAttempts = 3; // 增加重试次数
+        const delay = 500; // 增加延迟时间
+        
+        // 安全获取城市名称
+        if (!districtInfo.cityName) {
+            logStep('【错误】区县信息中缺少cityName');
+            return;
+        }
+        
+        const cleanCityName = districtInfo.cityName.replace(/市$/, '').trim();
+        
+        logStep(`通过区县信息查找城市: ${cleanCityName} (尝试 ${attempt}/${maxAttempts})`);
+        
+        // 检查选择框是否有选项
+        if (!citySelect.options || citySelect.options.length <= 1) {
+            logStep('城市选择框尚未加载完整');
+            if (attempt < maxAttempts) {
+                setTimeout(() => {
+                    findAndSelectCityByDistrict(districtInfo, attempt + 1);
+                }, delay);
+            } else {
+                // 兜底逻辑：尝试重新加载城市数据
+                logStep('多次尝试后仍未找到城市选项，尝试重新加载城市数据');
+                const provinceSelect = document.getElementById('province-select');
+                if (provinceSelect && provinceSelect.value) {
+                    try {
+                        // 尝试手动触发省份change事件以重新加载城市
+                        provinceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        // 再次尝试查找城市
+                        setTimeout(() => {
+                            findAndSelectCityByDistrict(districtInfo, 1);
+                        }, 1000);
+                    } catch (reloadError) {
+                        logStep(`错误: 重新加载城市数据失败: ${reloadError}`);
+                    }
+                }
+            }
+            return;
+        }
+        
+        // 支持多种匹配方式，优先级排序
+        let found = false;
+        let bestMatchIndex = -1;
+        let bestMatchScore = 0;
+        
+        for (let i = 0; i < citySelect.options.length; i++) {
+            try {
+                const option = citySelect.options[i];
+                const optionText = option.text || '';
+                const optionName = optionText.replace(/市$/, '').trim();
+                
+                // 精确匹配优先
+                if (optionName === cleanCityName) {
+                    bestMatchIndex = i;
+                    bestMatchScore = 3;
+                    break;
+                }
+                // 部分匹配次之
+                else if (optionText.includes(cleanCityName) || cleanCityName.includes(optionName)) {
+                    bestMatchIndex = i;
+                    bestMatchScore = 2;
+                }
+                // 原始名称匹配
+                else if (optionText === districtInfo.cityName) {
+                    bestMatchIndex = i;
+                    bestMatchScore = 1;
+                }
+            } catch (matchError) {
+                logStep(`警告: 匹配选项时出错: ${matchError}`);
             }
         }
         
-        const maxAttempts = 2;
-        const delay = 300;
-        const cleanCityName = districtInfo.cityName.replace(/市$/, '').trim();
-        
-        console.log('【天气页面调试】通过区县信息查找城市:', cleanCityName, '(尝试', attempt, '/', maxAttempts, ')');
-        logStep(`通过区县信息查找城市: ${cleanCityName} (尝试 ${attempt}/${maxAttempts})`);
-        
-        // 查找对应的城市
-        let found = false;
-        for (let i = 0; i < citySelect.options.length; i++) {
-            const option = citySelect.options[i];
-            const optionText = option.text || '';
-            const optionName = optionText.replace(/市$/, '').trim();
-            
-            // 支持多种匹配方式
-            if (optionName === cleanCityName || 
-                optionText.includes(cleanCityName) || 
-                cleanCityName.includes(optionName) ||
-                optionText === districtInfo.cityName) {
+        if (bestMatchIndex !== -1) {
+            try {
+                const option = citySelect.options[bestMatchIndex];
                 
-                logStep(`成功找到城市选项: ${optionText}`);
-                
-                // 确保DOM更新
-                citySelect.selectedIndex = i;
+                // 设置选中状态
+                citySelect.selectedIndex = bestMatchIndex;
                 citySelect.value = option.value;
                 
-                // 强制触发DOM更新
-                citySelect.focus();
-                citySelect.blur();
+                // 强制刷新UI
+                try {
+                    citySelect.focus();
+                    citySelect.blur();
+                } catch (uiError) {
+                    logStep(`UI刷新错误: ${uiError}`);
+                }
                 
-                // 触发change事件确保视觉上显示为选中状态
-                const event = new Event('change', { bubbles: true });
-                citySelect.dispatchEvent(event);
-                
-                handleCityChange();
-                
-                // 增加延迟时间，确保区县列表完全加载
-                setTimeout(() => {
-                    findAndSelectDistrictByCode(districtInfo.code, districtInfo);
-                }, 500); // 增加延迟到500ms
+                // 触发事件，增加错误处理
+                try {
+                    citySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (eventError) {
+                    logStep(`警告: 触发城市选择change事件失败: ${eventError}`);
+                    // 备用方案：直接调用处理函数
+                    try {
+                        if (typeof handleCityChange === 'function') {
+                            handleCityChange();
+                        }
+                    } catch (handlerError) {
+                        logStep(`错误: 调用handleCityChange函数失败: ${handlerError}`);
+                    }
+                }
                 
                 found = true;
-                break;
+                logStep(`成功找到城市选项: ${option.text || '未知'}并设置选中状态，匹配分数: ${bestMatchScore}`);
+                
+                // 延迟调用区县选择，增加错误处理
+                setTimeout(() => {
+                    try {
+                        if (districtInfo.code) {
+                            findAndSelectDistrictByCode(districtInfo.code, districtInfo);
+                        }
+                    } catch (districtError) {
+                        logStep(`区县选择失败: ${districtError}`);
+                    }
+                }, 500);
+            } catch (selectionError) {
+                logStep(`错误: 设置城市选择状态失败: ${selectionError}`);
+                found = false;
             }
         }
         
@@ -1677,91 +2268,176 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
                 findAndSelectCityByDistrict(districtInfo, attempt + 1);
             }, delay);
         } else if (!found) {
-            logStep(`达到最大重试次数，未找到城市选项: ${cleanCityName}`);
+            // 最终兜底：选择第一个城市
+            logStep(`最终未找到匹配城市，选择第一个城市作为备选`);
+            try {
+                if (citySelect.options.length > 1) {
+                    citySelect.selectedIndex = 1;
+                    try {
+                        citySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        if (typeof handleCityChange === 'function') {
+                            handleCityChange();
+                        }
+                    } catch (eventError) {
+                        logStep(`警告: 触发城市选择change事件失败: ${eventError}`);
+                    }
+                }
+            } catch (fallbackError) {
+                logStep(`错误: 设置默认城市失败: ${fallbackError}`);
+            }
+        }
+    } catch (error) {
+        logStep(`错误: findAndSelectCityByDistrict函数异常: ${error}`);
+        // 全局兜底处理
+        try {
+            const citySelect = document.getElementById('city-select');
+            if (citySelect && citySelect.options.length > 1) {
+                citySelect.selectedIndex = 1;
+                citySelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        } catch (fallbackError) {
+            logStep(`错误: 全局兜底处理失败: ${fallbackError}`);
         }
     }
-    
-    // 辅助函数：通过区县代码查找并选择区县（优化版本）
-    function findAndSelectDistrictByCode(districtCode, distInfo, attempt = 1) {
+}
+
+// 辅助函数：通过区县代码查找并选择区县
+function findAndSelectDistrictByCode(districtCode, distInfo, attempt = 1) {
+    try {
+        const districtSelect = document.getElementById('district-select');
         if (!districtCode || !districtSelect) {
             logStep('警告: 无效的区县代码或选择框元素');
             return;
         }
         
-        const maxAttempts = 2;
-        const delay = 300;
+        const maxAttempts = 3; // 增加重试次数
+        const delay = 500; // 增加延迟时间
         
         logStep(`通过区县代码查找区县: ${districtCode} (尝试 ${attempt}/${maxAttempts})`);
-        let found = false;
         
         // 检查选择框是否有选项
         if (!districtSelect.options || districtSelect.options.length <= 1) {
             logStep('区县选择框尚未加载完整');
             if (attempt < maxAttempts) {
-                logStep(`${delay}ms后重试区县选择`);
                 setTimeout(() => {
                     findAndSelectDistrictByCode(districtCode, distInfo, attempt + 1);
                 }, delay);
+            } else {
+                // 兜底逻辑：尝试重新加载区县数据
+                logStep('多次尝试后仍未找到区县选项，尝试重新加载区县数据');
+                const citySelect = document.getElementById('city-select');
+                if (citySelect && citySelect.value) {
+                    try {
+                        // 尝试手动触发城市change事件以重新加载区县
+                        citySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        // 再次尝试查找区县
+                        setTimeout(() => {
+                            findAndSelectDistrictByCode(districtCode, distInfo, 1);
+                        }, 1000);
+                    } catch (reloadError) {
+                        logStep(`错误: 重新加载区县数据失败: ${reloadError}`);
+                        // 选择默认区县
+                        selectDefaultDistrict();
+                    }
+                } else {
+                    selectDefaultDistrict();
+                }
             }
             return;
         }
         
         // 优先通过代码查找
+        let found = false;
+        let bestMatchIndex = -1;
+        let bestMatchScore = 0;
+        
+        // 1. 精确代码匹配
         for (let i = 0; i < districtSelect.options.length; i++) {
-            const option = districtSelect.options[i];
-            if (option.value === districtCode) {
-                // 确保DOM更新
-                districtSelect.selectedIndex = i;
-                districtSelect.value = option.value;
-                
-                // 强制触发DOM更新
-                districtSelect.focus();
-                districtSelect.blur();
-                
-                // 触发change事件确保视觉上显示为选中状态
-                const event = new Event('change', { bubbles: true });
-                districtSelect.dispatchEvent(event);
-                
-                found = true;
-                logStep('通过代码成功找到区县选项并设置选中状态');
-                break;
+            try {
+                if (districtSelect.options[i].value === districtCode) {
+                    bestMatchIndex = i;
+                    bestMatchScore = 4;
+                    break;
+                }
+            } catch (matchError) {
+                logStep(`警告: 代码匹配选项时出错: ${matchError}`);
             }
         }
         
-        // 如果通过代码没有找到，尝试通过区县信息的名称查找
-        if (!found && distInfo && distInfo.districtName) {
+        // 2. 如果通过代码没有找到，尝试通过名称查找
+        if (bestMatchIndex === -1 && distInfo && distInfo.districtName) {
             const cleanDistrictName = distInfo.districtName.replace(/[区县]$/, '').trim();
+            
             for (let i = 0; i < districtSelect.options.length; i++) {
-                const option = districtSelect.options[i];
-                const optionText = option.text || '';
-                const optionName = optionText.replace(/[区县]$/, '').trim();
-                
-                // 支持更多的匹配方式
-                if (optionName === cleanDistrictName || 
-                    optionText.includes(cleanDistrictName) || 
-                    cleanDistrictName.includes(optionName) ||
-                    optionText === distInfo.districtName) {
+                try {
+                    const option = districtSelect.options[i];
+                    const optionText = option.text || '';
+                    const optionName = optionText.replace(/[区县]$/, '').trim();
                     
-                    // 确保DOM更新
-                    districtSelect.selectedIndex = i;
-                    districtSelect.value = option.value;
-                    
-                    // 强制触发DOM更新
-                    districtSelect.focus();
-                    districtSelect.blur();
-                    
-                    // 触发change事件确保视觉上显示为选中状态
-                    const event = new Event('change', { bubbles: true });
-                    districtSelect.dispatchEvent(event);
-                    
-                    found = true;
-                    logStep(`通过名称成功找到区县选项: ${optionText}并设置选中状态`);
-                    break;
+                    // 精确名称匹配
+                    if (optionName === cleanDistrictName) {
+                        bestMatchIndex = i;
+                        bestMatchScore = 3;
+                        break;
+                    }
+                    // 部分名称匹配
+                    else if (optionText.includes(cleanDistrictName) || cleanDistrictName.includes(optionName)) {
+                        bestMatchIndex = i;
+                        bestMatchScore = 2;
+                    }
+                    // 原始名称匹配
+                    else if (optionText === distInfo.districtName) {
+                        bestMatchIndex = i;
+                        bestMatchScore = 1;
+                    }
+                } catch (matchError) {
+                    logStep(`警告: 名称匹配选项时出错: ${matchError}`);
                 }
             }
         }
         
-        // 如果第一次尝试失败，重试一次
+        // 执行选中操作
+        if (bestMatchIndex !== -1) {
+            try {
+                const option = districtSelect.options[bestMatchIndex];
+                
+                // 设置选中状态
+                districtSelect.selectedIndex = bestMatchIndex;
+                districtSelect.value = option.value;
+                
+                // 强制刷新UI
+                try {
+                    districtSelect.focus();
+                    districtSelect.blur();
+                } catch (uiError) {
+                    logStep(`UI刷新错误: ${uiError}`);
+                }
+                
+                // 触发事件，增加错误处理
+                try {
+                    districtSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (eventError) {
+                    logStep(`警告: 触发区县选择change事件失败: ${eventError}`);
+                    // 备用方案：直接加载天气数据
+                    try {
+                        const mojiAreaCode = dataCache.mojiCodeMap ? dataCache.mojiCodeMap[option.value] : undefined;
+                        if (typeof loadWeatherData === 'function') {
+                            loadWeatherData(option.value, mojiAreaCode);
+                        }
+                    } catch (loadError) {
+                        logStep(`错误: 直接加载天气数据失败: ${loadError}`);
+                    }
+                }
+                
+                found = true;
+                logStep(`${bestMatchScore === 4 ? '通过代码' : '通过名称'}成功找到区县选项: ${option.text || '未知'}并设置选中状态，匹配分数: ${bestMatchScore}`);
+            } catch (selectionError) {
+                logStep(`错误: 设置区县选择状态失败: ${selectionError}`);
+                found = false;
+            }
+        }
+        
+        // 重试逻辑
         if (!found && attempt < maxAttempts) {
             logStep(`未找到区县选项，${delay}ms后重试 (${attempt}/${maxAttempts})`);
             setTimeout(() => {
@@ -1771,243 +2447,59 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
             // 最后确认选择
             if (found) {
                 setTimeout(() => {
-                    // 再次确认选择框的值是否正确设置
-                    if (districtSelect.value !== districtCode) {
-                        logStep(`重新确认区县选择框值，当前值: ${districtSelect.value}，目标值: ${districtCode}`);
-                        for (let i = 0; i < districtSelect.options.length; i++) {
-                            if (districtSelect.options[i].value === districtCode) {
-                                districtSelect.selectedIndex = i;
-                                districtSelect.value = districtCode;
-                                break;
+                    try {
+                        if (districtSelect.value !== districtCode) {
+                            logStep('重新确认区县选择框的值');
+                            for (let i = 0; i < districtSelect.options.length; i++) {
+                                if (districtSelect.options[i].value === districtCode) {
+                                    districtSelect.selectedIndex = i;
+                                    districtSelect.value = districtCode;
+                                    break;
+                                }
                             }
                         }
+                    } catch (confirmError) {
+                        logStep(`错误: 确认区县选择失败: ${confirmError}`);
                     }
-                    logStep('区县选择确认完成');
                 }, 200);
             } else {
-                logStep(`警告: 未找到区县选项: ${districtCode}`);
                 // 尝试选择第一个区县作为备选
-                if (districtSelect.options && districtSelect.options.length > 1) {
-                    logStep('尝试选择第一个区县作为备选');
-                    districtSelect.selectedIndex = 1; // 通常索引0是占位符
-                    const event = new Event('change', { bubbles: true });
-                    districtSelect.dispatchEvent(event);
+                selectDefaultDistrict();
+            }
+        }
+    } catch (error) {
+        logStep(`错误: findAndSelectDistrictByCode函数异常: ${error}`);
+        // 全局兜底处理
+        selectDefaultDistrict();
+    }
+    
+    // 辅助函数：选择默认区县
+    function selectDefaultDistrict() {
+        try {
+            const districtSelect = document.getElementById('district-select');
+            if (districtSelect && districtSelect.options && districtSelect.options.length > 1) {
+                districtSelect.selectedIndex = 1;
+                try {
+                    districtSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (eventError) {
+                    logStep(`警告: 触发默认区县选择change事件失败: ${eventError}`);
+                    // 直接加载选中区县的天气数据
+                    try {
+                        const selectedValue = districtSelect.value;
+                        const mojiAreaCode = dataCache.mojiCodeMap ? dataCache.mojiCodeMap[selectedValue] : undefined;
+                        if (typeof loadWeatherData === 'function') {
+                            loadWeatherData(selectedValue, mojiAreaCode);
+                        }
+                    } catch (loadError) {
+                        logStep(`错误: 加载默认区县天气数据失败: ${loadError}`);
+                    }
                 }
+                logStep('选择第一个区县作为备选');
             }
+        } catch (fallbackError) {
+            logStep(`错误: 设置默认区县失败: ${fallbackError}`);
         }
     }
-    
-    // 设置省份选择
-    if (selectedProvinceCode) {
-        logStep(`设置省份选择: ${selectedProvinceCode}`);
-        
-        // 确保省份选择框中有对应的选项
-        let foundProvince = false;
-        for (let i = 0; i < provinceSelect.options.length; i++) {
-            if (provinceSelect.options[i].value === selectedProvinceCode) {
-                provinceSelect.value = selectedProvinceCode;
-                // 触发change事件确保视觉上显示为选中状态
-                const event = new Event('change', { bubbles: true });
-                provinceSelect.dispatchEvent(event);
-                foundProvince = true;
-                logStep('省份选择框中找到对应选项并设置选中状态');
-                break;
-            }
-        }
-        
-        if (foundProvince) {
-            // 直接调用处理函数，避免多层事件触发
-            handleProvinceChange();
-            
-            // 使用Promise链管理异步流程，避免多层嵌套setTimeout
-            new Promise(resolve => setTimeout(resolve, 300)) // 增加延迟时间，确保城市列表完全加载
-                .then(() => {
-                    if (cleanProvince && cleanCity) {
-                        // 2. 查找并选择对应的城市
-                        return findAndSelectCity(selectedProvinceCode, cleanProvince, cleanCity);
-                    }
-                    return Promise.resolve(null);
-                })
-                .then(selectedCityCode => {
-                    if (selectedCityCode && cleanProvince && cleanCity && cleanDistrict) {
-                        // 3. 查找并选择对应的区县
-                        const districtResult = findAndSelectDistrict(selectedProvinceCode, selectedCityCode, cleanProvince, cleanCity, cleanDistrict);
-                        return districtResult.then(selectedDistrictCode => {
-                            // 如果是IP定位且有locationData，确保使用IP定位返回的weatherCode和mojiAreaCode
-                            if (isIpLocation && locationData && locationData.weatherCode) {
-                                logStep('IP定位场景下更新区县信息为接口返回的值');
-                                dataCache.selectedDistrict = dataCache.selectedDistrict || {};
-                                dataCache.selectedDistrict.code = locationData.weatherCode;
-                                dataCache.selectedDistrict.mojiCode = locationData.mojiAreaCode || '';
-                                return locationData.weatherCode;
-                            }
-                            return selectedDistrictCode;
-                        });
-                    }
-                    return Promise.resolve(null);
-                })
-                .then(selectedDistrictCode => {
-                    if (selectedDistrictCode) {
-                        logStep(`省市区选择匹配成功，区县代码: ${selectedDistrictCode}`);
-                        
-                        // 确保区县选择框已正确勾选
-                        setTimeout(() => {
-                            if (districtSelect.value !== selectedDistrictCode) {
-                                logStep('重新设置区县选择框的值');
-                                districtSelect.value = selectedDistrictCode;
-                            }
-                            
-                            // 第三步：根据确定的weatherCode和mojiAreaCode加载天气数据
-                            // 优先使用IP定位返回的weatherCode和mojiAreaCode
-                            if (isIpLocation && locationData && locationData.weatherCode) {
-                                logStep('IP定位匹配成功，使用IP定位返回的weatherCode加载天气数据（流程第三步）');
-                                loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
-                            } else {
-                                // 否则使用选择框匹配到的区县代码
-                                logStep('使用匹配到的区县代码加载天气数据（流程第三步）');
-                                const districtInfo = dataCache.selectedDistrict;
-                                const mojiAreaCode = districtInfo && districtInfo.mojiCode ? 
-                                    `${dataCache.selectedProvince?.mojiCode || ''}/${districtInfo.mojiCode}` : '';
-                                loadWeatherData(selectedDistrictCode, mojiAreaCode);
-                            }
-                        }, 100);
-                    } else if (isIpLocation) {
-                        // IP定位时，如果匹配失败，保持使用IP定位的地址显示
-                        logStep('IP定位地址匹配失败，保持使用IP定位地址显示');
-                        // 只使用传入的locationData，移除了sessionStorage相关代码
-                        let location = locationData;
-                        
-                        if (location) {
-                            let fullCityName = location.province;
-                            if (location.city && location.city !== location.province && !location.city.includes(location.province)) {
-                                fullCityName += location.city;
-                            }
-                            if (location.district) {
-                                fullCityName += location.district;
-                            }
-                            updateCityDisplay({
-                                name: fullCityName,
-                                code: location.weatherCode || '未找到'
-                            });
-                            
-                            // 即使匹配失败，如果有weatherCode也加载天气数据
-                            if (location.weatherCode) {
-                                logStep('IP定位匹配失败但有weatherCode，直接加载天气数据');
-                                loadWeatherData(location.weatherCode, location.mojiAreaCode);
-                            }
-                        }
-                    }
-                })
-                .catch(error => {
-                    logStep(`错误: 匹配省市区选择框出错: ${error.message || error}`);
-                    // 即使出错，如果是IP定位且有weatherCode，也尝试加载天气数据
-                    if (isIpLocation && locationData && locationData.weatherCode) {
-                        logStep('匹配出错但有IP定位weatherCode，尝试加载天气数据');
-                        loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode);
-                    }
-                });
-        } else {
-            logStep(`省份选择框中未找到代码为 ${selectedProvinceCode} 的选项`);
-        }
-    } else {
-        logStep(`未找到匹配的省份，且无法选择默认省份: ${cleanProvince}`);
-    }
-
-    // 设置省份选择
-    if (selectedProvinceCode) {
-        logStep(`设置省份选择: ${selectedProvinceCode}`);
-        
-        // 确保省份选择框中有对应的选项
-        let foundProvince = false;
-        for (let i = 0; i < provinceSelect.options.length; i++) {
-            if (provinceSelect.options[i].value === selectedProvinceCode) {
-                provinceSelect.value = selectedProvinceCode;
-                foundProvince = true;
-                break;
-            }
-        }
-        
-        if (foundProvince) {
-            // 直接调用处理函数，避免多层事件触发
-            handleProvinceChange();
-            
-            // 使用Promise链管理异步流程，避免多层嵌套setTimeout
-            new Promise(resolve => setTimeout(resolve, 300)) // 增加延迟时间，确保城市列表完全加载
-                .then(() => {
-                    if (cleanProvince && cleanCity) {
-                        // 2. 查找并选择对应的城市
-                        return findAndSelectCity(selectedProvinceCode, cleanProvince, cleanCity);
-                    }
-                    return Promise.resolve(null);
-                })
-                .then(selectedCityCode => {
-                    if (selectedCityCode && cleanProvince && cleanCity && cleanDistrict) {
-                        // 3. 查找并选择对应的区县
-                        const districtResult = findAndSelectDistrict(selectedProvinceCode, selectedCityCode, cleanProvince, cleanCity, cleanDistrict);
-                        return districtResult.then(selectedDistrictCode => {
-                            // 如果是IP定位且有locationData，确保使用IP定位返回的weatherCode和mojiAreaCode
-                            if (isIpLocation && locationData && locationData.weatherCode) {
-                                logStep('IP定位场景下更新区县信息为接口返回的值');
-                                dataCache.selectedDistrict = dataCache.selectedDistrict || {};
-                                dataCache.selectedDistrict.code = locationData.weatherCode;
-                                dataCache.selectedDistrict.mojiCode = locationData.mojiAreaCode || '';
-                                return locationData.weatherCode;
-                            }
-                            return selectedDistrictCode;
-                        });
-                    }
-                    return Promise.resolve(null);
-                })
-                .then(selectedDistrictCode => {
-                    if (selectedDistrictCode) {
-                        logStep(`省市区选择匹配成功，区县代码: ${selectedDistrictCode}`);
-                        
-                        // 确保区县选择框已正确勾选
-                        setTimeout(() => {
-                            if (districtSelect.value !== selectedDistrictCode) {
-                                logStep('重新设置区县选择框的值');
-                                districtSelect.value = selectedDistrictCode;
-                            }
-                        }, 100);
-                    } else if (isIpLocation) {
-                        // IP定位时，如果匹配失败，保持使用IP定位的地址显示
-                        logStep('IP定位地址匹配失败，保持使用IP定位地址显示');
-                        // 只使用传入的locationData，移除了sessionStorage相关代码
-                        let location = locationData;
-                        
-                        if (location) {
-                            let fullCityName = location.province;
-                            if (location.city && location.city !== location.province && !location.city.includes(location.province)) {
-                                fullCityName += location.city;
-                            }
-                            if (location.district) {
-                                fullCityName += location.district;
-                            }
-                            updateCityDisplay({
-                                name: fullCityName,
-                                code: location.weatherCode || '未找到'
-                            });
-                            
-                            // 即使匹配失败，如果有weatherCode也加载天气数据
-                            if (location.weatherCode) {
-                                logStep('IP定位匹配失败但有weatherCode，直接加载天气数据');
-                                loadWeatherData(location.weatherCode, location.mojiAreaCode);
-                            }
-                        }
-                    }
-                })
-                .catch(error => {
-                    logStep(`错误: 匹配省市区选择框出错: ${error}`);
-                });
-        } else {
-            logStep(`警告: 省份选择框中未找到代码为 ${selectedProvinceCode} 的选项`);
-        }
-    } else {
-        logStep(`未找到匹配的省份，且无法选择默认省份: ${cleanProvince}`);
-    }
-    
-    logStep('位置选择框匹配流程开始执行');
-
 }
 
 // 查找并选择城市 - 提取为独立函数，便于管理
@@ -2735,17 +3227,30 @@ function updateCalendarWeather(calendarWeather) {
     calendarContainer.innerHTML = '';
     calendarContainer.style.display = 'block';
     
-    // 格式化日期函数 - 完整保留年月日格式，确保数据匹配
+    // 格式化日期函数 - 统一转换为YYYY-MM-DD格式
     function formatDate(dateStr) {
-        if (!dateStr || typeof dateStr !== 'string') return dateStr;
-        // 处理YYYYMMDD格式
-        if (dateStr.length === 8) {
-            const year = dateStr.substring(0, 4);
-            const month = dateStr.substring(4, 6);
-            const day = dateStr.substring(6, 8);
+        if (!dateStr || typeof dateStr !== 'string') return null;
+        
+        try {
+            // 处理YYYYMMDD格式
+            if (dateStr.length === 8 && /^\d{8}$/.test(dateStr)) {
+                const year = dateStr.substring(0, 4);
+                const month = dateStr.substring(4, 6);
+                const day = dateStr.substring(6, 8);
+                return `${year}-${month}-${day}`;
+            }
+            
+            // 尝试直接解析为日期并格式化
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return null;
+            
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        } catch (e) {
+            return null;
         }
-        return dateStr;
     }
     
     // 获取今天的日期（YYYY-MM-DD格式）
@@ -2777,69 +3282,53 @@ function updateCalendarWeather(calendarWeather) {
     gridContainer.style.width = '100%';
     calendarContainer.appendChild(gridContainer);
     
-    // 按日期对数据进行排序
-    const sortedWeather = [...calendarWeather].filter(day => day && day.date).sort((a, b) => {
-        const dateA = new Date(formatDate(a.date));
-        const dateB = new Date(formatDate(b.date));
-        return dateA.getTime() - dateB.getTime();
+    // 处理和整理天气数据 - 移除对特定日期的特殊处理
+    const processedWeatherData = [];
+    const dateToDataMap = new Map(); // 使用日期字符串作为键的映射
+    
+    // 处理所有天气数据，统一格式并构建映射
+    calendarWeather.forEach(day => {
+        if (!day || !day.date) return;
+        
+        const formattedDate = formatDate(day.date);
+        if (!formattedDate) return;
+        
+        // 存储处理后的数据和映射关系
+        processedWeatherData.push({
+            ...day,
+            formattedDate: formattedDate,
+            dateObj: new Date(formattedDate)
+        });
+        
+        // 存储到映射中 - 使用格式化后的日期作为唯一键
+        dateToDataMap.set(formattedDate, day);
     });
     
-    // 获取当月第一天和最后一天
-    let firstDay = null;
-    let lastDay = null;
-    if (sortedWeather.length > 0) {
-        firstDay = new Date(formatDate(sortedWeather[0].date));
-        lastDay = new Date(formatDate(sortedWeather[sortedWeather.length - 1].date));
+    // 按日期排序
+    processedWeatherData.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+    
+    // 确定要显示的月份 - 从数据中获取第一个有效月份
+    let displayYear, displayMonth;
+    if (processedWeatherData.length > 0) {
+        const firstDate = processedWeatherData[0].dateObj;
+        displayYear = firstDate.getFullYear();
+        displayMonth = firstDate.getMonth(); // 0-11
+    } else {
+        // 如果没有数据，使用当前月份
+        const now = new Date();
+        displayYear = now.getFullYear();
+        displayMonth = now.getMonth();
     }
     
-    // 获取当月第一天是星期几（转换为周一为0，周日为6的索引）
-    let firstDayOfMonth = 0;
-    if (firstDay) {
-        firstDayOfMonth = firstDay.getDay();
-    }
-    
-    // 计算当月有多少天
-    let daysInMonth = 0;
-    if (firstDay) {
-        daysInMonth = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0).getDate();
-    }
-    
-    // 查找今天的日期
-    const todayStr = getTodayFormatted();
-    
-    // 创建日期到数据的映射，支持多种格式以解决日期不匹配问题
-    const dateToDataMap = new Map();
-    sortedWeather.forEach(dayData => {
-        if (!dayData || !dayData.date) return;
-        
-        // 存储原始格式的日期
-        dateToDataMap.set(dayData.date, dayData);
-        
-        // 存储完整格式化后的日期（YYYY-MM-DD）
-        const formattedDate = formatDate(dayData.date);
-        if (formattedDate !== dayData.date) {
-            dateToDataMap.set(formattedDate, dayData);
-        }
-        
-        // 为了兼容性，也存储MM-DD格式
-        if (formattedDate.includes('-')) {
-            const parts = formattedDate.split('-');
-            if (parts.length === 3) {
-                const monthDayFormat = `${parts[1]}-${parts[2]}`;
-                dateToDataMap.set(monthDayFormat, dayData);
-            }
-        }
-    });
-    
-    // 修正填充日历网格逻辑，确保日期和星期正确匹配
-    
-    // 计算当月第一天的日期
-    const firstDateOfMonth = new Date(firstDay.getFullYear(), firstDay.getMonth(), 1);
+    // 计算当月第一天和最后一天
+    const firstDateOfMonth = new Date(displayYear, displayMonth, 1);
+    const lastDateOfMonth = new Date(displayYear, displayMonth + 1, 0);
+    const daysInMonth = lastDateOfMonth.getDate();
     
     // 获取当月第一天是星期几（0=周日，1=周一...）
     const firstDayWeekIndex = firstDateOfMonth.getDay();
     
-    // 计算需要填充的前置空白单元格数（以周一为起始，修正日期错位问题）
+    // 计算需要填充的前置空白单元格数（以周一为起始）
     let leadingEmptyCells;
     if (firstDayWeekIndex === 0) { // 周日
         leadingEmptyCells = 6; // 前面有6个空白（周一到周六）
@@ -2850,74 +3339,48 @@ function updateCalendarWeather(calendarWeather) {
     // 计算需要的总行数
     const totalCells = Math.ceil((leadingEmptyCells + daysInMonth) / 7) * 7;
     
-    // 填充日历网格
-    for (let i = 0; i < totalCells; i++) {
+    // 获取今天的日期用于高亮
+    const todayStr = getTodayFormatted();
+    
+    // 填充日历网格 - 统一处理所有日期，没有特殊逻辑
+    for (let cellIndex = 0; cellIndex < totalCells; cellIndex++) {
         const cell = document.createElement('div');
         cell.className = 'min-h-[100px] p-1 border border-gray-200 rounded';
         
-        // 计算当前单元格对应的日期
-        const dayOffset = i - leadingEmptyCells;
-        const isCurrentMonth = dayOffset >= 0 && dayOffset < daysInMonth;
+        // 计算当前单元格对应的日期偏移量
+        const dateOffset = cellIndex - leadingEmptyCells;
+        const isCurrentMonth = dateOffset >= 0 && dateOffset < daysInMonth;
         
-        // 判断是否为周六或周日（在7列网格中，索引5是周六，索引6是周日）
-        const isWeekend = i % 7 === 5 || i % 7 === 6;
+        // 判断是否为周末
+        const isWeekend = cellIndex % 7 === 5 || cellIndex % 7 === 6;
         
         if (!isCurrentMonth) {
             // 非当月日期，留空
             cell.style.backgroundColor = '#f8f8f8';
         } else {
-            // 当月日期
-            const dayCount = dayOffset + 1;
-            // 构建完整日期
-            const currentDate = new Date(firstDay.getFullYear(), firstDay.getMonth(), dayCount);
-            const formattedCurrentDate = currentDate.toISOString().split('T')[0];
+            // 计算当前日期 - 从当月第一天开始，加上偏移量
+            const currentDate = new Date(firstDateOfMonth);
+            currentDate.setDate(currentDate.getDate() + dateOffset); // 关键修复：直接使用偏移量设置日期
             
-            // 增强今天日期的判断逻辑，确保正确高亮当前日期（避免22日错误显示为23日）
-            const todayDate = new Date(todayStr);
-            const isToday = 
-                currentDate.getDate() === todayDate.getDate() &&
-                currentDate.getMonth() === todayDate.getMonth() &&
-                currentDate.getFullYear() === todayDate.getFullYear();
+            // 格式化当前日期
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            const formattedCurrentDate = `${year}-${month}-${day}`;
             
-            // 从映射中获取当天数据，尝试多种格式匹配以解决日期错位问题
-            let dayData = dateToDataMap.get(formattedCurrentDate);
+            // 获取日期数字
+            const dayCount = currentDate.getDate();
             
-            // 如果没找到，尝试其他可能的日期格式
-            if (!dayData) {
-                // 尝试其他可能的格式
-                const altFormats = [
-                    formattedCurrentDate.replace(/-/g, ''), // YYYYMMDD格式
-                    formattedCurrentDate.substring(5) // MM-DD格式
-                ];
-                
-                for (const altFormat of altFormats) {
-                    dayData = dateToDataMap.get(altFormat);
-                    if (dayData) break;
-                }
-            }
-
+            // 判断是否为今天
+            const isToday = formattedCurrentDate === todayStr;
             
-            // 特别为1号添加额外的匹配逻辑
-            if (!dayData && dayCount === 1) {
-                // 尝试直接从排序后的数据中查找第一天的数据
-                const firstDayData = sortedWeather.find(day => {
-                    if (!day || !day.date) return false;
-                    const dayDate = new Date(formatDate(day.date));
-                    return dayDate.getDate() === 1 && 
-                           dayDate.getMonth() === firstDay.getMonth() && 
-                           dayDate.getFullYear() === firstDay.getFullYear();
-                });
-                
-                if (firstDayData) {
-                    dayData = firstDayData;
-                }
-            }
+            // 查找对应的天气数据 - 统一使用格式化后的日期查找
+            const dayData = dateToDataMap.get(formattedCurrentDate);
             
-            // 设置样式，当天高亮
+            // 设置样式
             if (isToday) {
                 cell.className = 'min-h-[100px] p-1 border-2 border-blue-400 rounded bg-blue-50';
             } else if (isWeekend) {
-                // 周六周日设置淡蓝色背景
                 cell.style.backgroundColor = '#e0f2fe'; // 淡蓝色背景
             }
             
@@ -2928,8 +3391,11 @@ function updateCalendarWeather(calendarWeather) {
             cell.appendChild(dateNumber);
             
             if (dayData) {
+                // 显示天气信息
                 let shortWeather = dayData.weather || '--';
-                if (shortWeather.length > 2 && shortWeather.includes('转')) shortWeather = shortWeather.split('转')[0];
+                if (shortWeather.length > 2 && shortWeather.includes('转')) {
+                    shortWeather = shortWeather.split('转')[0];
+                }
                 
                 // 天气图标
                 const icon = document.createElement('div');
@@ -2944,7 +3410,7 @@ function updateCalendarWeather(calendarWeather) {
                 icon.textContent = iconText;
                 cell.appendChild(icon);
                 
-                // 天气状况（简化）
+                // 天气状况
                 const weatherElement = document.createElement('div');
                 weatherElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
                 weatherElement.textContent = shortWeather;
