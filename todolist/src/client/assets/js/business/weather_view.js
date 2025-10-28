@@ -3865,6 +3865,98 @@ function drawWeatherTrendChart(dailyData) {
     });
 }
 
+// 更新近7日天气横向卡片
+function updateRecentDaysWeather(recentDaysWeather) {
+    const container = document.getElementById('recent-days-weather');
+    const recentDaysSection = container ? container.closest('[id$="recent-days-section"]') || container.closest('.recent-days-section') : null;
+    
+    if (!container) {
+        logStep('错误: 近7日天气容器元素不存在');
+        return;
+    }
+    
+    if (!recentDaysWeather || !Array.isArray(recentDaysWeather) || recentDaysWeather.length === 0) {
+        // 隐藏整个区域
+        if (recentDaysSection) {
+            recentDaysSection.style.display = 'none';
+        } else {
+            container.innerHTML = '<div class="no-data-message">暂无近7日天气数据</div>';
+            container.style.display = 'block';
+        }
+        return;
+    }
+    
+    // 确保区域可见
+    if (recentDaysSection) {
+        recentDaysSection.style.display = 'block';
+    }
+    container.style.display = 'block';
+    
+    // 创建横向滚动容器
+    const scrollContainer = document.createElement('div');
+    scrollContainer.className = 'flex space-x-4 overflow-x-auto pb-4 scrollbar-thin';
+    
+    // 添加每日天气卡片
+    recentDaysWeather.forEach(dayData => {
+        // 创建卡片容器
+        const card = document.createElement('div');
+        card.className = 'flex-shrink-0 w-40 bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100';
+        
+        // 格式化日期
+        let dateStr = dayData.date || '';
+        let weekday = '';
+        if (dateStr.length === 8) {
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            dateStr = `${month}月${day}日`;
+            
+            // 计算星期几
+            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            weekday = weekdays[date.getDay()];
+        }
+        
+        // 确定天气图标
+        let iconText = '☀️';
+        const weather = dayData.weather || '';
+        if (weather.includes('雨')) iconText = '🌧️';
+        else if (weather.includes('云')) iconText = '☁️';
+        else if (weather.includes('阴')) iconText = '☁️';
+        else if (weather.includes('雪')) iconText = '❄️';
+        
+        // 构建卡片内容
+        card.innerHTML = `
+            <div class="p-4">
+                <div class="text-center mb-2">
+                    <div class="text-gray-800 font-medium">${dateStr}</div>
+                    <div class="text-gray-500 text-sm">${weekday}</div>
+                </div>
+                <div class="flex flex-col items-center mb-3">
+                    <div class="text-4xl mb-2">${iconText}</div>
+                    <div class="text-gray-600 text-sm">${dayData.weather || '--'}</div>
+                </div>
+                <div class="text-center mb-2">
+                    <div class="flex justify-center items-center gap-2">
+                        <span class="text-blue-500">${dayData.tempMin || '--'}°</span>
+                        <span class="text-gray-300">/</span>
+                        <span class="text-red-500">${dayData.tempMax || '--'}°</span>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-gray-500 text-xs">${dayData.wind || '--'}</div>
+                </div>
+            </div>
+        `;
+        
+        scrollContainer.appendChild(card);
+    });
+    
+    // 清空容器并添加滚动卡片
+    container.innerHTML = '';
+    container.appendChild(scrollContainer);
+}
+
 // 更新天气显示
 function updateWeatherDisplay(weatherData) {
     logStep(`开始更新天气显示: ${JSON.stringify(weatherData).substring(0, 80)}...`);
@@ -3891,7 +3983,7 @@ function updateWeatherDisplay(weatherData) {
         updateWeatherLinks(weatherData.mojiAreaCode, weatherData.weatherCode);
         
         // 提取必要的数据部分
-        const { todayWeather, calendarWeather, hourlyForecast, hourlyWeather } = weatherData;
+        const { todayWeather, calendarWeather, hourlyForecast, hourlyWeather, recentDaysWeather } = weatherData;
         
         // 增强todayData数据提取逻辑
         let todayData = null;
@@ -3909,11 +4001,6 @@ function updateWeatherDisplay(weatherData) {
             // 今日天气作为核心数据，如果没有数据，显示错误信息
             showWeatherError('无法获取今日天气数据，请稍后重试');
             return; // 不再继续处理其他数据
-        }
-        
-        // 更新天气日历（整个月的网格形式）
-        if (calendarWeather) {
-            updateCalendarWeather(calendarWeather);
         }
         
         // 获取24小时数据 - 增强数据来源逻辑
@@ -3949,9 +4036,22 @@ function updateWeatherDisplay(weatherData) {
             const canvas = document.getElementById('24hour-chart');
             if (canvas && window._weather24HourChart) {
                 window._weather24HourChart.destroy();
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                window._weather24HourChart = null;
             }
+            const chartContainer = document.getElementById('24hour-chart-container');
+            if (chartContainer) {
+                chartContainer.innerHTML = '<div class="text-center text-gray-500 py-10">暂无24小时温度数据</div>';
+            }
+        }
+        
+        // 更新近7日天气横向表格
+        if (recentDaysWeather) {
+            updateRecentDaysWeather(recentDaysWeather);
+        }
+        
+        // 更新天气日历（整个月的网格形式）
+        if (calendarWeather) {
+            updateCalendarWeather(calendarWeather);
         }
         
         // 绘制天气趋势图表（确保显示历史温度）

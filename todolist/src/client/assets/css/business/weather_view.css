@@ -7,6 +7,45 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
+/* 近7日天气表格样式 */
+#recent-days-weather {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+#recent-days-weather table {
+    min-width: 100%;
+    border-collapse: collapse;
+}
+
+#recent-days-weather th {
+    background-color: #f8fafc;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #4a5568;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+#recent-days-weather td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+#recent-days-weather tr:hover {
+    background-color: #f8fafc;
+}
+
+#recent-days-weather .weather-icon {
+    width: 30px;
+    height: 30px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
 /* 天气卡片容器 */
 .weather-container {
     max-width: 1200px;
