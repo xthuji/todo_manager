@@ -4022,9 +4022,9 @@ function updateRecentDaysWeather(recentDaysWeather) {
         downArrow.style.display = canScrollDown ? 'block' : 'none';
     }, 100);
     
-    // 创建表格 - 优化样式
+    // 创建表格 - 移除单元格边框，准备在外部容器添加整体边框
     const table = document.createElement('table');
-    table.className = 'min-w-full';
+    table.className = 'min-w-full border-collapse';
     
     // 创建表体 - 直接创建表体，不使用表头
     const tbody = document.createElement('tbody');
@@ -4043,7 +4043,7 @@ function updateRecentDaysWeather(recentDaysWeather) {
         const isToday = index === 0;
         
         // 设置行样式
-        row.className = 'h-7 border-b border-gray-200'; // 设置固定行高和底部分隔线
+        row.className = 'h-7'; // 设置固定行高
         if (isToday) {
             row.className += ' bg-blue-50';
         }
@@ -4071,8 +4071,8 @@ function updateRecentDaysWeather(recentDaysWeather) {
         dataCells.forEach((cellData, cellIndex) => {
             const td = document.createElement('td');
             
-            // 设置单元格样式 - 添加右边框作为列分割线和底部边框作为行分割线
-            td.className = 'text-xs font-medium text-center p-0.5 border-r border-b border-gray-200';
+            // 设置单元格样式 - 移除边框，使用内部间距和底部分隔线
+            td.className = 'text-xs font-medium text-center p-0.5 border-b border-gray-200';
             
             // 根据不同列设置不同的样式和内容
             if (cellIndex === 0) { // 日期列
@@ -4124,8 +4124,13 @@ function updateRecentDaysWeather(recentDaysWeather) {
     // 添加表体到表格
     table.appendChild(tbody);
     
-    // 添加表格到容器
-    tableContainer.appendChild(table);
+    // 创建带整体边框的表格容器
+    const borderedContainer = document.createElement('div');
+    borderedContainer.className = 'border border-gray-300 rounded-lg overflow-hidden';
+    borderedContainer.appendChild(table);
+    
+    // 添加带边框的容器到滚动容器
+    tableContainer.appendChild(borderedContainer);
     
     // 清空容器并添加新的表格到包装器
     container.innerHTML = '';
