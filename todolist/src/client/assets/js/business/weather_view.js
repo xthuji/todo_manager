@@ -3108,12 +3108,24 @@ function updateLifeHelper(lifeHelperData) {
 // 更新24小时天气摘要（天气和风力风向）
 function updateHourlyWeatherSummary(hourlyData) {
     const container = document.getElementById('hourly-weather-summary');
+    const hourlyWeatherSection = container ? container.closest('[id$="hourly-weather-section"]') || container.closest('.hourly-weather-section') : null;
+    
     if (!container || !hourlyData || !Array.isArray(hourlyData) || hourlyData.length === 0) {
-        if (container) {
-            container.innerHTML = '<div class="text-center text-gray-500">暂无24小时天气数据</div>';
+        // 隐藏整个24小时天气区域
+        if (hourlyWeatherSection) {
+            hourlyWeatherSection.style.display = 'none';
+        } else if (container) {
+            // 如果找不到父区域，则只隐藏当前容器
+            container.style.display = 'none';
         }
         return;
     }
+    
+    // 确保区域可见
+    if (hourlyWeatherSection) {
+        hourlyWeatherSection.style.display = 'block';
+    }
+    container.style.display = 'block';
     
     // 设置容器样式，添加水平滚动
     container.style.display = 'flex';
@@ -3212,16 +3224,30 @@ function updateHourlyWeatherSummary(hourlyData) {
 // 更新天气日历（周一到周日标题 + 当月网格形式）
 function updateCalendarWeather(calendarWeather) {
     const calendarContainer = document.getElementById('weather-calendar');
+    const calendarSection = calendarContainer ? calendarContainer.closest('[id$="calendar-section"]') || calendarContainer.closest('.calendar-section') : null;
+    
     if (!calendarContainer) {
         logStep('错误: 日历容器元素不存在');
         return;
     }
     
     if (!calendarWeather || !Array.isArray(calendarWeather) || calendarWeather.length === 0) {
-        calendarContainer.innerHTML = '<div class="no-data-message">暂无日历天气数据</div>';
-        calendarContainer.style.display = 'block';
+        // 隐藏整个日历区域
+        if (calendarSection) {
+            calendarSection.style.display = 'none';
+        } else {
+            // 如果找不到父区域，则显示无数据提示
+            calendarContainer.innerHTML = '<div class="no-data-message">暂无日历天气数据</div>';
+            calendarContainer.style.display = 'block';
+        }
         return;
     }
+    
+    // 确保区域可见
+    if (calendarSection) {
+        calendarSection.style.display = 'block';
+    }
+    calendarContainer.style.display = 'block';
     
     // 清空容器
     calendarContainer.innerHTML = '';
@@ -3447,9 +3473,24 @@ function updateCalendarWeather(calendarWeather) {
 // 绘制24小时天气折线图 - 调整纵坐标区间
 function draw24HourChart(hourlyData) {
     const canvas = document.getElementById('24hour-chart');
+    const chartContainer = document.getElementById('24hour-chart-container') || (canvas ? canvas.closest('.chart-container') : null);
+    
     if (!canvas || !hourlyData || !Array.isArray(hourlyData) || hourlyData.length === 0) {
         logStep('错误: 图表容器或数据无效');
+        // 隐藏图表容器
+        if (chartContainer) {
+            chartContainer.style.display = 'none';
+        } else if (canvas) {
+            canvas.style.display = 'none';
+        }
         return;
+    }
+    
+    // 确保图表容器可见
+    if (chartContainer) {
+        chartContainer.style.display = 'block';
+    } else if (canvas) {
+        canvas.style.display = 'block';
     }
     
     // 检查是否已加载Chart.js
@@ -3580,9 +3621,29 @@ function draw24HourChart(hourlyData) {
 // 绘制气温趋势图表（固定纵坐标区间）
 function drawWeatherTrendChart(dailyData) {
     const canvas = document.getElementById('weather-trend-chart');
+    const chartContainer = document.getElementById('weather-trend-chart-container') || (canvas ? canvas.closest('.chart-container') : null);
+    const trendSection = chartContainer ? chartContainer.closest('[id$="trend-section"]') || chartContainer.closest('.trend-section') : null;
+    
     if (!canvas || !dailyData || !Array.isArray(dailyData) || dailyData.length === 0) {
         logStep('错误: 图表容器或数据无效');
+        // 隐藏整个趋势图区域
+        if (trendSection) {
+            trendSection.style.display = 'none';
+        } else if (chartContainer) {
+            chartContainer.style.display = 'none';
+        } else if (canvas) {
+            canvas.style.display = 'none';
+        }
         return;
+    }
+    
+    // 确保区域可见
+    if (trendSection) {
+        trendSection.style.display = 'block';
+    } else if (chartContainer) {
+        chartContainer.style.display = 'block';
+    } else if (canvas) {
+        canvas.style.display = 'block';
     }
     
     // 检查是否已加载Chart.js
@@ -3840,25 +3901,14 @@ function updateWeatherDisplay(weatherData) {
             logStep(`使用todayWeather: ${JSON.stringify(todayData).substring(0, 60)}...`);
         }
         
-        // 强制更新今日天气，即使数据不完整也显示
-        if (todayData) {
+        // 强制更新今日天气，作为核心数据，如果没有数据则显示错误信息
+        if (todayData && (todayData.temperature || todayData.weather)) {
             updateTodayWeather(todayData);
         } else {
-            logStep('警告: 没有找到有效的今日天气数据，创建默认数据');
-            // 创建默认数据以确保UI渲染
-            updateTodayWeather({
-                temperature: '--',
-                weather: '--',
-                tempMin: '--',
-                tempMax: '--',
-                wind: '--',
-                humidity: '--',
-                airQuality: '--',
-                visibility: '--',
-                limit: '--',
-                tips: '--',
-                time: '--:--'
-            });
+            logStep('错误: 没有找到有效的今日天气数据');
+            // 今日天气作为核心数据，如果没有数据，显示错误信息
+            showWeatherError('无法获取今日天气数据，请稍后重试');
+            return; // 不再继续处理其他数据
         }
         
         // 更新天气日历（整个月的网格形式）

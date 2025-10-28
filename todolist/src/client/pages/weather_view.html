@@ -331,6 +331,14 @@
                                 <div id="weather-condition" class="text-xl text-gray-600"><!-- --></div>
                                 <div id="current-temp" class="text-4xl font-bold text-gray-800 mt-1"><!-- --></div>
                                 <div id="temp-range" class="text-gray-500 mt-1"><!-- --></div>
+                                
+                                <!-- 天气提示 - 移动到天气和温度的正下方 -->
+                                <div class="w-full mt-4">
+                                    <div class="flex items-center bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                                        <span class="text-gray-500 text-sm mr-2">Tips:</span>
+                                        <div id="weather-tips" class="text-gray-700 text-sm flex-grow">--</div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <!-- 风力风向等详细信息 - 右侧 -->
@@ -367,14 +375,6 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 天气提示 - 放在一行显示 -->
-                        <div class="w-full">
-                            <div class="flex items-center bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
-                                <span class="text-gray-500 text-sm mr-2">Tips:</span>
-                                <div id="weather-tips" class="text-gray-700 text-sm flex-grow">--</div>
                             </div>
                         </div>
                     </div>
