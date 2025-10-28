@@ -3033,13 +3033,13 @@ function updateTodayWeather(todayWeather) {
         updateLifeHelper(todayWeather.lifeHelper);
     }
     
-    // 动态设置左侧天气区域的背景色
-    const leftWeatherArea = document.querySelector('.grid > div:first-child'); // 找到左侧天气区域
-    if (leftWeatherArea) {
+    // 动态设置左侧天气区域div的背景色
+    const weatherArea = document.querySelector('#weather-area'); // 找到左侧天气区域的div
+    if (weatherArea) {
         // 移除所有可能的背景色类
-        leftWeatherArea.className = leftWeatherArea.className.replace(/bg-[\w-]+/g, '').trim();
+        weatherArea.className = weatherArea.className.replace(/bg-[\w-]+/g, '').trim();
         // 添加根据天气状况的背景色类
-        leftWeatherArea.className += ' ' + getWeatherBgColor(todayWeather.weather || '--');
+        weatherArea.className += ' ' + getWeatherBgColor(todayWeather.weather || '--');
     }
 }
 

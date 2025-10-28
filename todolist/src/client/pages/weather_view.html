@@ -387,85 +387,85 @@
         
         <!-- 天气内容容器 -->
         <div id="weather-content" class="space-y-6">
-            <!-- 今天天气面板 -->
+            <!-- 天气信息总容器 -->
             <div class="bg-white rounded-xl shadow-md p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center space-x-4">
-                        <h2 class="text-2xl font-bold text-gray-800">今日天气</h2>
-                        <div id="weather-links" class="flex space-x-3 text-sm">
-                            <a href="" id="moji-link" class="text-blue-600 hover:underline p-1" target="_blank" title="墨迹天气">
-                                <img src="../assets/img/moji.ico" alt="墨迹天气" width="16" height="16">
-                            </a>
-                            <a href="" id="weather-com-cn-link" class="text-blue-600 hover:underline p-1" target="_blank" title="中国天气网">
-                                <img src="../assets/img/weather_com_cn.ico" alt="中国天气网" width="16" height="16">
-                            </a>
-                            <a href="https://www.nmc.cn/publish/forecast/ABJ/beijing.html" class="text-blue-600 hover:underline p-1" target="_blank" title="中央气象台">
-                                <img src="../assets/img/nmc.ico" alt="中央气象台" width="16" height="16">
-                            </a>
-                            <a href="https://weather.cma.cn/" class="text-blue-600 hover:underline p-1" target="_blank" title="中国气象局">
-                                <img src="../assets/img/cma.ico" alt="中国气象局" width="16" height="16">
-                            </a>
-                        </div>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-700">生活指数</h3>
-                </div>
+                <!-- 今日天气和生活指数区域 - 左右两栏布局 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- 左侧区域：天气气温、风力风向和天气提示 -->
-                    <div class="bg-gray-50 p-2 rounded-xl">
-                        <!-- 天气气温和风力风向作为一个整体 -->
-                        <div class="grid grid-cols-5 gap-4 mb-4 items-center h-full">
-                            <!-- 天气气温 - 左侧 -->
-                            <div class="col-span-3 flex flex-col items-center justify-center w-full h-full">
-                                <!-- 天气和温度信息作为一个整体，在tips上方空白处居中显示 -->
-                                <div class="flex flex-col items-center justify-center flex-grow">
-                                    <div id="weather-icon" class="text-6xl mb-2 default-weather-icon">
-                                        <i class="fa fa-cloud"></i>
+                    <!-- 左侧：今日天气 -->
+                    <div class="h-full">
+                        <div class="flex items-center space-x-4 mb-4">
+                            <h2 class="text-2xl font-bold text-gray-800">今日天气</h2>
+                            <div id="weather-links" class="flex space-x-3 text-sm">
+                                <a href="" id="moji-link" class="text-blue-600 hover:underline p-1" target="_blank" title="墨迹天气">
+                                    <img src="../assets/img/moji.ico" alt="墨迹天气" width="16" height="16">
+                                </a>
+                                <a href="" id="weather-com-cn-link" class="text-blue-600 hover:underline p-1" target="_blank" title="中国天气网">
+                                    <img src="../assets/img/weather_com_cn.ico" alt="中国天气网" width="16" height="16">
+                                </a>
+                                <a href="https://www.nmc.cn/publish/forecast/ABJ/beijing.html" class="text-blue-600 hover:underline p-1" target="_blank" title="中央气象台">
+                                    <img src="../assets/img/nmc.ico" alt="中央气象台" width="16" height="16">
+                                </a>
+                                <a href="https://weather.cma.cn/" class="text-blue-600 hover:underline p-1" target="_blank" title="中国气象局">
+                                    <img src="../assets/img/cma.ico" alt="中国气象局" width="16" height="16">
+                                </a>
+                            </div>
+                        </div>
+                        <div id="weather-area" class="bg-gray-50 p-4 rounded-xl h-[calc(100%-60px)]">
+                            <!-- 天气气温和风力风向作为一个整体 -->
+                            <div class="grid grid-cols-5 gap-4 items-center h-full">
+                                <!-- 天气气温 - 左侧 -->
+                                <div class="col-span-3 flex flex-col items-center justify-center w-full h-full">
+                                    <!-- 天气和温度信息作为一个整体，在tips上方空白处居中显示 -->
+                                    <div class="flex flex-col items-center justify-center flex-grow">
+                                        <div id="weather-icon" class="text-6xl mb-2 default-weather-icon">
+                                            <i class="fa fa-cloud"></i>
+                                        </div>
+                                        <div id="weather-condition" class="text-xl text-gray-600"><!-- --></div>
+                                        <div id="current-temp" class="text-4xl font-bold text-gray-800 mt-1"><!-- --></div>
+                                        <div id="temp-range" class="text-gray-500 mt-1"><!-- --></div>
                                     </div>
-                                    <div id="weather-condition" class="text-xl text-gray-600"><!-- --></div>
-                                    <div id="current-temp" class="text-4xl font-bold text-gray-800 mt-1"><!-- --></div>
-                                    <div id="temp-range" class="text-gray-500 mt-1"><!-- --></div>
+                                    
+                                    <!-- 天气提示 - 移动到天气和温度的正下方，并靠底部显示，Tips与内容显示在同一行 -->
+                                    <div class="w-full mt-auto">
+                                        <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded w-full">
+                                            <span class="text-gray-500 text-sm mr-2">Tips:</span>
+                                              <span id="weather-tips" class="text-gray-700 text-sm">--</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 
-                                <!-- 天气提示 - 移动到天气和温度的正下方，并靠底部显示，Tips与内容显示在同一行 -->
-                                <div class="w-full mt-auto">
-                                    <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded w-full">
-                                        <span class="text-gray-500 text-sm mr-2">Tips:</span>
-                                          <span id="weather-tips" class="text-gray-700 text-sm">--</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- 风力风向等详细信息 - 右侧 -->
-                            <div class="col-span-2 flex flex-col justify-center h-full">
-                                <div class="grid grid-cols-1 gap-3 w-full ml-auto">
-                                    <div class="bg-white p-2 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div class="text-primary text-sm w-3 mr-2" title="风向风力"><i class="fa fa-location-arrow"></i></div>
-                                            <div id="wind-info" class="text-xs text-gray-800">--</div>
+                                <!-- 风力风向等详细信息 - 右侧 -->
+                                <div class="col-span-2 flex flex-col justify-center h-full">
+                                    <div class="grid grid-cols-1 gap-3 w-full ml-auto">
+                                        <div class="bg-white p-2 rounded-lg">
+                                            <div class="flex items-center">
+                                                <div class="text-primary text-sm w-3 mr-2" title="风向风力"><i class="fa fa-location-arrow"></i></div>
+                                                <div id="wind-info" class="text-xs text-gray-800">--</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="bg-white p-2 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div class="text-primary text-sm w-3 mr-2" title="湿度"><i class="fa fa-tint"></i></div>
-                                            <div id="humidity-info" class="text-xs text-gray-800">--</div>
+                                        <div class="bg-white p-2 rounded-lg">
+                                            <div class="flex items-center">
+                                                <div class="text-primary text-sm w-3 mr-2" title="湿度"><i class="fa fa-tint"></i></div>
+                                                <div id="humidity-info" class="text-xs text-gray-800">--</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="bg-white p-2 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div class="text-primary text-sm w-3 mr-2" title="空气质量"><i class="fa fa-leaf"></i></div>
-                                            <div id="air-quality" class="text-xs text-gray-800">--</div>
+                                        <div class="bg-white p-2 rounded-lg">
+                                            <div class="flex items-center">
+                                                <div class="text-primary text-sm w-3 mr-2" title="空气质量"><i class="fa fa-leaf"></i></div>
+                                                <div id="air-quality" class="text-xs text-gray-800">--</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="bg-white p-2 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div class="text-primary text-sm w-3 mr-2" title="能见度"><i class="fa fa-eye"></i></div>
-                                            <div id="visibility-info" class="text-xs text-gray-800">--</div>
+                                        <div class="bg-white p-2 rounded-lg">
+                                            <div class="flex items-center">
+                                                <div class="text-primary text-sm w-3 mr-2" title="能见度"><i class="fa fa-eye"></i></div>
+                                                <div id="visibility-info" class="text-xs text-gray-800">--</div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="bg-white p-2 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div class="text-primary text-sm w-3 mr-2" title="限行信息"><i class="fa fa-car"></i></div>
-                                            <div id="traffic-restriction" class="text-xs text-gray-800">--</div>
+                                        <div class="bg-white p-2 rounded-lg">
+                                            <div class="flex items-center">
+                                                <div class="text-primary text-sm w-3 mr-2" title="限行信息"><i class="fa fa-car"></i></div>
+                                                <div id="traffic-restriction" class="text-xs text-gray-800">--</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -473,11 +473,14 @@
                         </div>
                     </div>
                     
-                    <!-- 右侧区域：生活指数信息 -->
-                    <div class="bg-gray-50 p-2 rounded-xl h-full">
-                        <div class="grid grid-cols-2 gap-3 h-full flex flex-col" id="life-helper-container">
-                            <!-- 生活指数数据将通过JavaScript动态加载 -->
-                            <div class="animate-pulse">加载中...</div>
+                    <!-- 右侧：生活指数 -->
+                    <div class="h-full">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">生活指数</h2>
+                        <div class="bg-gray-50 p-4 rounded-xl h-[calc(100%-60px)]">
+                            <div class="grid grid-cols-2 gap-3 h-full flex flex-col" id="life-helper-container">
+                                <!-- 生活指数数据将通过JavaScript动态加载 -->
+                                <div class="animate-pulse">加载中...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
