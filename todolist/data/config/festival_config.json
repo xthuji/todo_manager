@@ -121,7 +121,7 @@
       "date": "10-24"
     },
     {
-      "name": "测试阳历的节日",
+      "name": "阳历A",
       "alias": "",
       "type": "custom",
       "dateType": "solar",
@@ -146,10 +146,11 @@
       "date": "11-4-4"
     },
     {
-      "dateType": "week",
-      "name": "测试阳历星期的节日",
+      "name": "阳历星期B",
+      "alias": "",
       "type": "custom",
-      "date": "9-3-6"
+      "dateType": "week",
+      "date": "9-3-5"
     },
     {
       "dateType": "lunar",
@@ -213,9 +214,10 @@
       "date": "12-08"
     },
     {
-      "dateType": "lunar",
-      "name": "测试农历的节日",
+      "name": "农历A",
+      "alias": "",
       "type": "custom",
+      "dateType": "lunar",
       "date": "08-10"
     },
     {
