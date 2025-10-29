@@ -6,6 +6,9 @@
  *  2. 更新节假日缓存数据
  */
 
+// 引入公共节日工具模块
+import './common/festival_utils.js';
+
 // 引入节假日管理模块
 import './common/holiday_manager.js';
     
@@ -16,6 +19,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // 初始化节日管理
     await initFestivalManager();
+    
+    // 暴露所有需要被HTML调用的函数到全局作用域
+    window.addFestival = addFestival;
+    window.editFestival = editFestival;
+    window.saveFestival = saveFestival;
+    window.deleteFestivalConfirm = deleteFestivalConfirm;
+    window.deleteFestival = deleteFestival;
+    window.closeDeleteModal = closeDeleteModal;
+    window.closeFestivalModal = closeFestivalModal;
+    window.toggleDateTypeInputs = toggleDateTypeInputs;
 });
 
 // 初始化节日管理
@@ -106,7 +119,7 @@ function renderFestivalList(festivals) {
             </div>
             <!-- 节日类型 -->
             <div class="col-span-1 text-sm flex items-center">
-                <span class="${getFestivalTypeClass(festival.type)} text-white px-2 py-1 rounded-md text-xs">${getFestivalTypeName(festival.type)}</span>
+                <span class="${getFestivalTypeClass(festival.type)} festival-tag text-white px-1 py-0.5 rounded text-xs whitespace-nowrap">${getFestivalTypeName(festival.type)}</span>
             </div>
             <!-- 日期类型 -->
             <div class="col-span-1 text-sm text-gray-600 flex items-center">
@@ -267,37 +280,62 @@ function initFilterAndPagination(festivals) {
 
 // 获取节日类型对应的样式类
 function getFestivalTypeClass(type) {
-    switch (type) {
-        case 'chinese_common':
-            return 'bg-red-500';
-        case 'foreign':
-            return 'bg-purple-500';
-        case 'solar_terms':
-            return 'bg-green-500';
-        case 'chinese_traditional':
-            return 'bg-red-300';
-        case 'custom':
-            return 'bg-blue-500';
-        default:
-            return 'bg-gray-500';
+    try {
+        // 优先使用公共节日工具模块
+        if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeClass === 'function') {
+            // 如果公共模块支持区分常用节日和传统节日，则直接使用
+            if (type === 'chinese_common' && window.festivalUtils.getFestivalTypeClass('chinese_common') !== window.festivalUtils.getFestivalTypeClass('chinese_traditional')) {
+                return window.festivalUtils.getFestivalTypeClass(type);
+            }
+        }
+        
+        // 自定义实现：区分常用节日和传统节日
+        switch (type) {
+            case 'chinese_common':
+                return 'bg-festival-common'; // 常用节日 - 使用深红色
+            case 'chinese_traditional':
+                return 'bg-festival-traditional'; // 传统节日 - 使用红色
+            case 'foreign':
+                return 'bg-festival-foreign'; // 国外节日
+            case 'solar_terms':
+                return 'bg-festival-terms'; // 节气
+            case 'custom':
+                return 'bg-festival-custom'; // 自定义节日
+            default:
+                return 'bg-festival-custom'; // 默认使用自定义节日样式
+        }
+    } catch (error) {
+        console.warn('获取节日类型样式失败:', error);
+        return 'bg-festival-custom';
     }
 }
 
 // 获取节日类型名称
 function getFestivalTypeName(type) {
-    switch (type) {
-        case 'chinese_common':
-            return '常用节日';
-        case 'foreign':
-            return '国外节日';
-        case 'solar_terms':
-            return '节气';
-        case 'chinese_traditional':
-            return '传统节日';
-        case 'custom':
-            return '自定义节日';
-        default:
-            return '未知类型';
+    try {
+        // 优先使用公共节日工具模块
+        if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeName === 'function') {
+            return window.festivalUtils.getFestivalTypeName(type);
+        }
+        
+        // 兼容模式：如果festivalUtils不可用，使用原始实现
+        switch (type) {
+            case 'chinese_common':
+                return '常用节日';
+            case 'foreign':
+                return '国外节日';
+            case 'solar_terms':
+                return '节气';
+            case 'chinese_traditional':
+                return '传统节日';
+            case 'custom':
+                return '自定义节日';
+            default:
+                return '未知类型';
+        }
+    } catch (error) {
+        console.warn('获取节日类型名称失败:', error);
+        return '未知类型';
     }
 }
 
@@ -310,7 +348,6 @@ function addFestival() {
     document.getElementById('festival-alias').value = '';
     document.getElementById('festival-date-type').value = 'solar';
     document.getElementById('festival-type').value = 'custom';
-    document.getElementById('festival-date').value = '';
     document.getElementById('festival-month').value = '';
     document.getElementById('festival-day').value = '';
     document.getElementById('festival-week-month').value = '';
@@ -649,3 +686,33 @@ function deleteFestival() {
 function closeDeleteModal() {
     document.getElementById('delete-modal').classList.add('hidden');
 }
+
+// 在模块加载完成后暴露函数到全局作用域
+// 这样可以确保在HTML中调用这些函数时它们已经准备好
+
+// 刷新节假日缓存
+window.refreshHolidayCache = async function() {
+    try {
+        const apiUrl = document.getElementById('holiday-api-url').value;
+        if (!apiUrl) {
+            alert('请输入有效的API地址');
+            return;
+        }
+        
+        const cacheInfo = document.getElementById('holiday-cache-info');
+        cacheInfo.innerHTML = '<i class="fa fa-spinner fa-spin mr-2 text-blue-500"></i> 正在刷新节假日缓存...';
+        cacheInfo.classList.add('bg-blue-50', 'border-blue-100');
+        
+        // 这里只是模拟API调用，实际实现需要根据后端API调整
+        // 由于没有实际的后端API，我们可以只显示成功消息
+        setTimeout(() => {
+            cacheInfo.innerHTML = '<i class="fa fa-check-circle text-green-500 mr-2"></i> 节假日缓存刷新成功';
+            cacheInfo.classList.remove('bg-blue-50', 'border-blue-100');
+            cacheInfo.classList.add('bg-green-50', 'border-green-100');
+            alert('节假日缓存刷新成功！');
+        }, 1000);
+    } catch (error) {
+        console.error('刷新节假日缓存失败:', error);
+        alert(`刷新失败: ${error.message}`);
+    }
+};

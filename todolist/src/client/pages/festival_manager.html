@@ -21,6 +21,7 @@
                             workday: '#efd8f6',      // 浅紫色 - 补班
                             other_month: '#f3f4f6'   // 浅灰色 - 非本月日期（加深）
                         },
+                        // 节日类型样式通过CSS类定义（见下方.bg-festival-*类）
                     },
                     fontFamily: {
                         inter: ['Inter', 'system-ui', 'sans-serif'],
@@ -47,7 +48,17 @@
             .form-input {
                 @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
             }
+            /* 节日类型背景样式 */
+            .bg-festival-traditional { @apply bg-red-400; } /* 传统节日：浅红色 */
+            .bg-festival-common { @apply bg-red-500; } /* 常用节日：红色 */
+            .bg-festival-foreign { @apply bg-purple-500; } /* 国外节日：紫色 */
+            .bg-festival-terms { @apply bg-green-500; } /* 节气：绿色 */
+            .bg-festival-custom { @apply bg-blue-500; } /* 自定义节日：蓝色 */
 
+            /* 节日标签样式增强 */
+            .festival-tag {
+                @apply transition-all duration-200 hover:opacity-90;
+            }
         }
     </style>
 </head>

@@ -8,6 +8,10 @@
     <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
     <!-- 引入Chart.js用于绘制图表 -->
     <script src="/assets/js/third_party/chart.js"></script>
+    <!-- 先引入公共节日工具模块 -->
+    <script src="/src/client/assets/js/business/common/festival_utils.js"></script>
+    <!-- 引入天气视图业务逻辑 -->
+    <script src="/assets/js/business/weather_view.js"></script>
     <!-- 自定义配置 -->
     <script>
         tailwind.config = {
@@ -152,6 +156,18 @@
         }
 
         /* 天气高亮样式已在JS中通过内联类名实现 */
+        
+        @layer utilities {
+            /* 节日类型背景样式 */
+            .bg-festival-traditional { @apply bg-red-400; } /* 传统节日：浅红色 */
+            .bg-festival-common { @apply bg-red-500; } /* 常用节日：红色 */
+            .bg-festival-foreign { @apply bg-purple-500; } /* 国外节日：紫色 */
+            .bg-festival-terms { @apply bg-green-500; } /* 节气：绿色 */
+            .bg-festival-custom { @apply bg-blue-500; } /* 自定义节日：蓝色 */
+            
+            /* 节日标签样式 */
+            .festival-tag { @apply text-xs px-1 py-0.5 rounded text-white whitespace-nowrap; }
+        }
 
         @media (max-width: 768px) {
             .grid-cols-5 {
@@ -334,6 +350,13 @@
             .weather-calendar .weather-info {
                 font-size: 12px;
                 color: #64748b;
+            }
+            
+
+            
+            /* 节日类型图例 */
+            .legend-color {
+                @apply w-3.5 h-3.5 rounded-full mr-1.5;
             }
             
             /* 今日天气面板样式 */
@@ -530,6 +553,5 @@
         </div>
     </div>
 
-    <script src="/assets/js/business/weather_view.js"></script>
 </body>
 </html>

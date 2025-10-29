@@ -9,6 +9,7 @@
     <script src="/assets/js/third_party/lunar.js"></script>
     <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
     <link href="/assets/css/custom-styles.css" rel="stylesheet">
+    <script src="/assets/js/business/common/festival_utils.js"></script>
     <script type="module" src="/assets/js/business/todo_manager.js"></script>
     <script>
         // 配置Tailwind自定义颜色和字体
@@ -33,13 +34,14 @@
                             inprogress: '#22C65F'      // 绿色 - 进行中
                         },
                         // 日历图例
-                        calendar: {
-                            weekday: '#ffffff',      // 白色 - 工作日
-                            weekend: '#dcfce7',      // 浅绿色 - 周六日（加深）
-                            holiday: '#fecdd9',      // 浅红色 - 节假日
-                            workday: '#efd8f6',      // 浅紫色 - 补班
-                            other_month: '#f3f4f6'   // 浅灰色 - 非本月日期（加深）
-                        },
+            calendar: {
+                weekday: '#ffffff',      // 白色 - 工作日
+                weekend: '#dcfce7',      // 浅绿色 - 周六日（加深）
+                holiday: '#fecdd9',      // 浅红色 - 节假日
+                workday: '#efd8f6',      // 浅紫色 - 补班
+                other_month: '#f3f4f6'   // 浅灰色 - 非本月日期（加深）
+            },
+            // 节日类型样式通过CSS类定义（见下方.bg-festival-*类）
                         // 任务专属颜色（唯一的颜色定义来源）
                         'task-color-1': '#eff6ff',
                         'task-color-2': '#f0fdf4',
@@ -65,6 +67,13 @@
             .calendar-day {
                 @apply relative min-h-[140px] border border-gray-200 p-1 overflow-hidden;
             }
+            /* 节日类型背景样式 */
+            .bg-festival-traditional { @apply bg-red-400; } /* 传统节日：浅红色 */
+            .bg-festival-common { @apply bg-red-500; } /* 常用节日：红色 */
+            .bg-festival-foreign { @apply bg-purple-500; } /* 国外节日：紫色 */
+            .bg-festival-terms { @apply bg-green-500; } /* 节气：绿色 */
+            .bg-festival-custom { @apply bg-blue-500; } /* 自定义节日：蓝色 */
+
             .task-item {
                 @apply mb-1.5 p-1.5 rounded text-xs cursor-pointer transition-all duration-200 hover:shadow-md whitespace-nowrap overflow-hidden text-ellipsis;
             }
@@ -103,6 +112,10 @@
             }
             .legend-color {
                 @apply w-3.5 h-3.5 rounded-full mr-1.5;
+            }
+            /* 节日标签样式 - 与全局样式统一 */
+            .festival-tag {
+                @apply text-xs px-1 py-0.5 rounded text-white whitespace-nowrap;
             }
             .status-badge {
                 @apply text-xs px-2 py-0.5 rounded font-medium;
@@ -389,6 +402,34 @@
                                 <div class="legend-color bg-status-overdue_inprogress"></div>
                                 <span class="text-[10px]">逾期未完成</span>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 节日类型图例 -->
+                    <div class="flex flex-col legend-item-group">
+                        <p class="text-[10px] text-gray-500 mb-1">节日类型</p>
+                        <div class="space-y-1">
+                            <div class="legend-item">
+                                <div class="legend-color bg-festival-traditional"></div>
+                                <span class="text-[10px]">传统节日</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-festival-common"></div>
+                                <span class="text-[10px]">常用节日</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-festival-terms"></div>
+                                <span class="text-[10px]">节气</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-festival-foreign"></div>
+                                <span class="text-[10px]">外国节日</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color bg-festival-custom"></div>
+                                <span class="text-[10px]">自定义节日</span>
+                            </div>
+
                         </div>
                     </div>
                     

@@ -23,14 +23,7 @@
                             workday: '#efd8f6',      // 浅紫色 - 补班
                             other_month: '#f3f4f6'   // 浅灰色 - 非本月日期
                         },
-                        // 节日类型图例
-                        festival: {
-                            chinese_common: '#EF4444',
-                            foreign: '#A855F7',
-                            solar_terms: '#10B981',
-                            chinese_traditional: '#F87171',
-                            custom: '#3B82F6'
-                        },
+                        // 节日类型样式通过CSS类定义（见下方.bg-festival-*类）
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -41,6 +34,14 @@
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
+            /* 节日类型背景样式 */
+            .bg-festival-traditional { @apply bg-red-400; } /* 传统节日：浅红色 */
+            .bg-festival-common { @apply bg-red-500; } /* 常用节日：红色 */
+            .bg-festival-foreign { @apply bg-purple-500; } /* 国外节日：紫色 */
+            .bg-festival-terms { @apply bg-green-500; } /* 节气：绿色 */
+            .bg-festival-custom { @apply bg-blue-500; } /* 自定义节日：蓝色 */
+
+            
             /* 自定义工具类 - 日历样式 */
             .content-auto {
                 content-visibility: auto;
@@ -75,8 +76,9 @@
             .calendar-day-number-other_month {
                 @apply text-gray-400;
             }
+            /* 节日标签样式 - 全局统一 */
             .festival-tag {
-                @apply text-xs px-1 py-0.5 rounded mt-0.5 overflow-hidden whitespace-normal text-center w-full;
+                @apply text-xs px-1 py-0.5 rounded text-white whitespace-nowrap;
             }
             .btn-primary {
                 @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors;
@@ -120,15 +122,15 @@
                                 <p class="text-[10px] text-gray-500 mb-1">节日类型</p>
                                 <div class="space-y-1">
                                     <div class="legend-item">
-                                        <div class="legend-color bg-festival-chinese_common text-white text-center text-[10px] leading-3"></div>
-                                        <span class="text-[10px]">中国节日</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <div class="legend-color bg-festival-chinese_traditional text-white text-center text-[10px] leading-3"></div>
+                                        <div class="legend-color bg-festival-traditional text-white text-center text-[10px] leading-3"></div>
                                         <span class="text-[10px]">传统节日</span>
                                     </div>
                                     <div class="legend-item">
-                                        <div class="legend-color bg-festival-solar_terms text-white text-center text-[10px] leading-3"></div>
+                                        <div class="legend-color bg-festival-common text-white text-center text-[10px] leading-3"></div>
+                                        <span class="text-[10px]">常用节日</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-festival-terms text-white text-center text-[10px] leading-3"></div>
                                         <span class="text-[10px]">节气</span>
                                     </div>
                                     <div class="legend-item">
@@ -139,6 +141,7 @@
                                         <div class="legend-color bg-festival-custom text-white text-center text-[10px] leading-3"></div>
                                         <span class="text-[10px]">自定义节日</span>
                                     </div>
+
                                 </div>
                             </div>
                             

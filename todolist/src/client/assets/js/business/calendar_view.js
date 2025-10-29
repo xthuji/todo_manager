@@ -11,6 +11,8 @@
 import './common/holiday_manager.js';
 // 引入lunar_utils.js工具
 import './common/lunar_utils.js';
+// 引入节日公共工具模块
+import './common/festival_utils.js';
 
 // 全局节日数据
 window.allFestivals = [];
@@ -88,6 +90,15 @@ async function loadHolidayData() {
 
 // 检查日期是否匹配节日
 function isFestivalDate(date, festival) {
+    // 优先使用公共节日工具模块
+    if (window.festivalUtils && typeof window.festivalUtils.isFestivalDate === 'function') {
+        try {
+            return window.festivalUtils.isFestivalDate(date, festival);
+        } catch (error) {
+            console.warn('使用festivalUtils判断节日日期失败:', error);
+        }
+    }
+    
     if (!date || !festival) {
         return false;
     }
@@ -115,94 +126,37 @@ function isFestivalDate(date, festival) {
 }
 
 // 获取指定日期的所有节日
-async function getFestivalsForDate(date) {
-    const festivals = [];
-    
-    try {
-        // 确保日期对象有效
-        const targetDate = date instanceof Date ? date : new Date(date);
-        if (isNaN(targetDate.getTime())) {
-            console.warn('无效的日期对象');
-            return festivals;
+/**
+ * 获取指定日期的节日信息 - 统一使用公共节日工具模块
+ * @param {Date} date 日期对象
+ * @returns {Array} 节日数组
+ */
+function getFestivalsForDate(date) {
+    // 检查festival_utils是否已加载
+    if (window.festivalUtils && typeof window.festivalUtils.getFestivalsForDate === 'function') {
+        try {
+            return window.festivalUtils.getFestivalsForDate(date);
+        } catch (error) {
+            console.warn('调用公共节日工具失败:', error);
         }
+    } else {
+        // 如果festival_utils未加载，动态加载它
+        console.warn('festival_utils未加载，正在动态加载...');
         
-        // 使用lunar_utils.js中的getFestivals方法
-        if (window.lunarUtils && typeof window.lunarUtils.getFestivals === 'function') {
-            try {
-                const lunarFestivals = await window.lunarUtils.getFestivals(targetDate);
-                if (lunarFestivals && Array.isArray(lunarFestivals)) {
-                    festivals.push(...lunarFestivals);
-                }
-            } catch (error) {
-                console.warn('调用window.lunarUtils.getFestivals失败:', error);
-                // 如果lunarUtils不可用，使用配置文件中的节日信息
-                if (window.calendarConfig && Array.isArray(window.calendarConfig.festivals)) {
-                    try {
-                        // 使用lunar.js计算公历和农历节日
-                        if (window.Solar && typeof window.Solar.fromYmd === 'function') {
-                            const solar = window.Solar.fromYmd(targetDate.getFullYear(), targetDate.getMonth() + 1, targetDate.getDate());
-                            if (solar && typeof solar.getLunar === 'function') {
-                                const lunar = solar.getLunar();
-                                
-                                if (lunar && typeof lunar.getMonth === 'function' && typeof lunar.getDay === 'function') {
-                                    const year = targetDate.getFullYear();
-                                    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-                                    const day = String(targetDate.getDate()).padStart(2, '0');
-                                    const monthDay = `${month}-${day}`;
-                                    
-                                    // 公历月份和日期
-                                    const solarFestivals = window.calendarConfig.festivals
-                                        .filter(festival => festival && festival.dateType === 'solar' && festival.date === monthDay)
-                                        .map(festival => ({
-                                            name: festival.name || '',
-                                            type: festival.type || 'custom',
-                                            priority: festival.priority || 50
-                                        }))
-                                        .filter(festival => festival.name);
-                                    
-                                    festivals.push(...solarFestivals);
-                                    
-                                    // 农历月份和日期
-                                    const lunarMonth = Math.abs(lunar.getMonth());
-                                    const lunarDay = lunar.getDay();
-                                    const isLeapMonth = lunar.getMonth() < 0;
-                                    const lunarKey = `${String(lunarMonth).padStart(2, '0')}-${String(lunarDay).padStart(2, '0')}${isLeapMonth ? '-leap' : ''}`;
-                                    
-                                    const lunarConfigFestivals = window.calendarConfig.festivals
-                                        .filter(festival => festival && festival.dateType === 'lunar' && festival.date === lunarKey)
-                                        .map(festival => ({
-                                            name: festival.name || '',
-                                            type: festival.type || 'chinese_traditional',
-                                            priority: festival.priority || 60
-                                        }))
-                                        .filter(festival => festival.name);
-                                    
-                                    festivals.push(...lunarConfigFestivals);
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.warn('使用配置文件计算节日失败:', error);
-                    }
-                }
-            }
-        }
-    } catch (error) {
-        console.warn('获取节日信息失败:', error);
+        // 创建script标签加载festival_utils.js
+        const script = document.createElement('script');
+        script.src = '/src/client/assets/js/business/common/festival_utils.js';
+        script.onload = function() {
+            console.log('festival_utils加载成功');
+        };
+        script.onerror = function() {
+            console.error('festival_utils加载失败');
+        };
+        document.head.appendChild(script);
     }
-
-    // 去重并按优先级排序
-    const uniqueFestivals = [];
-    const festivalNames = new Set();
-
-    festivals.sort((a, b) => (b.priority || 0) - (a.priority || 0)).forEach(festival => {
-        if (festival && festival.name && !festivalNames.has(festival.name)) {
-            festivalNames.add(festival.name);
-            uniqueFestivals.push(festival);
-        }
-    });
-
-    return uniqueFestivals;
+    
+    // 暂时返回空数组，等待工具加载后会自动使用正确实现
+    return [];
 }
 
 // 检查日期是否是法定节假日
@@ -540,23 +494,27 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
     festivalContainer.className = 'festival-container flex flex-col items-end gap-0.5 w-full';
     dayContent.appendChild(festivalContainer);
     
-    // 异步获取节日信息
-    getFestivalsForDate(date).then(festivalsForDay => {
+    // 获取节日信息（使用同步函数）
+    try {
         // 清空容器
         festivalContainer.innerHTML = '';
+        
+        // 获取节日数据
+        const festivalsForDay = getFestivalsForDate(date);
         
         // 添加节日标记，每个节日占一行
         if (festivalsForDay && festivalsForDay.length > 0) {
             festivalsForDay.forEach(festival => {
-                const festivalTag = document.createElement('div');
-                festivalTag.className = `festival-tag ${getFestivalTypeClass(festival.type)} text-xs px-1 rounded w-full text-center`;
+                  const festivalTag = document.createElement('div');
+                  // 使用统一的节日标签样式，避免重复定义样式类
+                  festivalTag.className = `festival-tag ${getFestivalTypeClass(festival.type)} w-full text-center`;
                 festivalTag.textContent = festival.name;
                 festivalContainer.appendChild(festivalTag);
             });
         }
-    }).catch(error => {
+    } catch (error) {
         console.error('获取节日信息失败:', error);
-    })
+    }
     
     dayContainer.appendChild(dayContent);
     
@@ -570,19 +528,28 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
 
 // 获取节日类型样式类 - 统一使用tailwind.config中定义的颜色
 function getFestivalTypeClass(type) {
+    // 优先使用window.festivalUtils提供的实现，确保样式统一
+    if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeClass === 'function') {
+        try {
+            return window.festivalUtils.getFestivalTypeClass(type);
+        } catch (error) {
+            console.warn('调用festivalUtils.getFestivalTypeClass失败，使用默认实现:', error);
+        }
+    }
+    // 区分常用节日和传统节日，返回不同的样式类以实现颜色区分
     switch (type) {
         case 'chinese_common':
-            return 'bg-festival-chinese_common text-white';
-        case 'foreign':
-            return 'bg-festival-foreign text-white';
-        case 'solar_terms':
-            return 'bg-festival-solar_terms text-white';
+            return 'bg-festival-common'; // 常用节日 - 红色
         case 'chinese_traditional':
-            return 'bg-festival-chinese_traditional text-white';
+            return 'bg-festival-traditional'; // 传统节日 - 浅红色
+        case 'foreign':
+            return 'bg-festival-foreign'; // 国外节日
+        case 'solar_terms':
+            return 'bg-festival-terms'; // 节气
         case 'custom':
-            return 'bg-festival-custom text-white';
+            return 'bg-festival-custom'; // 自定义节日
         default:
-            return 'bg-gray-500 text-white';
+            return 'bg-festival-custom'; // 默认使用自定义节日样式
     }
 }
 

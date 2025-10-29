@@ -1,4 +1,8 @@
+// 公共节日工具模块已在HTML中直接引入
+
 // 天气预报模块 - 简化版
+// 使用全局的festivalUtils对象，确保节日显示功能正常
+// 确保在页面中已经加载了festival_utils.js
 // 常量定义
 const WEATHER_API = {
     AREA_CODES: '/api/weather-area-codes',
@@ -27,7 +31,7 @@ function renderSelectOptions(selectElement, data, defaultText = '请选择', val
     // 应用过滤函数（如果提供）
     const filteredData = filterFn ? data.filter(filterFn) : data;
     
-    logStep(`准备渲染数据，共有 ${filteredData.length} 个选项`);
+    // logStep(`准备渲染数据，共有 ${filteredData.length} 个选项`);
     
     // 遍历数据，添加到选择框
     filteredData.forEach(item => {
@@ -139,10 +143,14 @@ function updateWeatherLinks(mojiAreaCode, weatherCode) {
     }
 }
 
-// 生成带序号的日志函数
+// 生成带序号的日志函数 - 只输出错误和警告信息
 function logStep(message) {
-    logCounter++;
-    console.log(`[${logCounter}] ${message}`);
+    // 只输出包含"错误"或"警告"的消息
+    // if (message && (message.includes('错误') || message.includes('警告'))) {
+    //     logCounter++;
+    //     console.log(`[${logCounter}] ${message}`);
+    // }
+    console.log(`[${logCounter++}] ${message}`);
 }
 
 // 页面加载完成后执行
@@ -466,7 +474,7 @@ function addEventListeners() {
             // 直接获取定位信息并匹配选择框，不重新渲染选框基础数据
             quickRelocateByIp();
         });
-        logStep('重新定位按钮事件监听器添加完成');
+        // logStep('重新定位按钮事件监听器添加完成');
     }
     
     // 省市区选择框事件 - 使用更直接的方式添加监听器，避免使用cloneNode
@@ -479,27 +487,27 @@ function addEventListeners() {
         // 使用标志避免重复添加监听器
         provinceSelect.setAttribute('data-event-added', 'true');
         provinceSelect.addEventListener('change', handleProvinceChange);
-        logStep('省份选择框事件监听器添加完成');
+        // logStep('省份选择框事件监听器添加完成');
     }
     
     if (citySelect && !citySelect.hasAttribute('data-event-added')) {
         citySelect.setAttribute('data-event-added', 'true');
         citySelect.addEventListener('change', handleCityChange);
-        logStep('城市选择框事件监听器添加完成');
+        // logStep('城市选择框事件监听器添加完成');
     }
     
     if (districtSelect && !districtSelect.hasAttribute('data-event-added')) {
         districtSelect.setAttribute('data-event-added', 'true');
         districtSelect.addEventListener('change', handleDistrictChange);
-        logStep('区县选择框事件监听器添加完成');
+        // logStep('区县选择框事件监听器添加完成');
     }
     
-    logStep('所有必要的事件监听器添加完成');
+    // logStep('所有必要的事件监听器添加完成');
 }
 
 // 省份选择变化处理 - 优化数据联动渲染
 function handleProvinceChange() {
-    logStep('省份选择变化处理');
+    // logStep('省份选择变化处理');
     const provinceSelect = document.getElementById('province-select');
     const citySelect = document.getElementById('city-select');
     const districtSelect = document.getElementById('district-select');
@@ -529,7 +537,7 @@ function handleProvinceChange() {
     
     // 根据选中的省份加载对应的城市列表 - 支持code或name匹配
     logStep(`开始查找省份，选中的值: ${selectedProvinceCode}`);
-    logStep(`当前fullAreaData长度: ${dataCache.fullAreaData ? dataCache.fullAreaData.length : 'null'}`);
+    // logStep(`当前fullAreaData长度: ${dataCache.fullAreaData ? dataCache.fullAreaData.length : 'null'}`);
     
     // 先尝试通过name查找，因为省份对象可能没有code属性
     let selectedProvince = dataCache.fullAreaData.find(p => p.name === selectedProvinceCode);
@@ -541,9 +549,7 @@ function handleProvinceChange() {
     
     logStep(`找到省份: ${selectedProvince ? selectedProvince.name : '未找到'}`);
     if (selectedProvince) {
-        logStep(`省份有children: ${selectedProvince.children ? '是' : '否'}`);
-        logStep(`children是数组: ${Array.isArray(selectedProvince.children) ? '是' : '否'}`);
-        logStep(`children数量: ${Array.isArray(selectedProvince.children) ? selectedProvince.children.length : '未知'}`);
+        logStep(`省份children状态: ${selectedProvince.children ? '有' : '无'} | 数组: ${Array.isArray(selectedProvince.children) ? '是' : '否'} | 数量: ${Array.isArray(selectedProvince.children) ? selectedProvince.children.length : '未知'}`);
     }
     if (selectedProvince && selectedProvince.children && Array.isArray(selectedProvince.children)) {
         // 使用通用渲染函数渲染城市选择框
@@ -584,16 +590,13 @@ function handleProvinceChange() {
         }
         
     } else {
-        logStep('未找到对应省份的城市数据或数据格式不正确');
-        logStep(`selectedProvince: ${selectedProvince ? '存在' : '不存在'}`);
-        logStep(`children: ${selectedProvince && selectedProvince.children ? '存在' : '不存在'}`);
-        logStep(`children是数组: ${selectedProvince && Array.isArray(selectedProvince.children) ? '是' : '否'}`);
+        logStep(`未找到对应省份的城市数据或数据格式不正确 | selectedProvince: ${selectedProvince ? '存在' : '不存在'} | children: ${selectedProvince && selectedProvince.children ? '存在' : '不存在'} | children是数组: ${selectedProvince && Array.isArray(selectedProvince.children) ? '是' : '否'}`);
     }
 }
 
 // 城市选择变化处理 - 优化数据联动渲染
 function handleCityChange() {
-    logStep('城市选择变化');
+    // logStep('城市选择变化');
     const provinceSelect = document.getElementById('province-select');
     const citySelect = document.getElementById('city-select');
     const districtSelect = document.getElementById('district-select');
@@ -656,7 +659,6 @@ function handleCityChange() {
                 setTimeout(() => {
                     // 先检查区县选择框是否可用且有选项
                     if (districtSelect && districtSelect.disabled === false && districtSelect.options.length > 1) {
-                        logStep(`开始查找区县选项，当前区县选择框选项数量: ${districtSelect.options.length}`);
                         
                         // 使用通用选择函数选择区县
                         const districtFound = selectOptionByValueOrText(districtSelect, null, matchingData.cleanDistrict);
@@ -693,7 +695,7 @@ function handleCityChange() {
 
 // 区县选择变化处理 - 优化数据联动渲染和错误处理
 function handleDistrictChange() {
-    logStep('区县选择变化（用户手动选择）');
+    // logStep('区县选择变化（用户手动选择）');
     const districtSelect = document.getElementById('district-select');
     const provinceSelect = document.getElementById('province-select');
     const citySelect = document.getElementById('city-select');
@@ -802,19 +804,12 @@ async function quickRelocateByIp() {
 
 // 通过IP定位城市 - 按照新流程实现
 async function locateCityByIp() {
-    logStep('IP定位开始');
     updateCityDisplay({ name: '正在定位...', code: '...' });
     
     try {
-        // 不再使用sessionStorage缓存，每次都获取最新数据
-        logStep('直接获取最新位置信息，不使用缓存');
-        
-        // 无缓存或缓存过期，获取新数据
-        logStep('无缓存或缓存已过期，需要获取新位置信息');
         await fetchLocationData();
         
     } catch (error) {
-        logStep(`IP定位流程失败: ${error.message}`);
         // 定位失败，切换到用户手动选择流程
         switchToManualSelection();
     }
@@ -822,7 +817,6 @@ async function locateCityByIp() {
 
 // 获取位置数据并处理
 async function fetchLocationData() {
-    logStep(`发送请求获取位置信息: ${WEATHER_API.IP_API}`);
     const response = await fetch(WEATHER_API.IP_API, { cache: 'no-store' });
     
     if (!response.ok) {
@@ -830,11 +824,9 @@ async function fetchLocationData() {
     }
     
     const responseData = await response.json();
-    logStep('成功获取位置信息响应数据');
     
     // 适配新的数据结构，位置数据在data字段中
     const locationData = responseData.data || {};
-    logStep(`提取到的位置信息: 省份=${locationData.province}, 城市=${locationData.city}, 区县=${locationData.district}`);
     
     // 确保获取到的基本位置数据格式正确
     if (!locationData.province || !locationData.district) {
@@ -846,21 +838,13 @@ async function fetchLocationData() {
         locationData.city = '';
     }
     
-    // 处理成功情况
-    logStep('位置信息数据验证通过，开始处理');
     processLocationSuccess(locationData, responseData.weatherAreaCodes.data);
-    
-    // 不再存储到sessionStorage缓存
-    logStep('不使用sessionStorage缓存位置数据');
 }
 
 // 处理位置数据获取成功的情况
 function processLocationSuccess(locationData, weatherAreaCodes) {
-    logStep('IP定位成功，开始处理定位结果');
-    
     // 验证locationData参数的有效性
     if (!locationData || typeof locationData !== 'object') {
-        logStep('错误: 无效的位置数据对象');
         switchToManualSelection();
         return;
     }
@@ -872,12 +856,8 @@ function processLocationSuccess(locationData, weatherAreaCodes) {
     const weatherCode = locationData.weatherCode || '';
     const mojiAreaCode = locationData.mojiAreaCode || '';
     
-    // 记录详细的IP定位数据
-    logStep(`IP定位详细数据 - 省份: ${province}, 城市: ${city}, 区县: ${district}, weatherCode: ${weatherCode}, mojiAreaCode: ${mojiAreaCode}`);
-    
     // 基础位置信息验证
     if (!province || (!district && !city)) {
-        logStep('警告: IP定位返回的核心位置信息不完整');
         // 即使不完整，也尝试继续处理，可能只有省份信息
     }
     
@@ -886,53 +866,39 @@ function processLocationSuccess(locationData, weatherAreaCodes) {
     
     // 如果有weatherCode，直接尝试加载天气数据，提供更快的用户体验
     if (weatherCode) {
-        logStep('IP定位已获取weatherCode，优先加载天气数据');
         loadWeatherData(weatherCode, mojiAreaCode);
     }
     
     // 处理省市县数据加载和渲染
     if (weatherAreaCodes && Array.isArray(weatherAreaCodes) && weatherAreaCodes.length > 0) {
-        logStep('IP定位接口返回了完整省市县数据，直接使用该数据');
-        
         // 直接使用API返回的省市县数据
         dataCache.fullAreaData = weatherAreaCodes;
         
         // 构建查找映射
-        logStep('使用IP定位返回的数据构建区域映射');
         try {
             buildAreaMaps(weatherAreaCodes);
         } catch (error) {
-            logStep(`构建区域映射失败: ${error.message}`);
             // 继续执行，不因映射构建失败而中断
         }
         
         // 渲染省份选择框
-        logStep('使用IP定位返回的数据渲染省份选择框');
         try {
             renderProvinceSelect(weatherAreaCodes);
         } catch (error) {
-            logStep(`渲染省份选择框失败: ${error.message}`);
             // 继续执行，不因渲染失败而中断
         }
         
         // 更新UI并匹配选框
-        logStep('更新位置UI并匹配定位结果');
         updateLocationUI(locationData);
     } else {
         // 如果IP定位接口未返回完整省市县数据或数据无效，调用loadAreaCodes获取数据
-        logStep('IP定位接口未返回有效省市县数据，需要单独加载');
         loadAreaCodes().then(() => {
-            logStep('省市县数据加载完成，尝试匹配定位结果');
             // 数据加载完成后更新UI并匹配选框
             updateLocationUI(locationData);
         }).catch(error => {
-            logStep(`加载省市县数据失败: ${error.message || error}`);
             // 即使加载区域数据失败，如果有weatherCode也保持天气数据显示
             if (!weatherCode) {
-                logStep('无weatherCode且区域数据加载失败，切换到手动选择');
                 switchToManualSelection();
-            } else {
-                logStep('区域数据加载失败但有weatherCode，保持显示天气数据');
             }
         });
     }
@@ -959,11 +925,8 @@ function switchToManualSelection() {
 
 // 更新位置UI - 集中处理位置显示和选框匹配
 function updateLocationUI(location) {
-    logStep(`开始更新位置UI: 省份=${location?.province}, 城市=${location?.city}, 区县=${location?.district}`);
-    
     // 验证location参数的有效性
     if (!location || typeof location !== 'object') {
-        logStep('错误: 无效的位置数据对象');
         updateCityDisplay({ 
             name: '定位数据错误', 
             code: '数据无效' 
@@ -1007,7 +970,7 @@ function updateLocationUI(location) {
     
     // 添加重试机制的匹配函数
     const attemptMatchLocation = (attempt = 1, maxAttempts = 3, delay = 500) => {
-        logStep(`尝试匹配位置 (尝试 ${attempt}/${maxAttempts})`);
+        // logStep(`尝试匹配位置 (尝试 ${attempt}/${maxAttempts})`);
         
         // 确保DOM元素存在
         const provinceSelect = document.getElementById('province-select');
@@ -1602,7 +1565,7 @@ function matchLocationSelect(province, city, district, isIpLocation = false, loc
         const { provinceSelect, citySelect, districtSelect } = selectElements;
         const { cleanProvince, cleanCity, cleanDistrict } = cleanLocationNames(province, city, district);
         
-        logStep(`清理后的位置名称: 省份=${cleanProvince}, 城市=${cleanCity || '无'}, 区县=${cleanDistrict || '无'}`);
+        // logStep(`清理后的位置名称: 省份=${cleanProvince}, 城市=${cleanCity || '无'}, 区县=${cleanDistrict || '无'}`);
         
         // 确保省市区选择框重置
         try {
@@ -3163,7 +3126,7 @@ function updateHourlyWeatherSummary(hourlyData) {
     hourlyData.forEach((hourData, index) => {
         if (!hourData) return;
         
-        console.log(`小时数据 ${index}:`, hourData);
+        // console.log(`小时数据 ${index}:`, hourData);
         
         // 简化处理：为当前小时数据添加高亮
         // 获取小时数据中的小时值
@@ -3188,7 +3151,7 @@ function updateHourlyWeatherSummary(hourlyData) {
             isCurrentHour = true;
         }
         
-        console.log(`小时数据 ${index}, 值: ${hourValue}, 当前小时: ${currentHour}, 是否高亮: ${isCurrentHour}`);
+        // console.log(`小时数据 ${index}, 值: ${hourValue}, 当前小时: ${currentHour}, 是否高亮: ${isCurrentHour}`);
         
         const hourElement = document.createElement('div');
         // 缩小宽度，确保与图表坐标节点一一对应
@@ -3296,107 +3259,68 @@ function updateHourlyWeatherSummary(hourlyData) {
 }
 
 // 更新天气日历（周一到周日标题 + 当月网格形式）
-// 获取日期的节日信息 - 优化版，参考calendar_view.js实现，确保支持农历节日和节气
-async function getWeatherCalendarFestivals(date) {
-    const festivals = [];
-    
+// 获取日期的节日信息（与calendar_view.js保持一致的实现）
+async function getWeatherCalendarFestivals(dateStr) {
     try {
         // 确保日期对象有效
-        const targetDate = date instanceof Date ? date : new Date(date);
-        if (isNaN(targetDate.getTime())) {
+        const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
+        if (isNaN(date.getTime())) {
             console.warn('无效的日期对象');
-            return festivals;
+            return [];
         }
         
-        // 方法1：尝试使用lunarUtils中的getFestivals方法获取所有节日（包括农历节日和节气）
+        // 优先使用festival_utils.js
+        if (window.festivalUtils && typeof window.festivalUtils.getFestivals === 'function') {
+            try {
+                console.log('尝试使用festivalUtils获取节日信息');
+                const festivals = await window.festivalUtils.getFestivals(date);
+                if (festivals && Array.isArray(festivals) && festivals.length > 0) {
+                    console.log('从festivalUtils获取到节日:', festivals);
+                    return festivals;
+                }
+            } catch (err) {
+                console.warn('使用festival_utils获取节日信息失败，降级处理:', err);
+            }
+        }
+        
+        // 降级使用lunar_utils.js
         if (window.lunarUtils && typeof window.lunarUtils.getFestivals === 'function') {
             try {
                 console.log('尝试使用lunarUtils获取节日信息');
-                const lunarFestivals = await window.lunarUtils.getFestivals(targetDate);
-                if (lunarFestivals && Array.isArray(lunarFestivals)) {
-                    console.log('从lunarUtils获取到节日:', lunarFestivals);
-                    festivals.push(...lunarFestivals);
+                const festivals = await window.lunarUtils.getFestivals(date);
+                if (festivals && Array.isArray(festivals) && festivals.length > 0) {
+                    console.log('从lunarUtils获取到节日:', festivals);
+                    return festivals;
                 }
-            } catch (error) {
-                console.warn('调用window.lunarUtils.getFestivals失败:', error);
+            } catch (err) {
+                console.warn('使用lunar_utils获取节日信息失败，尝试使用配置文件:', err);
             }
         }
         
-        // 方法2：如果lunarUtils获取不到或获取不完整，使用配置文件中的节日信息
-        if (festivals.length === 0 && window.calendarConfig && Array.isArray(window.calendarConfig.festivals)) {
-            try {
-                console.log('尝试使用calendarConfig获取节日信息');
-                // 使用lunar.js计算公历和农历节日
-                if (window.Solar && typeof window.Solar.fromYmd === 'function') {
-                    const solar = window.Solar.fromYmd(targetDate.getFullYear(), targetDate.getMonth() + 1, targetDate.getDate());
-                    if (solar && typeof solar.getLunar === 'function') {
-                        const lunar = solar.getLunar();
-                        
-                        if (lunar && typeof lunar.getMonth === 'function' && typeof lunar.getDay === 'function') {
-                            const year = targetDate.getFullYear();
-                            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-                            const day = String(targetDate.getDate()).padStart(2, '0');
-                            const monthDay = `${month}-${day}`;
-                            
-                            // 公历月份和日期 - 包括节气
-                            const solarFestivals = window.calendarConfig.festivals
-                                .filter(festival => festival && festival.dateType === 'solar' && festival.date === monthDay)
-                                .map(festival => ({
-                                    name: festival.name || '',
-                                    type: festival.type || 'custom',
-                                    priority: festival.priority || 50
-                                }))
-                                .filter(festival => festival.name);
-                            
-                            festivals.push(...solarFestivals);
-                            
-                            // 农历月份和日期
-                            const lunarMonth = Math.abs(lunar.getMonth());
-                            const lunarDay = lunar.getDay();
-                            const isLeapMonth = lunar.getMonth() < 0;
-                            const lunarKey = `${String(lunarMonth).padStart(2, '0')}-${String(lunarDay).padStart(2, '0')}${isLeapMonth ? '-leap' : ''}`;
-                            
-                            const lunarConfigFestivals = window.calendarConfig.festivals
-                                .filter(festival => festival && festival.dateType === 'lunar' && festival.date === lunarKey)
-                                .map(festival => ({
-                                    name: festival.name || '',
-                                    type: festival.type || 'chinese_traditional',
-                                    priority: festival.priority || 60
-                                }))
-                                .filter(festival => festival.name);
-                            
-                            festivals.push(...lunarConfigFestivals);
-                            console.log('从配置文件获取到节日:', solarFestivals, lunarConfigFestivals);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.warn('使用配置文件计算节日失败:', error);
+        // 尝试从配置文件获取
+        if (window.calendarConfig && window.calendarConfig.festivals) {
+            const festivals = loadFestivalsFromConfig(date);
+            if (festivals && festivals.length > 0) {
+                console.log('从配置文件获取到节日:', festivals);
+                return festivals;
             }
-        }
-        
-        // 方法3：直接调用loadFestivalsFromConfig作为兜底
-        if (festivals.length === 0) {
-            console.log('尝试使用loadFestivalsFromConfig获取节日信息');
-            const configFestivals = await loadFestivalsFromConfig(targetDate);
-            festivals.push(...configFestivals);
         }
         
         // 特别处理：如果以上方法都没获取到节日，尝试从lunar对象直接获取节气
-        if (festivals.length === 0 && window.Solar && typeof window.Solar.fromYmd === 'function') {
+        if (window.Solar && typeof window.Solar.fromYmd === 'function') {
             try {
-                const solar = window.Solar.fromYmd(targetDate.getFullYear(), targetDate.getMonth() + 1, targetDate.getDate());
+                const solar = window.Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
                 if (solar && typeof solar.getLunar === 'function') {
                     const lunar = solar.getLunar();
                     if (lunar && typeof lunar.getSolarTerm === 'function') {
                         const solarTerm = lunar.getSolarTerm();
                         if (solarTerm) {
                             console.log('直接获取到节气:', solarTerm);
-                            festivals.push({
+                            return [{
                                 name: solarTerm,
                                 type: 'solar_term',
                                 priority: 70
-                            });
+                            }];
                         }
                     }
                 }
@@ -3404,27 +3328,16 @@ async function getWeatherCalendarFestivals(date) {
                 console.warn('直接获取节气失败:', error);
             }
         }
+        
+        return [];
     } catch (error) {
         console.error('获取节日信息失败:', error);
+        return [];
     }
-
-    // 去重并按优先级排序
-    const uniqueFestivals = [];
-    const festivalNames = new Set();
-
-    festivals.sort((a, b) => (b.priority || 0) - (a.priority || 0)).forEach(festival => {
-        if (festival && festival.name && !festivalNames.has(festival.name)) {
-            festivalNames.add(festival.name);
-            uniqueFestivals.push(festival);
-        }
-    });
-    
-    console.log('最终获取到的节日:', uniqueFestivals);
-    return uniqueFestivals;
 }
 
-// 从配置文件加载节日数据
-async function loadFestivalsFromConfig(date) {
+// 从配置文件加载节日数据（与calendar_renderer.js保持一致的实现）
+function loadFestivalsFromConfig(date) {
     try {
         const festivals = [];
         const year = date.getFullYear();
@@ -3432,9 +3345,9 @@ async function loadFestivalsFromConfig(date) {
         const day = String(date.getDate()).padStart(2, '0');
         const monthDay = `${month}-${day}`;
         
-        // 先尝试使用已加载的配置数据
+        // 优先使用已加载的配置
         if (window.calendarConfig && Array.isArray(window.calendarConfig.festivals)) {
-            // 公历节日
+            // 处理公历节日
             const solarFestivals = window.calendarConfig.festivals
                 .filter(festival => festival && festival.dateType === 'solar' && festival.date === monthDay)
                 .map(festival => ({
@@ -3446,7 +3359,7 @@ async function loadFestivalsFromConfig(date) {
             
             festivals.push(...solarFestivals);
             
-            // 如果有农历相关功能，尝试获取农历节日
+            // 处理农历节日
             if (window.Solar && typeof window.Solar.fromYmd === 'function') {
                 try {
                     const solar = window.Solar.fromYmd(year, date.getMonth() + 1, day);
@@ -3474,36 +3387,13 @@ async function loadFestivalsFromConfig(date) {
                     console.warn('计算农历节日失败:', error);
                 }
             }
-        } else {
-            // 如果没有已加载的配置，尝试直接加载配置文件
-            try {
-                const response = await fetch('/data/config/festival_config.json');
-                if (response.ok) {
-                    const config = await response.json();
-                    if (config.festivals && Array.isArray(config.festivals)) {
-                        // 处理公历节日
-                        const solarFestivals = config.festivals
-                            .filter(festival => festival && festival.dateType === 'solar' && festival.date === monthDay)
-                            .map(festival => ({
-                                name: festival.name || '',
-                                type: festival.type || 'custom',
-                                priority: festival.priority || 50
-                            }))
-                            .filter(festival => festival.name);
-                        
-                        festivals.push(...solarFestivals);
-                    }
-                }
-            } catch (error) {
-                console.warn('加载节日配置文件失败:', error);
-            }
         }
         
-        // 去重
+        // 去重并按优先级排序
         const uniqueFestivals = [];
         const seen = new Set();
         
-        festivals.forEach(festival => {
+        festivals.sort((a, b) => (b.priority || 0) - (a.priority || 0)).forEach(festival => {
             if (festival && festival.name && !seen.has(festival.name)) {
                 seen.add(festival.name);
                 uniqueFestivals.push(festival);
@@ -3517,38 +3407,100 @@ async function loadFestivalsFromConfig(date) {
     }
 }
 
-// 获取节日类型样式类 - 使用Tailwind内置颜色类确保兼容性，优化对农历节日和节气的支持
+// 动态加载节日公共工具模块 - 返回Promise以便await调用
+function loadFestivalUtils() {
+    if (window.festivalUtils && window.festivalUtils.getFestivalsForDate) {
+        // console.log('festival_utils已经加载就绪');
+        return;
+    }
+    return new Promise((resolve, reject) => {
+        // 检查是否已经加载
+        if (window.festivalUtils && window.festivalUtils.getFestivalsForDate) {
+            console.log('festival_utils已经加载就绪');
+            resolve(true);
+            return;
+        }
+        
+        try {
+            // 创建script标签加载festival_utils.js
+            const script = document.createElement('script');
+            script.src = '/src/client/assets/js/business/common/festival_utils.js';
+            script.onload = function() {
+                console.log('festival_utils加载成功');
+                resolve(true);
+            };
+            script.onerror = function(error) {
+                console.error('festival_utils加载失败');
+                reject(error);
+            };
+            document.head.appendChild(script);
+        } catch (error) {
+            console.error('加载festival_utils时发生错误:', error);
+            reject(error);
+        }
+    });
+}
+
+// 初始化时加载节日工具
+loadFestivalUtils();
+
+/**
+ * 获取节日类型对应的背景色类 - 统一使用公共节日工具模块
+ * @param {string} type 节日类型
+ * @returns {string} CSS类名
+ */
 function getFestivalTypeClass(type) {
-    if (!type) return 'bg-gray-200 text-gray-800';
+    // 优先使用公共工具模块中的实现
+    if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeClass === 'function') {
+        try {
+            return window.festivalUtils.getFestivalTypeClass(type);
+        } catch (error) {
+            console.warn('调用公共节日工具失败:', error);
+        }
+    }
     
-    const typeLower = type.toLowerCase();
+    // 默认实现 - 根据节日类型返回对应的背景色类
+    const defaultTypeMap = {
+        'chinese_traditional': 'bg-festival-traditional',  // 中国传统节日
+        'chinese_common': 'bg-festival-common',            // 常用节日
+        'international': 'bg-festival-international',      // 国际节日
+        'holiday': 'bg-festival-holiday',                  // 法定假日
+        'workday': 'bg-festival-workday'                   // 补班日
+    };
     
-    // 中国传统节日和法定节假日 - 提高识别精度
-    if (typeLower.includes('chinese') || typeLower.includes('legal') || typeLower.includes('common') || 
-        typeLower.includes('traditional') || typeLower.includes('holiday')) {
-        return 'bg-red-100 text-red-800';
+    // 验证type参数
+    if (typeof type !== 'string') {
+        console.warn('节日类型参数必须是字符串:', type);
+        return 'bg-festival-common';  // 默认使用常用节日样式
     }
-    // 外国节日
-    else if (typeLower.includes('foreign') || typeLower.includes('western') || typeLower.includes('international')) {
-        return 'bg-blue-100 text-blue-800';
+    
+    // 返回对应类型的背景色类，如果未找到则返回默认值
+    return defaultTypeMap[type] || 'bg-festival-common';
+}
+
+// 获取指定日期的节日信息
+/**
+ * 获取指定日期的节日信息 - 统一使用公共节日工具模块
+ * @param {Date} date 日期对象
+ * @returns {Array} 节日数组
+ */
+function getFestivalsForDate(date) {
+    // 确保节日工具已加载
+    loadFestivalUtils();
+    
+    // 检查festival_utils是否可用
+    if (window.festivalUtils && typeof window.festivalUtils.getFestivalsForDate === 'function') {
+        try {
+            return window.festivalUtils.getFestivalsForDate(date);
+        } catch (error) {
+            console.warn('调用公共节日工具失败:', error);
+        }
+    } else {
+        console.warn('festival_utils未加载或不可用');
     }
-    // 节气 - 增强识别，确保节气能正确显示
-    else if (typeLower.includes('solar') && typeLower.includes('term') || typeLower === 'solar_term' || 
-             typeLower.includes('节气') || typeLower.includes('solarterm')) {
-        return 'bg-green-100 text-green-800';
-    }
-    // 生日
-    else if (typeLower.includes('birthday')) {
-        return 'bg-yellow-100 text-yellow-800';
-    }
-    // 其他特殊类型
-    else if (typeLower.includes('custom') || typeLower.includes('special')) {
-        return 'bg-purple-100 text-purple-800';
-    }
-    // 默认类型
-    else {
-        return 'bg-gray-100 text-gray-800';
-    }
+    
+    // 暂时返回空数组
+    return [];
 }
 
 function updateCalendarWeather(calendarWeather) {
@@ -3756,6 +3708,38 @@ function updateCalendarWeather(calendarWeather) {
             
             cell.appendChild(dateAndFestivalContainer);
             
+            // 添加节日标记 - 独立于天气数据，确保始终显示节日信息
+            try {
+                // 清空容器
+                festivalContainer.innerHTML = '';
+                
+                // 获取节日数据（使用同步函数）
+                const festivalsForDay = getFestivalsForDate(currentDate);
+                
+                // 添加节日标记
+                if (festivalsForDay && Array.isArray(festivalsForDay) && festivalsForDay.length > 0) {
+                    festivalsForDay.forEach(festival => {
+                        if (festival && festival.name) {
+                            const festivalTag = document.createElement('div');
+                            // 使用简化的节日标签样式，确保背景色正确应用
+                            festivalTag.className = `festival-tag ${getFestivalTypeClass(festival.type)}`;
+                            
+                            // 限制节日名称长度，避免显示不全
+                            let displayName = festival.name;
+                            if (displayName.length > 4) {
+                                displayName = displayName.substring(0, 4) + '...';
+                            }
+                            festivalTag.textContent = displayName;
+                            logStep(`为日期 ${formattedCurrentDate} 添加节日 ${displayName}`);
+                            // 将节日标签添加到容器中
+                            festivalContainer.appendChild(festivalTag);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('获取节日信息失败:', error);
+            }
+            
             if (dayData) {
                 // 显示天气信息
                 let shortWeather = dayData.weather || '--';
@@ -3797,41 +3781,6 @@ function updateCalendarWeather(calendarWeather) {
                 const minTemp = dayData.tempMin || dayData.realTempMin || '--';
                 tempRange.innerHTML = `<span class="text-gray-700">${minTemp}</span> / <span class="text-gray-900">${maxTemp}°C</span>`;
                 cell.appendChild(tempRange);
-                
-                // 异步获取节日信息
-                (async () => {
-                    try {
-                        // 添加日志帮助调试
-                                console.log('尝试获取日期的节日信息:', formattedCurrentDate);
-                                const festivalsForDay = await getWeatherCalendarFestivals(currentDate);
-                        
-                        console.log('获取到的节日:', festivalsForDay);
-                        
-                        // 如果有节日，只显示最高优先级的那个（第一个）
-                        if (festivalsForDay && Array.isArray(festivalsForDay) && festivalsForDay.length > 0) {
-                            const topFestival = festivalsForDay[0];
-                            if (topFestival && topFestival.name) {
-                                const festivalTag = document.createElement('div');
-                                
-                                // 获取样式类
-                                const type = topFestival.type || 'custom';
-                                const styleClass = getFestivalTypeClass(type);
-                                
-                                festivalTag.className = `festival-tag ${styleClass} text-xs px-1 py-0.5 rounded`;
-                                
-                                // 限制节日名称长度，避免显示不全
-                                let displayName = topFestival.name;
-                                if (displayName.length > 6) {
-                                    displayName = displayName.substring(0, 6) + '...';
-                                }
-                                festivalTag.textContent = displayName;
-                                festivalContainer.appendChild(festivalTag);
-                            }
-                        }
-                    } catch (error) {
-                        console.error('显示节日信息失败:', error);
-                    }
-                })();
             } else {
                 // 无数据时显示占位符
                 const noData = document.createElement('div');
@@ -4587,7 +4536,7 @@ function updateWeatherDisplay(weatherData) {
             hourlyData = todayData.hourlyForecast;
         }
         
-        logStep(`使用的24小时数据: ${JSON.stringify(hourlyData).substring(0, 80)}...`);
+        // logStep(`使用的24小时数据: ${JSON.stringify(hourlyData).substring(0, 80)}...`);
         
         // 更新24小时天气摘要（天气和风力风向）
         if (hourlyData) {
@@ -4638,13 +4587,66 @@ function updateWeatherDisplay(weatherData) {
     }
 }
 
+// 初始化节日数据
+async function initFestivals() {
+    try {
+        // 初始化全局变量
+        window.allFestivals = [];
+        window.calendarConfig = {
+            currentYear: new Date().getFullYear(),
+            currentMonth: new Date().getMonth(),
+            festivals: [],
+            holidays: {},
+            workdays: new Set()
+        };
+        
+        // 加载节日工具
+        await loadFestivalUtils();
+        
+        // 检查festival_utils是否可用
+        if (window.festivalUtils) {
+            console.log('festivalUtils已就绪，可以正常使用节日功能');
+            // 由于festival_utils直接提供getFestivalsForDate函数，不需要预先加载配置
+            // 可以在这里测试一下功能
+            try {
+                const today = new Date();
+                const todayFestivals = window.festivalUtils.getFestivalsForDate(today);
+                if (todayFestivals && todayFestivals.length > 0) {
+                    console.log(`今天(${today.toLocaleDateString()})的节日:`, todayFestivals);
+                }
+            } catch (testError) {
+                console.warn('测试节日功能时发生警告:', testError);
+            }
+        } else {
+            console.warn('festivalUtils加载失败，将使用本地节日功能实现');
+        }
+    } catch (error) {
+        console.error('初始化节日数据时出错:', error);
+        // 即使初始化失败，也不影响后续功能
+    }
+}
+
 // 页面加载完成后初始化
 logStep('页面脚本加载完成，准备初始化');
+async function initializeAll() {
+    try {
+        // 先初始化节日数据
+        await initFestivals();
+        console.log('节日数据初始化完成');
+        // 然后初始化天气页面
+        initWeatherPage();
+    } catch (error) {
+        console.error('初始化时出错:', error);
+        // 即使节日数据初始化失败，也要继续初始化天气页面
+        initWeatherPage();
+    }
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initWeatherPage);
+    document.addEventListener('DOMContentLoaded', initializeAll);
 } else {
     // 页面已经加载完成，直接初始化
-    initWeatherPage();
+    initializeAll();
 }
 
 logStep('脚本执行完毕');
