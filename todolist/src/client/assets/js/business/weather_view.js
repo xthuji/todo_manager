@@ -109,9 +109,6 @@ const dataCache = {
     mojiCodeMap: {} // 用于存储墨迹天气编码
 };
 
-// 日志序号计数器
-let logCounter = 0;
-
 // 更新天气网站链接
 function updateWeatherLinks(mojiAreaCode, weatherCode) {
     logStep(`更新天气网站链接: mojiAreaCode=${mojiAreaCode}, weatherCode=${weatherCode}`);
@@ -143,6 +140,8 @@ function updateWeatherLinks(mojiAreaCode, weatherCode) {
     }
 }
 
+// 日志序号计数器
+let logCounter = 0;
 // 生成带序号的日志函数 - 只输出错误和警告信息
 function logStep(message) {
     // 只输出包含"错误"或"警告"的消息
