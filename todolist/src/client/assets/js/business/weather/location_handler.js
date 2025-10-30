@@ -52,12 +52,6 @@
             if (result && Array.isArray(result.data) && result.data.length > 0) {
                 this._log('使用直接格式的区域数据');
                 return result.data;
-            } else if (result && result.weatherAreaCodes && Array.isArray(result.weatherAreaCodes.data) && result.weatherAreaCodes.data.length > 0) {
-                this._log('使用mock格式的区域数据');
-                return result.weatherAreaCodes.data;
-            } else if (Array.isArray(result)) {
-                this._log('使用数组格式的区域数据');
-                return result;
             } else {
                 throw new Error('API返回的数据格式不正确，无法提取省份数据');
             }
