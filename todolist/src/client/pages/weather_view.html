@@ -161,18 +161,23 @@
 
         /* 天气高亮样式已在JS中通过内联类名实现 */
         
-        @layer utilities {
-            /* 节日类型背景样式 */
-            .bg-festival-traditional { @apply bg-red-400; } /* 传统节日：浅红色 */
-            .bg-festival-common { @apply bg-red-500; } /* 常用节日：红色 */
-            .bg-festival-foreign { @apply bg-purple-500; } /* 国外节日：紫色 */
-            .bg-festival-terms { @apply bg-green-500; } /* 节气：绿色 */
-            .bg-festival-custom { @apply bg-blue-500; } /* 自定义节日：蓝色 */
-            
-            /* 节日标签样式 */
-            .festival-tag { @apply text-xs px-1 py-0.5 rounded text-white whitespace-nowrap; }
+        /* 节日标签样式 - 调整为直接CSS规则而不是@layer utilities以确保优先级 */
+        .festival-tag {
+            font-size: 0.75rem; /* text-xs */
+            padding: 0.125rem 0.25rem; /* px-1 py-0.5 */
+            border-radius: 0.25rem; /* rounded */
+            color: white;
+            white-space: nowrap;
+            display: inline-block;
         }
-
+        
+        /* 节日类型背景样式 - 直接CSS规则确保优先级 */
+        .bg-festival-traditional { background-color: #f87171; } /* 传统节日：浅红色 */
+        .bg-festival-common { background-color: #ef4444; } /* 常用节日：红色 */
+        .bg-festival-foreign { background-color: #a855f7; } /* 国外节日：紫色 */
+        .bg-festival-terms { background-color: #22c55e; } /* 节气：绿色 */
+        .bg-festival-custom { background-color: #3b82f6; } /* 自定义节日：蓝色 */
+        
         @media (max-width: 768px) {
             .grid-cols-5 {
                 grid-template-columns: 1fr;
