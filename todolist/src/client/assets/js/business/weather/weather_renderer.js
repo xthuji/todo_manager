@@ -450,7 +450,6 @@ function updateHourlyWeatherSummary(hourlyData) {
     // 添加每小时天气摘要 - 缩小宽度和字体
     // 获取当前小时
     const currentHour = new Date().getHours();
-    console.log('当前小时:', currentHour);
 
     hourlyData.forEach((hourData, index) => {
         if (!hourData) return;
@@ -499,7 +498,7 @@ function updateHourlyWeatherSummary(hourlyData) {
             if (hourElement && isCurrentHour) { // 只在当前时段时执行滚动
                 console.log('自动滚动到当前时段数据');
 
-                // 方法2: 找到最近的可滚动容器并滚动 - 作为备选方案
+                // 找到最近的可滚动容器并滚动 - 作为备选方案
                 let parent = hourElement.parentElement;
                 let containerFound = false;
 
@@ -588,10 +587,6 @@ function updateHourlyWeatherSummary(hourlyData) {
 
 // 动态加载节日公共工具模块 - 返回Promise以便await调用
 function loadFestivalUtils() {
-    if (window.festivalUtils && window.festivalUtils.getFestivalsForDate) {
-        // console.log('festival_utils已经加载就绪');
-        return;
-    }
     return new Promise((resolve, reject) => {
         // 检查是否已经加载
         if (window.festivalUtils && window.festivalUtils.getFestivalsForDate) {
@@ -620,68 +615,7 @@ function loadFestivalUtils() {
     });
 }
 
-// 初始化时加载节日工具
-loadFestivalUtils();
-
-/**
- * 获取节日类型对应的背景色类 - 统一使用公共节日工具模块
- * @param {string} type 节日类型
- * @returns {string} CSS类名
- */
-function getFestivalTypeClass(type) {
-    // 优先使用公共工具模块中的实现
-    if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeClass === 'function') {
-        try {
-            return window.festivalUtils.getFestivalTypeClass(type);
-        } catch (error) {
-            console.warn('调用公共节日工具失败:', error);
-        }
-    }
-
-    // 默认实现 - 根据节日类型返回对应的背景色类
-    const defaultTypeMap = {
-        'chinese_traditional': 'bg-festival-traditional',  // 中国传统节日
-        'chinese_common': 'bg-festival-common',            // 常用节日
-        'international': 'bg-festival-international',      // 国际节日
-        'holiday': 'bg-festival-holiday',                  // 法定假日
-        'workday': 'bg-festival-workday'                   // 补班日
-    };
-
-    // 验证type参数
-    if (typeof type !== 'string') {
-        console.warn('节日类型参数必须是字符串:', type);
-        return 'bg-festival-common';  // 默认使用常用节日样式
-    }
-
-    // 返回对应类型的背景色类，如果未找到则返回默认值
-    return defaultTypeMap[type] || 'bg-festival-common';
-}
-
 // 获取指定日期的节日信息
-/**
- * 获取指定日期的节日信息 - 统一使用公共节日工具模块
- * @param {Date} date 日期对象
- * @returns {Array} 节日数组
- */
-function getFestivalsForDate(date) {
-    // 确保节日工具已加载
-    loadFestivalUtils();
-
-    // 检查festival_utils是否可用
-    if (window.festivalUtils && typeof window.festivalUtils.getFestivalsForDate === 'function') {
-        try {
-            return window.festivalUtils.getFestivalsForDate(date);
-        } catch (error) {
-            console.warn('调用公共节日工具失败:', error);
-        }
-    } else {
-        console.warn('festival_utils未加载或不可用');
-    }
-
-    // 暂时返回空数组
-    return [];
-}
-
 function updateCalendarWeather(calendarWeather) {
     const calendarContainer = document.getElementById('weather-calendar');
     const calendarSection = calendarContainer ? calendarContainer.closest('[id$="calendar-section"]') || calendarContainer.closest('.calendar-section') : null;
@@ -893,7 +827,7 @@ function updateCalendarWeather(calendarWeather) {
                 festivalContainer.innerHTML = '';
 
                 // 获取节日数据（使用同步函数）
-                const festivalsForDay = getFestivalsForDate(currentDate);
+                const festivalsForDay = window.festivalUtils.getFestivalsForDate(currentDate);
 
                 // 添加节日标记
                 if (festivalsForDay && Array.isArray(festivalsForDay) && festivalsForDay.length > 0) {
@@ -901,7 +835,8 @@ function updateCalendarWeather(calendarWeather) {
                         if (festival && festival.name) {
                             const festivalTag = document.createElement('div');
                             // 使用简化的节日标签样式，确保背景色正确应用
-                            festivalTag.className = `festival-tag ${getFestivalTypeClass(festival.type)}`;
+                            let festivalTypeClass = window.festivalUtils.getFestivalTypeClass(festival.type);
+                            festivalTag.className = `festival-tag ${festivalTypeClass}`;
 
                             // 限制节日名称长度，避免显示不全
                             let displayName = festival.name;
