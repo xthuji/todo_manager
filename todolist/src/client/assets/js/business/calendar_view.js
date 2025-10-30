@@ -74,17 +74,7 @@ async function loadHolidayData() {
 // 检查日期是否是法定节假日
 function isHoliday(date) {
     try {
-        if (window.holidayManager && typeof window.holidayManager.getDateType === 'function') {
-            return window.holidayManager.getDateType(date) === 'holiday';
-        }
-        
-        // 降级处理：使用lunarUtils中的isHoliday方法
-        if (window.lunarUtils && typeof window.lunarUtils.isHoliday === 'function') {
-            return window.lunarUtils.isHoliday(date);
-        }
-        
-        console.warn('没有可用的节假日判断方法');
-        return false;
+        return window.holidayManager.getDateType(date) === 'holiday';
     } catch (error) {
         console.warn('检查节假日失败:', error);
         return false;
@@ -94,17 +84,7 @@ function isHoliday(date) {
 // 检查日期是否是补班日
 function isWorkday(date) {
     try {
-        if (window.holidayManager && typeof window.holidayManager.getDateType === 'function') {
-            return window.holidayManager.getDateType(date) === 'workday';
-        }
-        
-        // 降级处理：使用lunarUtils中的isWorkday方法
-        if (window.lunarUtils && typeof window.lunarUtils.isWorkday === 'function') {
-            return window.lunarUtils.isWorkday(date);
-        }
-        
-        console.warn('没有可用的补班日判断方法');
-        return false;
+        return window.holidayManager.getDateType(date) === 'workday';
     } catch (error) {
         console.warn('检查补班日失败:', error);
         return false;
@@ -115,16 +95,12 @@ function isWorkday(date) {
 async function initCalendar() {
     try {
         // 1. 初始化节假日数据
-        if (window.holidayManager && typeof window.holidayManager.getHolidayData === 'function') {
-            try {
-                await window.holidayManager.getHolidayData(true); // 传入true表示初始化调用
-            } catch (error) {
-                console.warn('初始化节假日数据失败:', error);
-            }
-        } else {
-            console.warn('holidayManager.getHolidayData 方法不可用，使用本地数据');
+        try {
+            await window.holidayManager.getHolidayData(true); // 传入true表示初始化调用
+        } catch (error) {
+            console.warn('初始化节假日数据失败:', error);
         }
-        
+
         // 2. 初始化月份导航按钮
         document.getElementById('prev-month').addEventListener('click', goToPrevMonth);
         document.getElementById('next-month').addEventListener('click', goToNextMonth);
