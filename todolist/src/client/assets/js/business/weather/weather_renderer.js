@@ -556,8 +556,7 @@ function updateHourlyWeatherSummary(hourlyData) {
         // 简化天气状况显示，只显示主要类型
         const condition = document.createElement('div');
         condition.className = 'text-[10px] text-gray-600 mb-1 truncate'; // 进一步缩小字体
-        let shortWeather = weather || '--';
-        condition.textContent = shortWeather;
+        condition.textContent = weather || '--';
 
         // 显示完整的风力风向信息
         const wind = document.createElement('div');
@@ -585,155 +584,6 @@ function updateHourlyWeatherSummary(hourlyData) {
 
         container.appendChild(hourElement);
     });
-}
-
-// 更新天气日历（周一到周日标题 + 当月网格形式）
-// 获取日期的节日信息（与calendar_view.js保持一致的实现）
-async function getWeatherCalendarFestivals(dateStr) {
-    try {
-        // 确保日期对象有效
-        const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
-        if (isNaN(date.getTime())) {
-            console.warn('无效的日期对象');
-            return [];
-        }
-
-        // 优先使用festival_utils.js
-        if (window.festivalUtils && typeof window.festivalUtils.getFestivals === 'function') {
-            try {
-                console.log('尝试使用festivalUtils获取节日信息');
-                const festivals = await window.festivalUtils.getFestivals(date);
-                if (festivals && Array.isArray(festivals) && festivals.length > 0) {
-                    console.log('从festivalUtils获取到节日:', festivals);
-                    return festivals;
-                }
-            } catch (err) {
-                console.warn('使用festival_utils获取节日信息失败，降级处理:', err);
-            }
-        }
-
-        // 降级使用lunar_utils.js
-        if (window.lunarUtils && typeof window.lunarUtils.getFestivals === 'function') {
-            try {
-                console.log('尝试使用lunarUtils获取节日信息');
-                const festivals = await window.lunarUtils.getFestivals(date);
-                if (festivals && Array.isArray(festivals) && festivals.length > 0) {
-                    console.log('从lunarUtils获取到节日:', festivals);
-                    return festivals;
-                }
-            } catch (err) {
-                console.warn('使用lunar_utils获取节日信息失败，尝试使用配置文件:', err);
-            }
-        }
-
-        // 尝试从配置文件获取
-        if (window.calendarConfig && window.calendarConfig.festivals) {
-            const festivals = loadFestivalsFromConfig(date);
-            if (festivals && festivals.length > 0) {
-                console.log('从配置文件获取到节日:', festivals);
-                return festivals;
-            }
-        }
-
-        // 特别处理：如果以上方法都没获取到节日，尝试从lunar对象直接获取节气
-        if (window.Solar && typeof window.Solar.fromYmd === 'function') {
-            try {
-                const solar = window.Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
-                if (solar && typeof solar.getLunar === 'function') {
-                    const lunar = solar.getLunar();
-                    if (lunar && typeof lunar.getSolarTerm === 'function') {
-                        const solarTerm = lunar.getSolarTerm();
-                        if (solarTerm) {
-                            console.log('直接获取到节气:', solarTerm);
-                            return [{
-                                name: solarTerm,
-                                type: 'solar_term',
-                                priority: 70
-                            }];
-                        }
-                    }
-                }
-            } catch (error) {
-                console.warn('直接获取节气失败:', error);
-            }
-        }
-
-        return [];
-    } catch (error) {
-        console.error('获取节日信息失败:', error);
-        return [];
-    }
-}
-
-// 从配置文件加载节日数据（与calendar_renderer.js保持一致的实现）
-function loadFestivalsFromConfig(date) {
-    try {
-        const festivals = [];
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const monthDay = `${month}-${day}`;
-
-        // 优先使用已加载的配置
-        if (window.calendarConfig && Array.isArray(window.calendarConfig.festivals)) {
-            // 处理公历节日
-            const solarFestivals = window.calendarConfig.festivals
-                .filter(festival => festival && festival.dateType === 'solar' && festival.date === monthDay)
-                .map(festival => ({
-                    name: festival.name || '',
-                    type: festival.type || 'custom',
-                    priority: festival.priority || 50
-                }))
-                .filter(festival => festival.name);
-
-            festivals.push(...solarFestivals);
-
-            // 处理农历节日
-            if (window.Solar && typeof window.Solar.fromYmd === 'function') {
-                try {
-                    const solar = window.Solar.fromYmd(year, date.getMonth() + 1, day);
-                    if (solar && typeof solar.getLunar === 'function') {
-                        const lunar = solar.getLunar();
-                        if (lunar && typeof lunar.getMonth === 'function' && typeof lunar.getDay === 'function') {
-                            const lunarMonth = Math.abs(lunar.getMonth());
-                            const lunarDay = lunar.getDay();
-                            const isLeapMonth = lunar.getMonth() < 0;
-                            const lunarKey = `${String(lunarMonth).padStart(2, '0')}-${String(lunarDay).padStart(2, '0')}${isLeapMonth ? '-leap' : ''}`;
-
-                            const lunarFestivals = window.calendarConfig.festivals
-                                .filter(festival => festival && festival.dateType === 'lunar' && festival.date === lunarKey)
-                                .map(festival => ({
-                                    name: festival.name || '',
-                                    type: festival.type || 'chinese_traditional',
-                                    priority: festival.priority || 60
-                                }))
-                                .filter(festival => festival.name);
-
-                            festivals.push(...lunarFestivals);
-                        }
-                    }
-                } catch (error) {
-                    console.warn('计算农历节日失败:', error);
-                }
-            }
-        }
-
-        // 去重并按优先级排序
-        const uniqueFestivals = [];
-        const seen = new Set();
-
-        festivals.sort((a, b) => (b.priority || 0) - (a.priority || 0)).forEach(festival => {
-            if (festival && festival.name && !seen.has(festival.name)) {
-                seen.add(festival.name);
-                uniqueFestivals.push(festival);
-            }
-        });
-
-        return uniqueFestivals;
-    } catch (error) {
-        console.error('从配置加载节日失败:', error);
-        return [];
-    }
 }
 
 // 动态加载节日公共工具模块 - 返回Promise以便await调用
@@ -1608,12 +1458,6 @@ function updateRecentDaysWeather(recentDaysWeather) {
     // 创建表体 - 直接创建表体，不使用表头
     const tbody = document.createElement('tbody');
 
-    // 获取今天的月和日，用于匹配
-    const today = new Date();
-    const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
-    const currentDay = String(today.getDate()).padStart(2, '0');
-    const todayMonthDay = currentMonth + currentDay;
-
     // 添加每日天气数据行 - 优化显示效果
     recentDaysWeather.forEach((dayData, index) => {
         const row = document.createElement('tr');
@@ -1722,65 +1566,6 @@ function updateRecentDaysWeather(recentDaysWeather) {
     adjustTableResponsive();
 }
 
-// 简化天气描述文本
-function simplifyWeatherText(text) {
-    if (!text) return '--';
-
-    // 保留关键字，移除冗余描述
-    const keywordMap = {
-        '晴': '晴',
-        '多云': '多云',
-        '阴': '阴',
-        '小雨': '小雨',
-        '中雨': '中雨',
-        '大雨': '大雨',
-        '暴雨': '暴雨',
-        '阵雨': '阵雨',
-        '雷阵雨': '雷阵雨',
-        '雪': '雪',
-        '雾': '雾',
-        '霾': '霾'
-    };
-
-    for (const [key, value] of Object.entries(keywordMap)) {
-        if (text.includes(key)) {
-            return value;
-        }
-    }
-
-    // 如果没有匹配的关键字，返回原始文本的前两个字符
-    return text.length > 2 ? text.substring(0, 2) : text;
-}
-
-// 简化风向风力文本
-function simplifyWindText(text) {
-    if (!text) return '--';
-
-    // 常见风向的简化
-    const directionMap = {
-        '东北': 'NE',
-        '东南': 'SE',
-        '西北': 'NW',
-        '西南': 'SW',
-        '东': 'E',
-        '南': 'S',
-        '西': 'W',
-        '北': 'N'
-    };
-
-    // 尝试匹配风向
-    let result = text;
-    for (const [key, value] of Object.entries(directionMap)) {
-        if (text.includes(key)) {
-            result = result.replace(key, value);
-            break;
-        }
-    }
-
-    // 如果文本太长，截断显示
-    return result.length > 8 ? result.substring(0, 8) + '...' : result;
-}
-
 // 响应式调整表格显示
 function adjustTableResponsive() {
     // 检测屏幕宽度
@@ -1864,8 +1649,6 @@ function updateWeatherDisplay(weatherData) {
         } else if (todayData && todayData.hourlyForecast && Array.isArray(todayData.hourlyForecast)) {
             hourlyData = todayData.hourlyForecast;
         }
-
-        // logStep(`使用的24小时数据: ${JSON.stringify(hourlyData).substring(0, 80)}...`);
 
         // 更新24小时天气摘要（天气和风力风向）
         if (hourlyData) {
