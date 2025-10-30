@@ -188,9 +188,9 @@ function isFestivalDate(date, festival) {
     return false;
 }
 
-async function getFestivals(date) {
+async function getFestivals(date, limit = 0) {
     await loadHolidayConfig();
-    return getFestivalsSync(date);
+    return getFestivalsSync(date, limit);
 }
 
 function deduplicateAndSortFestivals(festivals) {
@@ -220,7 +220,7 @@ function deduplicateAndSortFestivals(festivals) {
  * 同步版本的节日获取函数
  * 使用当前已加载的配置数据，不进行异步加载操作
  */
-function getFestivalsSync(date) {
+function getFestivalsSync(date, limit = 0) {
     // 确保日期是Date对象
     const targetDate = date instanceof Date ? date : new Date(date);
     if (isNaN(targetDate.getTime())) {
@@ -324,7 +324,12 @@ function getFestivalsSync(date) {
     }
 
     // 去重和按优先级排序
-    return deduplicateAndSortFestivals(festivals);
+    const festivalsList = deduplicateAndSortFestivals(festivals);
+    if (limit > 0) {
+        return festivalsList.slice(0, limit);
+    } else {
+        return festivalsList;
+    }
 }
 /**
  * 同步版本的节日获取函数

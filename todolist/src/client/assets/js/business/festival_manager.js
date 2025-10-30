@@ -119,7 +119,7 @@ function renderFestivalList(festivals) {
             </div>
             <!-- 节日类型 -->
             <div class="col-span-1 text-sm flex items-center">
-                <span class="${getFestivalTypeClass(festival.type)} festival-tag text-white px-1 py-0.5 rounded text-xs whitespace-nowrap">${getFestivalTypeName(festival.type)}</span>
+                <span class="${window.lunarUtils.getFestivalTypeClass(festival.type)} festival-tag text-white px-1 py-0.5 rounded text-xs whitespace-nowrap">${window.lunarUtils.getFestivalTypeName(festival.type)}</span>
             </div>
             <!-- 日期类型 -->
             <div class="col-span-1 text-sm text-gray-600 flex items-center">
@@ -275,67 +275,6 @@ function initFilterAndPagination(festivals) {
         console.error('初始化筛选功能失败:', error);
         // 出错时直接渲染所有节日数据
         renderFestivalList(festivals || []);
-    }
-}
-
-// 获取节日类型对应的样式类
-function getFestivalTypeClass(type) {
-    try {
-        // 优先使用公共节日工具模块
-        if (window.lunarUtils && typeof window.lunarUtils.getFestivalTypeClass === 'function') {
-            // 如果公共模块支持区分常用节日和传统节日，则直接使用
-            if (type === 'chinese_common' && window.lunarUtils.getFestivalTypeClass('chinese_common') !== window.lunarUtils.getFestivalTypeClass('chinese_traditional')) {
-                return window.lunarUtils.getFestivalTypeClass(type);
-            }
-        }
-        
-        // 自定义实现：区分常用节日和传统节日
-        switch (type) {
-            case 'chinese_common':
-                return 'bg-festival-common'; // 常用节日 - 使用深红色
-            case 'chinese_traditional':
-                return 'bg-festival-traditional'; // 传统节日 - 使用红色
-            case 'foreign':
-                return 'bg-festival-foreign'; // 国外节日
-            case 'solar_terms':
-                return 'bg-festival-terms'; // 节气
-            case 'custom':
-                return 'bg-festival-custom'; // 自定义节日
-            default:
-                return 'bg-festival-custom'; // 默认使用自定义节日样式
-        }
-    } catch (error) {
-        console.warn('获取节日类型样式失败:', error);
-        return 'bg-festival-custom';
-    }
-}
-
-// 获取节日类型名称
-function getFestivalTypeName(type) {
-    try {
-        // 优先使用公共节日工具模块
-        if (window.lunarUtils && typeof window.lunarUtils.getFestivalTypeName === 'function') {
-            return window.lunarUtils.getFestivalTypeName(type);
-        }
-        
-        // 兼容模式：如果festivalUtils不可用，使用原始实现
-        switch (type) {
-            case 'chinese_common':
-                return '常用节日';
-            case 'foreign':
-                return '国外节日';
-            case 'solar_terms':
-                return '节气';
-            case 'chinese_traditional':
-                return '传统节日';
-            case 'custom':
-                return '自定义节日';
-            default:
-                return '未知类型';
-        }
-    } catch (error) {
-        console.warn('获取节日类型名称失败:', error);
-        return '未知类型';
     }
 }
 

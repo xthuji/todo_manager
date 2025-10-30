@@ -794,7 +794,7 @@ function updateCalendarWeather(calendarWeather) {
                 festivalContainer.innerHTML = '';
 
                 // 获取节日数据（使用同步函数）
-                const festivalsForDay = window.lunarUtils.getFestivalsSync(dayData.dateObj);
+                const festivalsForDay = window.lunarUtils.getFestivalsSync(dayData.dateObj, 1);
 
                 // 添加节日标记
                 if (festivalsForDay && Array.isArray(festivalsForDay) && festivalsForDay.length > 0) {
@@ -1607,23 +1607,19 @@ async function initFestivals() {
         };
 
         // 使用lunar_utils.js加载节日配置
-        if (window.lunarUtils && typeof window.lunarUtils.loadHolidayConfig === 'function') {
-            try {
-                const config = await window.lunarUtils.loadHolidayConfig();
+        try {
+            const config = await window.lunarUtils.loadHolidayConfig();
+            window.allFestivals = config.festivals || [];
+            window.calendarConfig.festivals = window.allFestivals;
+        } catch (error) {
+            console.warn('使用lunarUtils加载节日配置失败，尝试直接获取配置:', error);
+            // 降级方案：直接获取配置文件
+            const response = await fetch('/data/config/festival_config.json');
+            if (response.ok) {
+                const config = await response.json();
                 window.allFestivals = config.festivals || [];
                 window.calendarConfig.festivals = window.allFestivals;
-            } catch (error) {
-                console.warn('使用lunarUtils加载节日配置失败，尝试直接获取配置:', error);
-                // 降级方案：直接获取配置文件
-                const response = await fetch('/data/config/festival_config.json');
-                if (response.ok) {
-                    const config = await response.json();
-                    window.allFestivals = config.festivals || [];
-                    window.calendarConfig.festivals = window.allFestivals;
-                }
             }
-        } else {
-            console.warn('lunarUtils不可用，尝试直接获取配置文件');
         }
     } catch (error) {
         console.error('加载节日配置时出错:', error);

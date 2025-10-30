@@ -37,25 +37,10 @@ async function initFestivals() {
         };
         
         // 使用lunar_utils.js加载节日配置
-        if (window.lunarUtils && typeof window.lunarUtils.loadHolidayConfig === 'function') {
-            try {
-                const config = await window.lunarUtils.loadHolidayConfig();
-                window.allFestivals = config.festivals || [];
-                window.calendarConfig.festivals = window.allFestivals;
-            } catch (error) {
-                console.warn('使用lunarUtils加载节日配置失败，尝试直接获取配置:', error);
-                // 降级方案：直接获取配置文件
-                const response = await fetch('/data/config/festival_config.json');
-                if (response.ok) {
-                    const config = await response.json();
-                    window.allFestivals = config.festivals || [];
-                    window.calendarConfig.festivals = window.allFestivals;
-                }
-            }
-        } else {
-            console.warn('lunarUtils不可用，尝试直接获取配置文件');
-        }
-        
+        const config = await window.lunarUtils.loadHolidayConfig();
+        window.allFestivals = config.festivals || [];
+        window.calendarConfig.festivals = window.allFestivals;
+
         // 加载法定节假日数据
         await loadHolidayData();
     } catch (error) {
@@ -425,13 +410,10 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
     try {
         // 清空容器
         festivalContainer.innerHTML = '';
-        
+
         // 使用同步版本的节日获取函数
-        let festivalsForDay = [];
-        if (window.lunarUtils && typeof window.lunarUtils.getFestivalsSync === 'function') {
-            festivalsForDay = window.lunarUtils.getFestivalsSync(date);
-        }
-        
+        let festivalsForDay = window.lunarUtils.getFestivalsSync(date);
+
         // 添加节日标记，每个节日占一行
         if (festivalsForDay && festivalsForDay.length > 0) {
             festivalsForDay.forEach(festival => {
@@ -456,33 +438,6 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
     return dayContainer;
 }
 
-// 获取节日类型样式类 - 统一使用tailwind.config中定义的颜色
-function getFestivalTypeClass(type) {
-    // 优先使用window.lunarUtils提供的实现，确保样式统一
-    if (window.lunarUtils && typeof window.lunarUtils.getFestivalTypeClass === 'function') {
-        try {
-            return window.lunarUtils.getFestivalTypeClass(type);
-        } catch (error) {
-            console.warn('调用festivalUtils.getFestivalTypeClass失败，使用默认实现:', error);
-        }
-    }
-    // 区分常用节日和传统节日，返回不同的样式类以实现颜色区分
-    switch (type) {
-        case 'chinese_common':
-            return 'bg-festival-common'; // 常用节日 - 红色
-        case 'chinese_traditional':
-            return 'bg-festival-traditional'; // 传统节日 - 浅红色
-        case 'foreign':
-            return 'bg-festival-foreign'; // 国外节日
-        case 'solar_terms':
-            return 'bg-festival-terms'; // 节气
-        case 'custom':
-            return 'bg-festival-custom'; // 自定义节日
-        default:
-            return 'bg-festival-custom'; // 默认使用自定义节日样式
-    }
-}
-
 // 农历日期转换 - 使用lunar_utils.js和lunar.js中的方法
 function getLunarDate(year, month, day) {
     try {
@@ -490,17 +445,15 @@ function getLunarDate(year, month, day) {
         const date = new Date(year, month - 1, day);
         
         // 优先使用lunar_utils.js中的方法
-        if (window.lunarUtils && typeof window.lunarUtils.getLunarDateText === 'function') {
-            try {
-                const lunarDateText = window.lunarUtils.getLunarDateText(date);
-                if (lunarDateText) {
-                    return lunarDateText;
-                }
-            } catch (error) {
-                console.warn('使用lunar_utils.js获取农历日期失败:', error);
+        try {
+            const lunarDateText = window.lunarUtils.getLunarDateText(date);
+            if (lunarDateText) {
+                return lunarDateText;
             }
+        } catch (error) {
+            console.warn('使用lunar_utils.js获取农历日期失败:', error);
         }
-        
+
         // 其次尝试使用lunar.js的Solar和Lunar对象
         if (window.Solar && window.Solar.fromYmd && window.Solar.fromDate) {
             try {

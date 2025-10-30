@@ -53,27 +53,13 @@ async function initFestivals() {
         };
         
         // 使用lunar_utils.js加载节日配置
-        if (window.lunarUtils && typeof window.lunarUtils.loadHolidayConfig === 'function') {
-            try {
-                const config = await window.lunarUtils.loadHolidayConfig();
-                window.allFestivals = config.festivals || [];
-                window.calendarConfig.festivals = window.allFestivals;
-            } catch (error) {
-                console.warn('使用lunarUtils加载节日配置失败，尝试直接获取配置:', error);
-                // 降级方案：直接获取配置文件
-                try {
-                    const response = await fetch('/data/config/festival_config.json');
-                    if (response.ok) {
-                        const config = await response.json();
-                        window.allFestivals = config.festivals || [];
-                        window.calendarConfig.festivals = window.allFestivals;
-                    }
-                } catch (fetchError) {
-                    console.warn('获取节日配置文件失败:', fetchError);
-                }
-            }
-        } else {
-            console.warn('lunarUtils不可用，尝试直接获取配置文件');
+        try {
+            const config = await window.lunarUtils.loadHolidayConfig();
+            window.allFestivals = config.festivals || [];
+            window.calendarConfig.festivals = window.allFestivals;
+        } catch (error) {
+            console.warn('使用lunarUtils加载节日配置失败，尝试直接获取配置:', error);
+            // 降级方案：直接获取配置文件
             try {
                 const response = await fetch('/data/config/festival_config.json');
                 if (response.ok) {
@@ -90,111 +76,6 @@ async function initFestivals() {
         // 如果加载失败，使用空数组
         window.allFestivals = [];
         window.calendarConfig.festivals = [];
-    }
-}
-
-// 获取日期的节日信息（与calendar_renderer.js保持一致的实现）
-/**
- * 获取指定日期的节日信息 - 统一使用公共节日工具模块
- * @param {Date} date 日期对象
- * @returns {Array} 节日数组
- */
-function getFestivalsForDate(date) {
-    // 检查festival_utils是否已加载
-    if (window.lunarUtils && typeof window.lunarUtils.getFestivals === 'function') {
-        try {
-            return window.lunarUtils.getFestivals(date);
-        } catch (error) {
-            console.warn('调用公共节日工具失败:', error);
-        }
-    } else {
-        // 如果festival_utils未加载，动态加载它
-        console.warn('festival_utils未加载，正在动态加载...');
-        
-        // 创建script标签加载festival_utils.js
-        const script = document.createElement('script');
-        script.src = '/src/client/assets/js/business/common/festival_utils.js';
-        script.onload = function() {
-            console.log('festival_utils加载成功');
-        };
-        script.onerror = function() {
-            console.error('festival_utils加载失败');
-        };
-        document.head.appendChild(script);
-    }
-    
-    // 暂时返回空数组，等待工具加载后会自动使用正确实现
-    return [];
-}
-
-// 从配置文件加载节日数据（与calendar_renderer.js保持一致的实现）
-function loadFestivalsFromConfig(date) {
-    try {
-        const festivals = [];
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const monthDay = `${month}-${day}`;
-        
-        // 优先使用已加载的配置
-        if (window.calendarConfig && Array.isArray(window.calendarConfig.festivals)) {
-            // 处理公历节日
-            const solarFestivals = window.calendarConfig.festivals
-                .filter(festival => festival && festival.dateType === 'solar' && festival.date === monthDay)
-                .map(festival => ({
-                    name: festival.name || '',
-                    type: festival.type || 'custom',
-                    priority: festival.priority || 50
-                }))
-                .filter(festival => festival.name);
-            
-            festivals.push(...solarFestivals);
-            
-            // 处理农历节日
-            if (window.Solar && typeof window.Solar.fromYmd === 'function') {
-                try {
-                    const solar = window.Solar.fromYmd(year, date.getMonth() + 1, day);
-                    if (solar && typeof solar.getLunar === 'function') {
-                        const lunar = solar.getLunar();
-                        if (lunar && typeof lunar.getMonth === 'function' && typeof lunar.getDay === 'function') {
-                            const lunarMonth = Math.abs(lunar.getMonth());
-                            const lunarDay = lunar.getDay();
-                            const isLeapMonth = lunar.getMonth() < 0;
-                            const lunarKey = `${String(lunarMonth).padStart(2, '0')}-${String(lunarDay).padStart(2, '0')}${isLeapMonth ? '-leap' : ''}`;
-                            
-                            const lunarFestivals = window.calendarConfig.festivals
-                                .filter(festival => festival && festival.dateType === 'lunar' && festival.date === lunarKey)
-                                .map(festival => ({
-                                    name: festival.name || '',
-                                    type: festival.type || 'chinese_traditional',
-                                    priority: festival.priority || 60
-                                }))
-                                .filter(festival => festival.name);
-                            
-                            festivals.push(...lunarFestivals);
-                        }
-                    }
-                } catch (error) {
-                    console.warn('计算农历节日失败:', error);
-                }
-            }
-        }
-        
-        // 去重并按优先级排序
-        const uniqueFestivals = [];
-        const seen = new Set();
-        
-        festivals.sort((a, b) => (b.priority || 0) - (a.priority || 0)).forEach(festival => {
-            if (festival && festival.name && !seen.has(festival.name)) {
-                seen.add(festival.name);
-                uniqueFestivals.push(festival);
-            }
-        });
-        
-        return uniqueFestivals;
-    } catch (error) {
-        console.error('从配置加载节日失败:', error);
-        return [];
     }
 }
 

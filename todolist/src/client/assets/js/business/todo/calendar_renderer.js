@@ -111,21 +111,16 @@ export async function renderCalendar(date, tasks = []) {
             
             try {
                 // 使用lunar_utils.js中的方法获取农历日期
-                if (window.lunarUtils && typeof window.lunarUtils.getLunarDateText === 'function') {
-                    lunarDate = window.lunarUtils.getLunarDateText(prevDay);
-                }
-                
+                lunarDate = window.lunarUtils.getLunarDateText(prevDay);
+
                 // 获取节日信息（参考calendar_view.js的实现）
-                const festivals = await getFestivalsForDate(prevDay);
+                const festivals = await window.lunarUtils.getFestivals(prevDay, 1);
                 if (festivals && festivals.length > 0) {
                     // 显示全部节日
                     for (const festival of festivals) {
                         // 获取节日样式
-                        let festivalStyle = 'bg-festival-custom'; // 默认样式
-                        if (window.lunarUtils && typeof window.lunarUtils.getFestivalStyleClass === 'function') {
-                            festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
-                        }
-                        
+                        let festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
+
                         // 添加festival-tag类确保一致的样式
                         festivalInfo = `${festivalInfo}<span class="${festivalStyle} festival-tag">${festival.name}</span>`;
                     }
@@ -232,22 +227,16 @@ export async function renderCalendar(date, tasks = []) {
         
         try {
             // 使用lunar_utils.js中的方法获取农历日期
-            if (window.lunarUtils && typeof window.lunarUtils.getLunarDateText === 'function') {
-                lunarDate = window.lunarUtils.getLunarDateText(currentDay);
-                // console.log('currentDay:', currentDay, 'lunarDate:', lunarDate);
-            }
-            
+            lunarDate = window.lunarUtils.getLunarDateText(currentDay);
+
             // 获取节日信息（参考calendar_view.js的实现）
-            const festivals = await getFestivalsForDate(currentDay);
+            const festivals = await window.lunarUtils.getFestivals(currentDay, 1);
             if (festivals && festivals.length > 0) {
                 // 显示全部节日
                 for (const festival of festivals) {
                     // 获取节日样式
-                    let festivalStyle = 'bg-festival-custom'; // 默认样式
-                    if (window.lunarUtils && typeof window.lunarUtils.getFestivalStyleClass === 'function') {
-                        festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
-                    }
-                    
+                    let festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
+
                     // 添加统一的节日标签样式，包含festival-tag类和通用样式
                     festivalInfo = `${festivalInfo}<span class="${festivalStyle} festival-tag text-xs px-1 py-0.5 rounded text-white whitespace-nowrap">${festival.name}</span>`;
                 }
@@ -875,20 +864,16 @@ export async function renderCalendar(date, tasks = []) {
             
             try {
                 // 使用lunar_utils.js中的方法获取农历日期
-                if (window.lunarUtils && typeof window.lunarUtils.getLunarDateText === 'function') {
-                    lunarDate = window.lunarUtils.getLunarDateText(nextDay);
-                }
-                
+                lunarDate = window.lunarUtils.getLunarDateText(nextDay);
+
                 // 使用lunar_utils.js中的方法获取节日信息
-                if (window.lunarUtils && typeof window.lunarUtils.getFestivals === 'function') {
-                    const festivals = await window.lunarUtils.getFestivals(nextDay);
-                    if (festivals && festivals.length > 0) {
-                        // 显示全部节日
-                        for (const festival of festivals) {
-                            // 获取节日样式
-                            const festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
-                            festivalInfo = `${festivalInfo}<span class="${festivalStyle}">${festival.name}</span>`;
-                        }
+                const festivals = await window.lunarUtils.getFestivals(nextDay, 1);
+                if (festivals && festivals.length > 0) {
+                    // 显示全部节日
+                    for (const festival of festivals) {
+                        // 获取节日样式
+                        const festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
+                        festivalInfo = `${festivalInfo}<span class="${festivalStyle}">${festival.name}</span>`;
                     }
                 }
             } catch (error) {
@@ -964,71 +949,5 @@ export function getTaskStatusColorClass(status, dueDate) {
     else {
         // 进行中 > 未开始
         return status === 'inprogress' ? 'inprogress' : 'pending';
-    }
-}
-
-// 获取指定日期的节日信息（参考calendar_view.js实现）
-/**
- * 获取指定日期的节日信息 - 统一使用公共节日工具模块
- * @param {string|Date} dateStr 日期字符串或Date对象
- * @returns {Array} 节日数组
- */
-function getFestivalsForDate(dateStr) {
-    // 检查festival_utils是否已加载
-    if (window.lunarUtils && typeof window.lunarUtils.getFestivals === 'function') {
-        try {
-            // 将日期字符串转换为Date对象（如果需要）
-            const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-            return window.lunarUtils.getFestivals(date);
-        } catch (error) {
-            console.warn('调用公共节日工具失败:', error);
-        }
-    } else {
-        // 如果festival_utils未加载，动态加载它
-        console.warn('festival_utils未加载，正在动态加载...');
-        
-        // 创建script标签加载festival_utils.js
-        const script = document.createElement('script');
-        script.src = '/src/client/assets/js/business/common/festival_utils.js';
-        script.onload = function() {
-            console.log('festival_utils加载成功');
-        };
-        script.onerror = function() {
-            console.error('festival_utils加载失败');
-        };
-        document.head.appendChild(script);
-    }
-    
-    // 暂时返回空数组，等待工具加载后会自动使用正确实现
-    return [];
-}
-
-// 从配置文件加载节日信息
-function loadFestivalsFromConfig(dateStr) {
-    if (!dateStr || !window.calendarConfig || !window.calendarConfig.festivals) {
-        return [];
-    }
-    
-    try {
-        const date = new Date(dateStr);
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const key = `${month}-${day}`;
-        
-        const festivals = [];
-        
-        // 检查公历节日
-        if (window.calendarConfig.festivals.gregorian && window.calendarConfig.festivals.gregorian[key]) {
-            const festivalName = window.calendarConfig.festivals.gregorian[key];
-            festivals.push({
-                name: festivalName,
-                type: 'festival-gregorian'
-            });
-        }
-        
-        return festivals;
-    } catch (error) {
-        console.error('从配置加载节日信息失败:', error);
-        return [];
     }
 }
