@@ -559,9 +559,7 @@ async function saveFestivalsToServer() {
     try {
         // 准备要保存的数据，移除ID字段
         const dataToSave = {
-            festivals: window.allFestivals.map(({ id, ...rest }) => rest),
-            holidayTypes: {},
-            holidayStyles: {}
+            festivals: window.allFestivals.map(({ id, ...rest }) => rest)
         };
         
         // 调用服务器API保存数据到festival_config.json配置文件

@@ -37,14 +37,6 @@ router.post('/save', async (req, res) => {
     }
     
     // 确保必要的字段存在
-    if (!configData.holidayTypes || typeof configData.holidayTypes !== 'object') {
-      return res.status(400).json({ success: false, message: 'holidayTypes字段缺失或格式无效' });
-    }
-    
-    if (!configData.holidayStyles || typeof configData.holidayStyles !== 'object') {
-      return res.status(400).json({ success: false, message: 'holidayStyles字段缺失或格式无效' });
-    }
-    
     if (!Array.isArray(configData.festivals)) {
       return res.status(400).json({ success: false, message: 'festivals字段必须是数组' });
     }
