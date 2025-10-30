@@ -289,10 +289,7 @@ router.get('/ip-location-area', async (req, res) => {
         if (cachedAddressData) {
             console.log('使用接口级缓存的位置信息响应');
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            return res.status(200).json({
-                data: cachedAddressData,
-                weatherAreaCodes: areaCodesData,
-            });
+            return res.status(200).json({data: cachedAddressData});
         }
         
         console.log('正在调用接口获取位置信息...');
@@ -324,10 +321,7 @@ router.get('/ip-location-area', async (req, res) => {
         cacheIpLocation(clientIp, addressData);
         
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.status(200).json({
-                data: addressData,
-                weatherAreaCodes: areaCodesData,
-            });
+        res.status(200).json({data: addressData});
     } catch (error) {
         console.error('获取和处理位置信息时发生错误:', error);
         // 异常时直接返回错误信息，由客户端自行处理

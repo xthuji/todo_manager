@@ -1,13 +1,5 @@
 // 天气数据渲染模块
 
-// 常量定义
-const WEATHER_API = {
-    AREA_CODES: '/api/weather-area-codes',
-    IP_API: '/api/ip-location-area',
-    WEATHER_INFO: '/api/weather-info',
-};
-
-
 // 更新天气网站链接
 function updateWeatherLinks(mojiAreaCode, weatherCode) {
     logStep(`更新天气网站链接: mojiAreaCode=${mojiAreaCode}, weatherCode=${weatherCode}`);

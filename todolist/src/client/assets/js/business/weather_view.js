@@ -1,5 +1,13 @@
 // 公共节日工具模块已在HTML中直接引入
 
+
+// 常量定义
+const WEATHER_API = {
+    AREA_CODES: '/api/weather-area-codes',
+    IP_API: '/api/ip-location-area',
+    WEATHER_INFO: '/api/weather-info',
+};
+
 // 日志序号计数器
 let logCounter = 0;
 // 生成带序号的日志函数 - 只输出错误和警告信息
@@ -17,33 +25,20 @@ function updateCurrentDateTime() {
     }
 }
 
-
-// 页面加载完成后执行
-function initWeatherPage() {
-    logStep('页面初始化开始');
-
-    // 更新当前日期和时间
-    updateCurrentDateTime();
-
-    // 添加事件监听
-    window.addEventListeners4Weather();
-
-    // 尝试通过IP定位城市（按照新的流程，这是第一步）
-    logStep('开始IP定位');
-    locateCityByIp();
-}
-
 async function initializeAll() {
     try {
+        // 更新当前日期和时间
+        updateCurrentDateTime();
+
         // 先初始化节日数据
         await window.initFestivals4Weather();
         console.log('节日数据初始化完成');
         // 然后初始化天气页面
-        initWeatherPage();
+        window.WeatherLocationModule.initialize();
     } catch (error) {
         console.error('初始化时出错:', error);
         // 即使节日数据初始化失败，也要继续初始化天气页面
-        initWeatherPage();
+        window.WeatherLocationModule.initialize();
     }
 }
 
