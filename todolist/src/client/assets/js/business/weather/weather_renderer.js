@@ -800,19 +800,13 @@ function updateCalendarWeather(calendarWeather) {
                 if (festivalsForDay && Array.isArray(festivalsForDay) && festivalsForDay.length > 0) {
                     festivalsForDay.forEach(festival => {
                         if (festival && festival.name) {
-                            logStep(`获取节日信息成功: ${festival.name}`);
                             const festivalTag = document.createElement('div');
                             // 使用简化的节日标签样式，确保背景色正确应用
                             let festivalTypeClass = window.lunarUtils.getFestivalTypeClass(festival.type);
                             festivalTag.className = `festival-tag ${festivalTypeClass}`;
 
-                            // 限制节日名称长度，避免显示不全
-                            let displayName = festival.name;
-                            if (displayName.length > 4) {
-                                displayName = displayName.substring(0, 4) + '...';
-                            }
-                            festivalTag.textContent = displayName;
-                            logStep(`为日期 ${formattedCurrentDate} 添加节日 ${displayName}`);
+                            festivalTag.textContent = festival.name;
+                            logStep(`为日期 ${formattedCurrentDate} 添加节日 ${(festival.name)}`);
                             // 将节日标签添加到容器中
                             festivalContainer.appendChild(festivalTag);
                         }
