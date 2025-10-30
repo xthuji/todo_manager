@@ -7,7 +7,7 @@
  */
 
 // 引入公共节日工具模块
-import './common/festival_utils.js';
+import './common/lunar_utils.js';
 
 // 引入节假日管理模块
 import './common/holiday_manager.js';

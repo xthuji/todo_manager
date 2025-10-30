@@ -1644,7 +1644,6 @@ async function initFestivals() {
         window.calendarConfig.festivals = [];
     }
 }
-
 // 注册全局节日数据初始化函数到window对象
 if (!window.WeatherModule) {
     window.WeatherModule = {};

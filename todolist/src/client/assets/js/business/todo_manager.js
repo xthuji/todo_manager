@@ -1,9 +1,6 @@
 // 主逻辑模块 - 导入导出问题已修复
 import { loadTasksFromFile, saveTasksToFile, calculateTaskDisplayStatus } from './todo/task_parser.js';
 import { getHolidayData, holidayDataTimestamp } from './common/holiday_manager.js';
-// 使用全局window.festivalUtils对象处理节日样式，不再直接导入模块
-// import './common/festival_utils.js';
-// 确保不直接导入getFestivalTypeClass，使用window.festivalUtils.getFestivalTypeClass代替
 import { renderCalendar } from './todo/calendar_renderer.js';
 import { renderTaskList, performFiltering, initProjectAndContextFilters, setAllFiltersToDefault } from './todo/task_list_renderer.js';
 

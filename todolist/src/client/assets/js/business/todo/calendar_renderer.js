@@ -12,8 +12,6 @@ import { getHolidayData, getDateType } from '../common/holiday_manager.js';
 import { editTask } from './task_operations.js';
 // 引入lunar_utils.js工具
 import '../common/lunar_utils.js';
-// 引入节日公共工具模块
-import '../common/festival_utils.js';
 
 // 渲染日历
 export async function renderCalendar(date, tasks = []) {

@@ -11,8 +11,6 @@
 import './common/holiday_manager.js';
 // 引入lunar_utils.js工具
 import './common/lunar_utils.js';
-// 引入节日公共工具模块
-import './common/festival_utils.js';
 
 // 全局节日数据
 window.allFestivals = [];
