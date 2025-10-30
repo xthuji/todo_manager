@@ -432,12 +432,7 @@ async function saveTask(e) {
 // 刷新节假日缓存
 async function refreshHolidayCache() {
     try {
-        await fetch('/api/holiday/clear-cache', { method: 'POST' });
-        // 使用holidayManager提供的方法重置数据，而不是直接访问全局变量
-        if (window.holidayManager && typeof window.holidayManager.resetHolidayData === 'function') {
-            window.holidayManager.resetHolidayData();
-        }
-        await getHolidayData();
+        await window.holidayManager.refreshHolidayCache();
         await renderCalendar(currentDate, tasks);
         // 刷新后更新显示
         updateCurrentHolidayCacheDisplay();

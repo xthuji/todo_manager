@@ -163,31 +163,6 @@ function generateCustomFestivals() {
     return festivals;
 }
 
-// === 节日匹配 ===
-function isFestivalDate(date, festival) {
-    if (!date || !festival) return false;
-    const d = parseDate(date);
-    const { dateType, date: fDate } = festival;
-
-    if (dateType === 'solar') {
-        const [m, day] = fDate.split('-').map(Number);
-        return d.getMonth() + 1 === m && d.getDate() === day;
-    }
-
-    if (dateType === 'lunar' && window.Solar) {
-        const lunar = getLunarInfo(d);
-        const [targetM, targetD, leapFlag] = fDate.split('-');
-        const isLeap = leapFlag === 'leap';
-        return (
-            Math.abs(lunar.lunarMonth) === Number(targetM) &&
-            lunar.lunarDay === Number(targetD) &&
-            lunar.isLeapMonth === isLeap
-        );
-    }
-
-    return false;
-}
-
 async function getFestivals(date, limit = 0) {
     await loadHolidayConfig();
     return getFestivalsSync(date, limit);
@@ -214,7 +189,7 @@ function deduplicateAndSortFestivals(festivals) {
         console.error('节日去重和排序失败:', error);
         return festivals || [];
     }
-};
+}
 
 /**
  * 同步版本的节日获取函数
@@ -331,68 +306,6 @@ function getFestivalsSync(date, limit = 0) {
         return festivalsList;
     }
 }
-/**
- * 同步版本的节日获取函数
- * 使用当前已加载的配置数据，不进行异步加载操作
- */
-// function getFestivalsSync(date) {
-//     const d = parseDate(date);
-//     const year = d.getFullYear();
-//     const month = String(d.getMonth() + 1);
-//     const day = String(d.getDate());
-//     const solarKey1 = `solar_${Number(month)}-${Number(day)}`;
-//     const solarKey2 = `solar_${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-//     let dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-//
-//     const result = [];
-//     const lunarInfo = getLunarInfo(d);
-//
-//     // 1. 节气
-//     if (lunarInfo.solarTerm) {
-//         result.push({
-//             name: lunarInfo.solarTerm,
-//             type: 'solar_terms',
-//             date: dateStr,
-//             priority: 100
-//         });
-//     }
-//
-//     // 2. 自定义节日（含公历/农历）
-//     const customMap = generateCustomFestivals();
-//
-//     // 公历节日
-//     if (customMap[solarKey1]) {
-//         result.push({ ...customMap[solarKey1], date: dateStr, priority: 80 });
-//     }
-//     if (customMap[solarKey2] && solarKey2 !== solarKey1) {
-//         result.push({ ...customMap[solarKey2], date: dateStr, priority: 80 });
-//     }
-//
-//     // 农历节日
-//     if (lunarInfo.lunarMonth) {
-//         const lunarM = Math.abs(lunarInfo.lunarMonth);
-//         const lunarD = lunarInfo.lunarDay;
-//         const baseKey = `lunar_${lunarM}-${lunarD}`;
-//         const leapKey = `${baseKey}-leap`;
-//
-//         if (customMap[leapKey] && lunarInfo.isLeapMonth) {
-//             result.push({ ...customMap[leapKey], date: dateStr, priority: 70 });
-//         } else if (customMap[baseKey] && !lunarInfo.isLeapMonth) {
-//             result.push({ ...customMap[baseKey], date: dateStr, priority: 70 });
-//         }
-//     }
-//
-//     // 按优先级排序
-//     return result.sort((a, b) => (b.priority || 0) - (a.priority || 0));
-// }
-
-async function isChineseHoliday(date) {
-    const festivals = await getFestivals(date);
-    return festivals.some(f =>
-        ['chinese_common', 'chinese_traditional'].includes(f.type)
-    );
-}
-
 // === 样式与显示 ===
 function getFestivalStyleClass(type) {
     return holidayConfig.holidayStylesClass[type] || holidayConfig.holidayStylesClass.custom;
@@ -409,90 +322,18 @@ function getFestivalTypeName(type) {
     return names[type] || '未知类型';
 }
 
-function generateDateDisplayHTML(date) {
-    const d = parseDate(date);
-    const day = d.getDate();
-    const lunarText = getLunarDateText(d);
-
-    let html = `<div class="flex flex-col items-center justify-center w-full h-full">
-                <div class="flex items-center justify-center">
-                  <span class="font-bold text-gray-800 text-lg">${day}</span>
-                </div>`;
-
-    if (lunarText) {
-        html += `<div class="text-xs text-gray-500 mt-1">${lunarText}</div>`;
-    }
-
-    html += '</div>';
-
-    // 触发异步节日更新（由外部调用）
-    return html;
-}
-
-// === DOM 更新（仅在需要时调用）===
-async function asyncUpdateFestivalInfo(dateStr = null) {
-    const selector = dateStr
-        ? `[data-date="${dateStr}"]`
-        : '.calendar-day[data-date]';
-    const elements = document.querySelectorAll(selector);
-
-    for (const el of elements) {
-        const ds = dateStr || el.getAttribute('data-date');
-        if (!ds) continue;
-
-        const festivals = await getFestivals(ds);
-        let container = el.querySelector('.festival-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.className = 'festival-container flex flex-wrap justify-center gap-1 mt-1';
-            el.appendChild(container);
-        }
-        container.innerHTML = '';
-
-        festivals.slice(0, 2).forEach(f => {
-            const tag = document.createElement('span');
-            tag.className = getFestivalStyleClass(f.type);
-            tag.textContent = f.name;
-            container.appendChild(tag);
-        });
-    }
-}
-
 // === 对外 API ===
 window.lunarUtils = {
     // 配置管理
-    getHolidayConfig: () => holidayConfig,
-    setHolidayConfig: (config) => { holidayConfig = { ...config }; customFestivalsCache = null; },
-    updateHolidayConfig: (updates) => { holidayConfig = { ...holidayConfig, ...updates }; customFestivalsCache = null; },
     loadHolidayConfig,
-    saveHolidayConfig: async () => {
-        try {
-            const res = await fetch('/api/festival/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(holidayConfig)
-            });
-            const ok = res.ok;
-            if (!ok) console.error('保存失败');
-            return { success: ok };
-        } catch (e) {
-            console.error('保存节日配置出错:', e);
-            return { success: false, message: e.message };
-        }
-    },
 
     // 核心功能
-    getLunarInfo,
     getLunarDateText,
     getFestivals,
     getFestivalsSync, // 添加同步版本的节日获取函数
-    isFestivalDate,
-    isChineseHoliday,
 
     // 显示相关
     getFestivalStyleClass,
     getFestivalTypeClass: getFestivalStyleClass,
     getFestivalTypeName,
-    generateDateDisplayHTML,
-    asyncUpdateFestivalInfo,
 };

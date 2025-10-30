@@ -54,40 +54,18 @@ async function initFestivals() {
 // 加载法定节假日和补班数据
 async function loadHolidayData() {
     try {
-        if (window.holidayManager && typeof window.holidayManager.getHolidayData === 'function') {
-            try {
-                await window.holidayManager.getHolidayData(true);
-                return;
-            } catch (error) {
-                console.warn('使用holidayManager加载节假日数据失败:', error);
-            }
+        try {
+            await window.holidayManager.getHolidayData(true);
+            return;
+        } catch (error) {
+            console.warn('使用holidayManager加载节假日数据失败:', error);
         }
-        
+
         // 初始化空的节假日和补班数据结构
         window.calendarConfig.holidays = {};
         window.calendarConfig.workdays = new Set();
     } catch (error) {
         console.error('加载节假日数据时出错:', error);
-    }
-}
-
-// 检查日期是否是法定节假日
-function isHoliday(date) {
-    try {
-        return window.holidayManager.getDateType(date) === 'holiday';
-    } catch (error) {
-        console.warn('检查节假日失败:', error);
-        return false;
-    }
-}
-
-// 检查日期是否是补班日
-function isWorkday(date) {
-    try {
-        return window.holidayManager.getDateType(date) === 'workday';
-    } catch (error) {
-        console.warn('检查补班日失败:', error);
-        return false;
     }
 }
 
@@ -315,8 +293,8 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
     const isWeekend = dayIndex === 5 || dayIndex === 6;
     
     // 检查是否是法定节假日或补班日
-    const isHolidayDate = isHoliday(date);
-    const isWorkdayDate = isWorkday(date);
+    const isHolidayDate = window.holidayManager.getDateType(date) === 'holiday';
+    const isWorkdayDate = window.holidayManager.getDateType(date) === 'workday';
     
     // 设置日期容器的类
     let dayClasses = ['calendar-day'];
@@ -416,66 +394,15 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
 
 // 农历日期转换 - 使用lunar_utils.js和lunar.js中的方法
 function getLunarDate(year, month, day) {
-    try {
-        // 创建日期对象
-        const date = new Date(year, month - 1, day);
-        
-        // 优先使用lunar_utils.js中的方法
-        try {
-            const lunarDateText = window.lunarUtils.getLunarDateText(date);
-            if (lunarDateText) {
-                return lunarDateText;
-            }
-        } catch (error) {
-            console.warn('使用lunar_utils.js获取农历日期失败:', error);
-        }
+    // 创建日期对象
+    const date = new Date(year, month - 1, day);
 
-        // 其次尝试使用lunar.js的Solar和Lunar对象
-        if (window.Solar && window.Solar.fromYmd && window.Solar.fromDate) {
-            try {
-                let solar;
-                try {
-                    // 尝试直接使用年月日创建
-                    solar = window.Solar.fromYmd(year, month, day);
-                } catch (err) {
-                    // 如果失败，尝试使用Date对象创建
-                    solar = window.Solar.fromDate(date);
-                }
-                
-                if (solar && solar.getLunar) {
-                    const lunar = solar.getLunar();
-                    
-                    if (lunar && lunar.getMonth && lunar.getDay) {
-                        // 获取农历月份和日期
-                        const lunarMonth = Math.abs(lunar.getMonth());
-                        const lunarDay = lunar.getDay();
-                        const isLeapMonth = lunar.getMonth() < 0;
-                        
-                        // 农历月份名称
-                        const lunarMonths = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];
-                        
-                        // 农历日名称
-                        const lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-                                          '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-                                          '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
-                        
-                        // 处理闰月
-                        const monthStr = isLeapMonth ? `闰${lunarMonths[lunarMonth - 1]}` : lunarMonths[lunarMonth - 1];
-                        
-                        // 确保索引在有效范围内
-                        if (lunarMonth >= 1 && lunarMonth <= 12 && lunarDay >= 1 && lunarDay <= 30) {
-                            // 普通日期
-                            return `${monthStr}月${lunarDays[lunarDay - 1]}`;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.warn('使用lunar.js计算农历日期失败:', error);
-            }
+    // 优先使用lunar_utils.js中的方法
+    try {
+        const lunarDateText = window.lunarUtils.getLunarDateText(date);
+        if (lunarDateText) {
+            return lunarDateText;
         }
-        
-        // 如果都失败了，返回空字符串
-        return '';
     } catch (error) {
         console.error('获取农历日期失败:', error);
         return '';

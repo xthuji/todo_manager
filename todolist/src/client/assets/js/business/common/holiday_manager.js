@@ -17,38 +17,12 @@ const HOLIDAY_CACHE_DAYS = 100; // 节假日缓存天数
 
 // 绑定到window对象，以便在HTML页面中直接使用
 window.holidayManager = window.holidayManager || {};
-
-// Getter functions
-function getHolidayDataValue() {
-    return holidayData;
-}
-
-function getHolidayDataForCalendar() {
-    return holidayDataForCalendar;
-}
-
-// Setter functions
-function setHolidayData(data) {
-    holidayData = data;
-}
-
-function setHolidayDataForCalendar(data) {
-    holidayDataForCalendar = data;
-}
-
 function resetHolidayData() {
     holidayData = null;
     holidayDataForCalendar = null;
     holidayDataTimestamp = null;
 }
 
-// 将方法绑定到window.holidayManager
-window.holidayManager.getHolidayDataValue = getHolidayDataValue;
-window.holidayManager.getHolidayDataForCalendar = getHolidayDataForCalendar;
-window.holidayManager.setHolidayData = setHolidayData;
-window.holidayManager.setHolidayDataForCalendar = setHolidayDataForCalendar;
-window.holidayManager.resetHolidayData = resetHolidayData;
-window.holidayManager.getDateType = getDateType;
 
 // 已经通过window.holidayManager暴露的方法
 /**
@@ -169,7 +143,6 @@ function updateHolidayCacheInfo() {
             hour: '2-digit',
             minute: '2-digit'
         });
-        // cacheInfoElement.textContent = `节假日缓存更新于 ${formattedDate}`;
         cacheInfoElement.setHTMLUnsafe(`<i class="fa fa-info-circle text-blue-500 mr-2"></i>节假日缓存更新于 ${formattedDate}`);
     }
 }
@@ -314,9 +287,7 @@ async function refreshHolidayCache(apiUrl = null) {
         }
 
         // 重置数据
-        holidayData = null;
-        holidayDataForCalendar = null;
-        holidayDataTimestamp = null;
+        resetHolidayData();
 
         // 重新获取数据，传入apiUrl参数
         await getHolidayData(apiUrl);
@@ -339,35 +310,13 @@ async function refreshHolidayCache(apiUrl = null) {
     }
 }
 
-
 // 将方法绑定到window.holidayManager
 window.holidayManager.getHolidayData = getHolidayData;
-window.holidayManager.updateHolidayCacheInfo = updateHolidayCacheInfo;
-window.holidayManager.convertHolidayDataToCalendarFormat = convertHolidayDataToCalendarFormat;
 window.holidayManager.getDateType = getDateType;
 window.holidayManager.refreshHolidayCache = refreshHolidayCache;
-window.holidayManager.getHolidayDataValue = getHolidayDataValue;
-window.holidayManager.getHolidayDataForCalendar = getHolidayDataForCalendar;
-// window.holidayManager.getFestivals = getFestivals;
 
-// 添加ES模块导出语句以支持import语法
-// 获取导出的变量需要使用getter
-Object.defineProperty(window, 'holidayData', {
-    get: function() { return holidayData; }
-});
-
-Object.defineProperty(window, 'holidayDataForCalendar', {
-    get: function() { return holidayDataForCalendar; }
-});
-
-Object.defineProperty(window, 'holidayDataTimestamp', {
-    get: function() { return holidayDataTimestamp; }
-});
 // 导出函数
 export { getDateType };
 export { getHolidayData };
-export { getHolidayDataValue };
-export { getHolidayDataForCalendar };
 export { holidayData };
-export { holidayDataForCalendar };
 export { holidayDataTimestamp };

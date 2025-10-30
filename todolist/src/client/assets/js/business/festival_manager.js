@@ -38,8 +38,7 @@ async function initFestivalManager() {
         window.allFestivals = await loadFestivalsFromConfig();
     } catch (error) {
         console.warn('Failed to load festivals from config, using default data:', error);
-        // 如果加载失败，使用默认数据
-        window.allFestivals = loadDefaultFestivals();
+        window.allFestivals = [];
     }
     
     // 初始化筛选和分页
@@ -68,12 +67,6 @@ async function loadFestivalsFromConfig() {
         
         return festivalWithId;
     });
-}
-
-// 加载默认节日数据
-function loadDefaultFestivals() {
-    // 不返回任何硬编码的节日数据
-    return [];
 }
 
 // 渲染节日列表
@@ -626,9 +619,6 @@ function closeDeleteModal() {
     document.getElementById('delete-modal').classList.add('hidden');
 }
 
-// 在模块加载完成后暴露函数到全局作用域
-// 这样可以确保在HTML中调用这些函数时它们已经准备好
-
 // 刷新节假日缓存
 window.refreshHolidayCache = async function() {
     try {
@@ -637,19 +627,8 @@ window.refreshHolidayCache = async function() {
             alert('请输入有效的API地址');
             return;
         }
-        
-        const cacheInfo = document.getElementById('holiday-cache-info');
-        cacheInfo.innerHTML = '<i class="fa fa-spinner fa-spin mr-2 text-blue-500"></i> 正在刷新节假日缓存...';
-        cacheInfo.classList.add('bg-blue-50', 'border-blue-100');
-        
-        // 这里只是模拟API调用，实际实现需要根据后端API调整
-        // 由于没有实际的后端API，我们可以只显示成功消息
-        setTimeout(() => {
-            cacheInfo.innerHTML = '<i class="fa fa-check-circle text-green-500 mr-2"></i> 节假日缓存刷新成功';
-            cacheInfo.classList.remove('bg-blue-50', 'border-blue-100');
-            cacheInfo.classList.add('bg-green-50', 'border-green-100');
-            alert('节假日缓存刷新成功！');
-        }, 1000);
+
+        await window.holidayManager.refreshHolidayCache(apiUrl);
     } catch (error) {
         console.error('刷新节假日缓存失败:', error);
         alert(`刷新失败: ${error.message}`);
