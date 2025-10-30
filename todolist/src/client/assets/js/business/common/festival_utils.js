@@ -7,23 +7,6 @@
 // 全局节日工具对象
 window.festivalUtils = window.festivalUtils || {};
 
-// 节日样式配置常量 - 与页面样式保持一致
-const FESTIVAL_STYLES = {
-  'chinese_common': 'bg-red-500 text-white px-1 rounded text-xs',
-  'chinese_traditional': 'bg-red-400 text-white px-1 rounded text-xs',
-  'solar_terms': 'bg-green-500 text-white px-1 rounded text-xs',
-  'foreign': 'bg-purple-500 text-white px-1 rounded text-xs',
-  'custom': 'bg-blue-500 text-white px-1 rounded text-xs'
-};
-
-// 中文月份名称
-const chineseMonths = ['', '正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月'];
-
-// 中文日期名称
-const chineseDays = ['', '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', 
-                     '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-                     '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
-
 /**
  * 获取指定日期的农历信息和节气
  * @param {Date|String} date 日期对象或日期字符串
@@ -324,7 +307,6 @@ window.festivalUtils.isWeekBasedFestivalDate = function(date, festival) {
       }
       
       // 计算这个月的第几个星期几
-      const dayOfWeek = targetDate.getDay();
       const firstDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
       const firstDayOfWeek = firstDay.getDay();
       

@@ -31,14 +31,14 @@ async function initializeAll() {
         updateCurrentDateTime();
 
         // 先初始化节日数据
-        await window.initFestivals4Weather();
+        window.WeatherModule.initFestivals();
         console.log('节日数据初始化完成');
         // 然后初始化天气页面
-        window.WeatherLocationModule.initialize();
+        window.WeatherModule.initLocation();
     } catch (error) {
         console.error('初始化时出错:', error);
-        // 即使节日数据初始化失败，也要继续初始化天气页面
-        window.WeatherLocationModule.initialize();
+        // 即使节日数据初始化失败，也要继续初始化天气页面地址相关信息
+        window.WeatherModule.initLocation();
     }
 }
 

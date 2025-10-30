@@ -882,8 +882,9 @@
     };
 
     // 暴露唯一的全局入口
-    window.WeatherLocationModule = {
-        initialize: () => LocationController.initialize()
-    };
+    if (!window.WeatherModule) {
+        window.WeatherModule = {};
+    }
+    window.WeatherModule.initLocation = () => LocationController.initialize();
 
 })(window);
