@@ -211,7 +211,7 @@ function testFestival(festival, festivalConfig) {
                     console.warn(`警告: 农历节日 "${festival.name}" 的日期格式不正确: ${festival.date}`);
                     return { ...result, success: false, message: `日期格式错误: ${e.message}` };
                 }
-            } else if (festival.dateType === 'week_based' || festival.dateType === 'week') {
+            } else if (festival.dateType === 'week') {
                 // 基于星期的节日
                 console.warn(`警告: 基于星期的节日 "${festival.name}" 暂未实现测试逻辑`);
                 return { ...result, success: true, message: '跳过基于星期的节日测试' };
@@ -311,7 +311,7 @@ function testFestivalConfig() {
     
     // 检查是否有警告
     const hasWarnings = festivalConfig.festivals.some(f => 
-        f.dateType === 'lunar' || f.dateType === 'week_based'
+        f.dateType === 'lunar' || f.dateType === 'week'
     );
     
     if (hasWarnings) {

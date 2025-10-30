@@ -198,7 +198,7 @@ function getWeatherBgColor(weatherCondition) {
 
 // 更新今天天气面板 - 使用原有区域显示完整天气信息
 function updateTodayWeather(todayWeather) {
-    logStep(`更新今日天气数据: ${JSON.stringify(todayWeather).substring(0, 80)}...`);
+    logStep(`更新今日天气数据...`);
     if (!todayWeather) {
         logStep('错误: todayWeather数据为空');
         return;
@@ -488,7 +488,6 @@ function updateHourlyWeatherSummary(hourlyData) {
         // 应用类名
         if (isCurrentHour) {
             hourElement.className = `${baseClasses} border-2 border-blue-400 bg-blue-50`;
-            console.log(`小时 ${index} 已应用当前时段高亮样式`);
         } else {
             hourElement.className = baseClasses;
         }
@@ -507,7 +506,6 @@ function updateHourlyWeatherSummary(hourlyData) {
                         parent.scrollHeight > parent.clientHeight;
 
                     if (isScrollable) {
-                        console.log('找到可滚动容器:', parent.tagName);
                         // 计算元素相对于容器的位置
                         const rect = hourElement.getBoundingClientRect();
                         const parentRect = parent.getBoundingClientRect();
@@ -684,11 +682,9 @@ function updateCalendarWeather(calendarWeather) {
         if (!formattedDate) return;
 
         const dateObj = new Date(formattedDate);
-        // 获取节日数据（使用同步函数）
-        const festivalsForDay = window.festivalUtils.getFestivalsForDate(dateObj);
 
         // 存储处理后的数据和映射关系
-        const dayData = { ...day, formattedDate: formattedDate, dateObj: dateObj, festivalsForDay: festivalsForDay};
+        const dayData = { ...day, formattedDate: formattedDate, dateObj: dateObj};
         processedWeatherData.push(dayData);
 
         // 存储到映射中 - 使用格式化后的日期作为唯一键
@@ -797,16 +793,17 @@ function updateCalendarWeather(calendarWeather) {
                 // 清空容器
                 festivalContainer.innerHTML = '';
 
-                // 获取节日数据
-                const festivalsForDay = dayData.festivalsForDay;
+                // 获取节日数据（使用同步函数）
+                const festivalsForDay = window.lunarUtils.getFestivalsSync(dayData.dateObj);
 
                 // 添加节日标记
                 if (festivalsForDay && Array.isArray(festivalsForDay) && festivalsForDay.length > 0) {
                     festivalsForDay.forEach(festival => {
                         if (festival && festival.name) {
+                            logStep(`获取节日信息成功: ${festival.name}`);
                             const festivalTag = document.createElement('div');
                             // 使用简化的节日标签样式，确保背景色正确应用
-                            let festivalTypeClass = window.festivalUtils.getFestivalTypeClass(festival.type);
+                            let festivalTypeClass = window.lunarUtils.getFestivalTypeClass(festival.type);
                             festivalTag.className = `festival-tag ${festivalTypeClass}`;
 
                             // 限制节日名称长度，避免显示不全
@@ -948,7 +945,7 @@ function draw24HourChart(hourlyData) {
         }
     }
 
-    logStep(`24小时图表纵坐标区间: ${minY}°C - ${maxY}°C`);
+    logStep(`24小时图表 纵坐标区间: ${minY}°C - ${maxY}°C`);
 
     // 创建图表 - 修改折线图颜色为橙色
     window._weather24HourChart = new Chart(canvas, {
@@ -1159,7 +1156,7 @@ function drawWeatherTrendChart(dailyData) {
         }
     }
 
-    logStep(`固定纵坐标区间: ${minY}°C - ${maxY}°C`);
+    logStep(`气温趋势图 固定纵坐标区间: ${minY}°C - ${maxY}°C`);
 
     // 创建图表
     window._weatherTrendChart = new Chart(canvas, {
@@ -1500,13 +1497,11 @@ window.addEventListener('resize', adjustTableResponsive);
 
 // 更新天气显示
 function updateWeatherDisplay(weatherData) {
-    logStep(`开始更新天气显示: ${JSON.stringify(weatherData).substring(0, 80)}...`);
-
+    logStep(`开始更新天气显示...`);
     if (!weatherData) {
         showWeatherError('获取到的天气数据为空');
         return;
     }
-
     try {
         // 隐藏错误信息
         const errorElement = document.getElementById('weather-error');
@@ -1531,7 +1526,6 @@ function updateWeatherDisplay(weatherData) {
         if (todayWeather) {
             // 深拷贝以避免修改原始数据
             todayData = JSON.parse(JSON.stringify(todayWeather));
-            logStep(`使用todayWeather: ${JSON.stringify(todayData).substring(0, 60)}...`);
         }
 
         // 强制更新今日天气，作为核心数据，如果没有数据则显示错误信息

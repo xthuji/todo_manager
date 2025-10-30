@@ -86,77 +86,6 @@ async function loadHolidayData() {
     }
 }
 
-// 检查日期是否匹配节日
-function isFestivalDate(date, festival) {
-    // 优先使用公共节日工具模块
-    if (window.festivalUtils && typeof window.festivalUtils.isFestivalDate === 'function') {
-        try {
-            return window.festivalUtils.isFestivalDate(date, festival);
-        } catch (error) {
-            console.warn('使用festivalUtils判断节日日期失败:', error);
-        }
-    }
-    
-    if (!date || !festival) {
-        return false;
-    }
-    
-    // 使用lunarUtils中的方法来判断日期是否匹配节日
-    if (window.lunarUtils && typeof window.lunarUtils.isFestivalDate === 'function') {
-        try {
-            return window.lunarUtils.isFestivalDate(date, festival);
-        } catch (error) {
-            console.warn('使用lunarUtils判断节日日期失败:', error);
-        }
-    }
-    
-    // 降级处理：简单的公历节日判断
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    
-    if (festival.dateType === 'solar') {
-        const festivalMonth = parseInt(festival.date.split('-')[0]);
-        const festivalDay = parseInt(festival.date.split('-')[1]);
-        return month === festivalMonth && day === festivalDay;
-    }
-    
-    return false;
-}
-
-// 获取指定日期的所有节日
-/**
- * 获取指定日期的节日信息 - 统一使用公共节日工具模块
- * @param {Date} date 日期对象
- * @returns {Array} 节日数组
- */
-function getFestivalsForDate(date) {
-    // 检查festival_utils是否已加载
-    if (window.festivalUtils && typeof window.festivalUtils.getFestivalsForDate === 'function') {
-        try {
-            return window.festivalUtils.getFestivalsForDate(date);
-        } catch (error) {
-            console.warn('调用公共节日工具失败:', error);
-        }
-    } else {
-        // 如果festival_utils未加载，动态加载它
-        console.warn('festival_utils未加载，正在动态加载...');
-        
-        // 创建script标签加载festival_utils.js
-        const script = document.createElement('script');
-        script.src = '/src/client/assets/js/business/common/festival_utils.js';
-        script.onload = function() {
-            console.log('festival_utils加载成功');
-        };
-        script.onerror = function() {
-            console.error('festival_utils加载失败');
-        };
-        document.head.appendChild(script);
-    }
-    
-    // 暂时返回空数组，等待工具加载后会自动使用正确实现
-    return [];
-}
-
 // 检查日期是否是法定节假日
 function isHoliday(date) {
     try {
@@ -497,15 +426,18 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
         // 清空容器
         festivalContainer.innerHTML = '';
         
-        // 获取节日数据
-        const festivalsForDay = getFestivalsForDate(date);
+        // 使用同步版本的节日获取函数
+        let festivalsForDay = [];
+        if (window.lunarUtils && typeof window.lunarUtils.getFestivalsSync === 'function') {
+            festivalsForDay = window.lunarUtils.getFestivalsSync(date);
+        }
         
         // 添加节日标记，每个节日占一行
         if (festivalsForDay && festivalsForDay.length > 0) {
             festivalsForDay.forEach(festival => {
-                  const festivalTag = document.createElement('div');
-                  // 使用统一的节日标签样式，避免重复定义样式类
-                  festivalTag.className = `festival-tag ${getFestivalTypeClass(festival.type)} w-full text-center`;
+                const festivalTag = document.createElement('div');
+                // 使用统一的节日标签样式，避免重复定义样式类
+                festivalTag.className = `festival-tag ${window.lunarUtils.getFestivalTypeClass(festival.type)} w-full text-center`;
                 festivalTag.textContent = festival.name;
                 festivalContainer.appendChild(festivalTag);
             });
@@ -526,10 +458,10 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
 
 // 获取节日类型样式类 - 统一使用tailwind.config中定义的颜色
 function getFestivalTypeClass(type) {
-    // 优先使用window.festivalUtils提供的实现，确保样式统一
-    if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeClass === 'function') {
+    // 优先使用window.lunarUtils提供的实现，确保样式统一
+    if (window.lunarUtils && typeof window.lunarUtils.getFestivalTypeClass === 'function') {
         try {
-            return window.festivalUtils.getFestivalTypeClass(type);
+            return window.lunarUtils.getFestivalTypeClass(type);
         } catch (error) {
             console.warn('调用festivalUtils.getFestivalTypeClass失败，使用默认实现:', error);
         }

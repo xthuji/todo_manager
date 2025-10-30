@@ -122,9 +122,7 @@ export async function renderCalendar(date, tasks = []) {
                     for (const festival of festivals) {
                         // 获取节日样式
                         let festivalStyle = 'bg-festival-custom'; // 默认样式
-                        if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeClass === 'function') {
-                            festivalStyle = window.festivalUtils.getFestivalTypeClass(festival.type);
-                        } else if (window.lunarUtils && typeof window.lunarUtils.getFestivalStyleClass === 'function') {
+                        if (window.lunarUtils && typeof window.lunarUtils.getFestivalStyleClass === 'function') {
                             festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
                         }
                         
@@ -236,7 +234,7 @@ export async function renderCalendar(date, tasks = []) {
             // 使用lunar_utils.js中的方法获取农历日期
             if (window.lunarUtils && typeof window.lunarUtils.getLunarDateText === 'function') {
                 lunarDate = window.lunarUtils.getLunarDateText(currentDay);
-                console.log('currentDay:', currentDay, 'lunarDate:', lunarDate);
+                // console.log('currentDay:', currentDay, 'lunarDate:', lunarDate);
             }
             
             // 获取节日信息（参考calendar_view.js的实现）
@@ -246,9 +244,7 @@ export async function renderCalendar(date, tasks = []) {
                 for (const festival of festivals) {
                     // 获取节日样式
                     let festivalStyle = 'bg-festival-custom'; // 默认样式
-                    if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeClass === 'function') {
-                        festivalStyle = window.festivalUtils.getFestivalTypeClass(festival.type);
-                    } else if (window.lunarUtils && typeof window.lunarUtils.getFestivalStyleClass === 'function') {
+                    if (window.lunarUtils && typeof window.lunarUtils.getFestivalStyleClass === 'function') {
                         festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
                     }
                     
@@ -979,11 +975,11 @@ export function getTaskStatusColorClass(status, dueDate) {
  */
 function getFestivalsForDate(dateStr) {
     // 检查festival_utils是否已加载
-    if (window.festivalUtils && typeof window.festivalUtils.getFestivalsForDate === 'function') {
+    if (window.lunarUtils && typeof window.lunarUtils.getFestivals === 'function') {
         try {
             // 将日期字符串转换为Date对象（如果需要）
             const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-            return window.festivalUtils.getFestivalsForDate(date);
+            return window.lunarUtils.getFestivals(date);
         } catch (error) {
             console.warn('调用公共节日工具失败:', error);
         }

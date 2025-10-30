@@ -101,9 +101,9 @@ async function initFestivals() {
  */
 function getFestivalsForDate(date) {
     // 检查festival_utils是否已加载
-    if (window.festivalUtils && typeof window.festivalUtils.getFestivalsForDate === 'function') {
+    if (window.lunarUtils && typeof window.lunarUtils.getFestivals === 'function') {
         try {
-            return window.festivalUtils.getFestivalsForDate(date);
+            return window.lunarUtils.getFestivals(date);
         } catch (error) {
             console.warn('调用公共节日工具失败:', error);
         }

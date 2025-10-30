@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>天气预报</title>
-    <script src="/assets/js/third_party/tailwindcss.js"></script>
     <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
+    <script src="/assets/js/third_party/tailwindcss.js"></script>
     <!-- 引入Chart.js用于绘制图表 -->
     <script src="/assets/js/third_party/chart.js"></script>
+    <!-- 引入农历和节日基础库 -->
+    <script src="/assets/js/third_party/lunar.js"></script>
     <!-- 先引入公共节日工具模块 -->
-    <script type="module" src="/src/client/assets/js/business/common/lunar_utils.js"></script>
+    <script src="/assets/js/business/common/lunar_utils.js"></script>
     <!-- 引入天气业务逻辑 -->
     <script src="/assets/js/business/weather/location_handler.js"></script>
     <script src="/assets/js/business/weather/weather_renderer.js"></script>

@@ -282,10 +282,10 @@ function initFilterAndPagination(festivals) {
 function getFestivalTypeClass(type) {
     try {
         // 优先使用公共节日工具模块
-        if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeClass === 'function') {
+        if (window.lunarUtils && typeof window.lunarUtils.getFestivalTypeClass === 'function') {
             // 如果公共模块支持区分常用节日和传统节日，则直接使用
-            if (type === 'chinese_common' && window.festivalUtils.getFestivalTypeClass('chinese_common') !== window.festivalUtils.getFestivalTypeClass('chinese_traditional')) {
-                return window.festivalUtils.getFestivalTypeClass(type);
+            if (type === 'chinese_common' && window.lunarUtils.getFestivalTypeClass('chinese_common') !== window.lunarUtils.getFestivalTypeClass('chinese_traditional')) {
+                return window.lunarUtils.getFestivalTypeClass(type);
             }
         }
         
@@ -314,8 +314,8 @@ function getFestivalTypeClass(type) {
 function getFestivalTypeName(type) {
     try {
         // 优先使用公共节日工具模块
-        if (window.festivalUtils && typeof window.festivalUtils.getFestivalTypeName === 'function') {
-            return window.festivalUtils.getFestivalTypeName(type);
+        if (window.lunarUtils && typeof window.lunarUtils.getFestivalTypeName === 'function') {
+            return window.lunarUtils.getFestivalTypeName(type);
         }
         
         // 兼容模式：如果festivalUtils不可用，使用原始实现
