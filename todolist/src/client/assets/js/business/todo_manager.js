@@ -582,8 +582,8 @@ export function showNotification(message, duration = 3000, preventReload = false
 
 // 关闭服务器函数
 function shutdownServer() {
-    // 显示HTML定义的关闭服务模态框
     showShutdownModal();
+    performServerShutdown();
 }
 
 // 实际执行关闭服务器的函数

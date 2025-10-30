@@ -947,38 +947,20 @@ function draw24HourChart(hourlyData) {
         data: {
             labels: labels,
             datasets: [{
-                label: '温度 (°C)',
-                data: temperatures,
-                borderColor: '#FFA500',
-                backgroundColor: 'rgba(255, 165, 0, 0.1)',
-                tension: 0.3,
-                fill: true,
-                pointRadius: 4,
-                pointBackgroundColor: '#FFA500'
+                label: '温度 (°C)', data: temperatures,
+                borderColor: '#FFA500', backgroundColor: 'rgba(255, 165, 0, 0.1)',
+                tension: 0.3, fill: true, pointRadius: 4, pointBackgroundColor: '#FFA500'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    beginAtZero: false,
-                    min: minY,
-                    max: maxY,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
+                y: {beginAtZero: false, min: minY, max: maxY, grid: {color: 'rgba(0, 0, 0, 0.05)'}},
+                x: {grid: {display: false}}
             },
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: {display: false},
                 tooltip: {
                     callbacks: {
                         title: function(tooltipItems) {
@@ -1159,71 +1141,39 @@ function drawWeatherTrendChart(dailyData) {
             labels: labels,
             datasets: [
                 {
-                    label: '实况高温',
-                    data: actualMaxTemps,
-                    borderColor: '#FFA502',
+                    label: '实况高温', data: actualMaxTemps, borderColor: '#FFA502',
                     backgroundColor: 'rgba(255, 71, 87, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    fill: false,
-                    pointRadius: 5,
+                    borderWidth: 3, tension: 0.3, fill: false, pointRadius: 5,
                     pointBackgroundColor: '#FFA502'
                 },
                 {
-                    label: '实况低温',
-                    data: actualMinTemps,
-                    borderColor: '#4AD5F0',
+                    label: '实况低温', data: actualMinTemps, borderColor: '#4AD5F0',
                     backgroundColor: 'rgba(30, 144, 255, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    fill: false,
-                    pointRadius: 5,
+                    borderWidth: 3, tension: 0.3, fill: false, pointRadius: 5,
                     pointBackgroundColor: '#4AD5F0'
                 },
                 {
-                    label: '预报高温',
-                    data: forecastMaxTemps,
-                    borderColor: '#FD5123', // 橙色，更容易与其他颜色区分
+                    label: '预报高温', data: forecastMaxTemps, borderColor: '#FD5123', // 橙色，更容易与其他颜色区分
                     backgroundColor: 'rgba(255, 159, 67, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: false,
-                    pointRadius: 4,
+                    borderWidth: 2, tension: 0.3, fill: false, pointRadius: 4,
                     pointBackgroundColor: '#FD5123'
                 },
                 {
-                    label: '预报低温',
-                    data: forecastMinTemps,
-                    borderColor: '#38AFD1', // 青绿色，更容易与其他颜色区分
+                    label: '预报低温', data: forecastMinTemps, borderColor: '#38AFD1', // 青绿色，更容易与其他颜色区分
                     backgroundColor: 'rgba(22, 160, 133, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: false,
-                    pointRadius: 4,
+                    borderWidth: 2, tension: 0.3, fill: false, pointRadius: 4,
                     pointBackgroundColor: '#38AFD1'
                 },
                 {
-                    label: '历史高温',
-                    data: historicalMaxTemps,
-                    borderColor: '#FCA087', // 紫色，更容易与其他颜色区分
+                    label: '历史高温', data: historicalMaxTemps, borderColor: '#FCA087', // 紫色，更容易与其他颜色区分
                     backgroundColor: 'rgba(142, 68, 173, 0.1)',
-                    borderWidth: 2,
-                    borderDash: [5, 5], // 虚线
-                    tension: 0.3,
-                    fill: false,
-                    pointRadius: 3,
+                    borderWidth: 2, borderDash: [5, 5], /* 虚线 */ tension: 0.3, fill: false, pointRadius: 3,
                     pointBackgroundColor: '#FCA087'
                 },
                 {
-                    label: '历史低温',
-                    data: historicalMinTemps,
-                    borderColor: '#7DD0E9', // 深蓝色，更容易与其他颜色区分
+                    label: '历史低温', data: historicalMinTemps, borderColor: '#7DD0E9', // 深蓝色，更容易与其他颜色区分
                     backgroundColor: 'rgba(46, 134, 193, 0.1)',
-                    borderWidth: 2,
-                    borderDash: [5, 5], // 虚线
-                    tension: 0.3,
-                    fill: false,
-                    pointRadius: 3,
+                    borderWidth: 2, borderDash: [5, 5], /* 虚线 */ tension: 0.3, fill: false, pointRadius: 3,
                     pointBackgroundColor: '#7DD0E9'
                 }
             ]
@@ -1235,31 +1185,13 @@ function drawWeatherTrendChart(dailyData) {
                 tooltip: {
                     mode: 'index',
                     intersect: false,
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.dataset.label}: ${context.parsed.y || '--'}°C`;
-                        }
-                    }
+                    callbacks: {label: function(context) {return `${context.dataset.label}: ${context.parsed.y || '--'}°C`;}}
                 },
-                legend: {
-                    labels: {
-                        usePointStyle: true,
-                        pointStyle: 'line' // 使用横线代替方块作为图例标记
-                    }
-                }
+                legend: {labels: {usePointStyle: true, pointStyle: 'line'}}
             },
             scales: {
-                y: {
-                    beginAtZero: false,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
+                y: {beginAtZero: false, grid: {color: 'rgba(0, 0, 0, 0.05)'}},
+                x: {grid: {display: false}}
             }
         }
     });
