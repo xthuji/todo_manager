@@ -269,9 +269,6 @@ function addEventListeners() {
         performFiltering(); // 使用performFiltering确保应用筛选条件
     });
     
-    // 刷新节假日缓存按钮
-    document.getElementById('btn-refresh-holiday')?.addEventListener('click', refreshHolidayCache);
-    
     // 加载文件按钮
     document.getElementById('btn-load-file')?.addEventListener('click', async () => {
         const fileDropdown = document.getElementById('todo-file-select');
@@ -427,18 +424,6 @@ async function saveTask(e) {
         taskList.innerHTML = '';
     }
     await renderTaskList(tasks);
-}
-
-// 刷新节假日缓存
-async function refreshHolidayCache() {
-    try {
-        await window.holidayManager.refreshHolidayCache();
-        await renderCalendar(currentDate, tasks);
-        // 刷新后更新显示
-        updateCurrentHolidayCacheDisplay();
-    } catch (error) {
-        console.error('刷新节假日缓存失败:', error);
-    }
 }
 
 // 切换详情面板显示/隐藏
