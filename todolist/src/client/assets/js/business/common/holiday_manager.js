@@ -121,7 +121,7 @@ function updateHolidayCacheInfo() {
             }
             
             // 显示过期提示
-            cacheInfoElement.setHTMLUnsafe(`<i class="fa fa-exclamation-triangle text-yellow-500 mr-2"></i>节假日缓存已过期 ${expiredInfo}，建议 <button class="text-blue-600 hover:underline text-sm" onclick="window.holidayManager.refreshHolidayCache()">手动刷新</button>`);
+            cacheInfoElement.setHTMLUnsafe(`<i class="fa fa-exclamation-triangle text-yellow-500 mr-2"></i>节假日缓存已过期 ${expiredInfo}，建议手动刷新`);
         } else {
             // 显示正常缓存信息
             cacheInfoElement.setHTMLUnsafe(`<i class="fa fa-info-circle text-blue-500 mr-2"></i>节假日缓存更新于 ${formattedDate}`);
