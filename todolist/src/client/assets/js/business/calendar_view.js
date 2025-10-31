@@ -294,7 +294,7 @@ import './common/lunar_utils.js';
 
         /**
          * [重构] 纯逻辑函数：构建日历网格
-         * @returns {Array<Array<object>>} 6x7 的 2D 数组，包含 { date, isCurrentMonth }
+         * @returns {Array<Array<object>>} 2D 数组，包含 { date, isCurrentMonth }
          */
         _buildMonthGrid: function(year, month) {
             const firstDayOfMonth = new Date(year, month, 1);
@@ -303,10 +303,12 @@ import './common/lunar_utils.js';
             const firstDayOfWeek = firstDayOfMonth.getDay(); // 0=周日, 1=周一
             const daysInMonth = lastDayOfMonth.getDate();
 
-            const calendarData = Array(6).fill().map(() => Array(7).fill(null));
-
             // 计算上月天数
             let daysFromPrevMonth = (firstDayOfWeek === 0) ? 6 : (firstDayOfWeek - 1); // 0=周一 ... 6=周日
+            
+            // 计算需要的周数（最多6周）
+            const weeksNeeded = Math.ceil((daysFromPrevMonth + daysInMonth) / 7);
+            const calendarData = Array(weeksNeeded).fill().map(() => Array(7).fill(null));
             const lastDayOfPrevMonth = new Date(year, month, 0).getDate();
 
             // 填充上月
@@ -326,8 +328,7 @@ import './common/lunar_utils.js';
                     currentDay = 0;
                     currentWeek++;
                 }
-                // 确保不超出 6 周
-                if (currentWeek < 6) {
+                if (currentWeek < weeksNeeded) {
                     calendarData[currentWeek][currentDay] = {
                         date: new Date(year, month, day),
                         isCurrentMonth: true
@@ -336,25 +337,18 @@ import './common/lunar_utils.js';
                 currentDay++;
             }
 
-            // 填充下月
+            // 填充下月 - 只填充完成当前月最后一周所需的天数
             let nextMonthDay = 1;
-            while (currentWeek < 6) {
-                while (currentDay < 7) {
-                    // 确保不超出 6 周
-                    if (currentWeek < 6) {
-                        calendarData[currentWeek][currentDay] = {
-                            date: new Date(year, month + 1, nextMonthDay),
-                            isCurrentMonth: false
-                        };
-                        nextMonthDay++;
-                    }
-                    currentDay++;
-                }
-                currentDay = 0;
-                currentWeek++;
+            while (currentDay < 7 && currentWeek < weeksNeeded) {
+                calendarData[currentWeek][currentDay] = {
+                    date: new Date(year, month + 1, nextMonthDay),
+                    isCurrentMonth: false
+                };
+                nextMonthDay++;
+                currentDay++;
             }
 
-            // [优化] 只返回包含数据的行
+            // 返回包含数据的行
             return calendarData.filter(week => week.some(day => day !== null));
         },
 
