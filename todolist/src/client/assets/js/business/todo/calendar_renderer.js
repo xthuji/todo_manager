@@ -142,8 +142,8 @@ export async function renderCalendar(date, tasks = []) {
                         // 获取节日样式
                         let festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
 
-                        // 添加festival-tag类确保一致的样式
-                        festivalInfo = `${festivalInfo}<span class="${festivalStyle} festival-tag">${festival.name}</span>`;
+                        // 添加统一的节日标签样式，包含festival-tag类和通用样式
+                        festivalInfo = `${festivalInfo}<span class="${festivalStyle} festival-tag text-xs px-1 py-0.5 rounded text-white whitespace-nowrap">${festival.name}</span>`;
                     }
                 }
             } catch (error) {
@@ -906,8 +906,10 @@ export async function renderCalendar(date, tasks = []) {
                     // 显示全部节日
                     for (const festival of festivals) {
                         // 获取节日样式
-                        const festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
-                        festivalInfo = `${festivalInfo}<span class="${festivalStyle}">${festival.name}</span>`;
+                        let festivalStyle = window.lunarUtils.getFestivalStyleClass(festival.type);
+
+                        // 添加统一的节日标签样式，包含festival-tag类和通用样式
+                        festivalInfo = `${festivalInfo}<span class="${festivalStyle} festival-tag text-xs px-1 py-0.5 rounded text-white whitespace-nowrap">${festival.name}</span>`;
                     }
                 }
             } catch (error) {
