@@ -13,6 +13,9 @@ import { editTask } from './task_operations.js';
 // 引入lunar_utils.js工具
 import '../common/lunar_utils.js';
 
+// 模块级别的节假日数据缓存，避免重复请求
+let cachedHolidayData = null;
+
 // 设置非本月日期的文字颜色
 function setNotCurrMonthDateNumberTextColor(day, dateNumberElement) {
     try {
@@ -33,9 +36,12 @@ function setNotCurrMonthDateNumberTextColor(day, dateNumberElement) {
 
 // 渲染日历
 export async function renderCalendar(date, tasks = []) {
-    console.log('renderCalendar:', date);
-    // 确保节假日数据已加载
-    const holidayData = await getHolidayData();
+    // console.log('renderCalendar:', date);
+    // 只在第一次调用时获取节假日数据，后续调用复用缓存
+    if (!cachedHolidayData) {
+        cachedHolidayData = await getHolidayData();
+        console.log('节假日数据已加载');
+    }
     
     const year = date.getFullYear();
     const month = date.getMonth();
