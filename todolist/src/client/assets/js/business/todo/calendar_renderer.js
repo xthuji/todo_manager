@@ -262,11 +262,13 @@ const dayCellRenderer = {
 
       if (isCurrentMonth) {
           dayElement.classList.add(dateTypeHandler.getBackgroundColor(dateInfo.displayType));
-          if (dateInfo.isToday) {
-              dayElement.classList.add('calendar-day-today', 'bg-blue-100');
-          }
       } else {
           dayElement.classList.add('bg-calendar-other_month');
+      }
+      
+      // 无论是否为当月，只要是今天都添加高亮样式
+      if (dateInfo.isToday) {
+          dayElement.classList.add('calendar-day-today', 'bg-blue-100');
       }
 
       // 渲染日期头部
@@ -279,14 +281,12 @@ const dayCellRenderer = {
       const dateNumberElement = document.createElement('span');
       dateNumberElement.textContent = date.getDate();
 
-      if (!isCurrentMonth) {
-          dateNumberElement.style.color = dateTypeHandler.getTextColor(dateInfo.dateType, dateInfo.isWeekend);
-      } else {
-          dateNumberElement.style.color = dateTypeHandler.getTextColor(dateInfo.dateType, dateInfo.isWeekend);
-          if (dateInfo.isToday) {
-              dateNumberElement.classList.add('w-6', 'h-6', 'flex', 'items-center', 'justify-center',
-                  'border-2', 'border-blue-500', 'rounded-full', 'text-xs', 'font-bold');
-          }
+      dateNumberElement.style.color = dateTypeHandler.getTextColor(dateInfo.dateType, dateInfo.isWeekend);
+      
+      // 无论是否为当月，只要是今天都添加高亮圆圈边框
+      if (dateInfo.isToday) {
+          dateNumberElement.classList.add('w-6', 'h-6', 'flex', 'items-center', 'justify-center',
+              'border-2', 'border-blue-500', 'rounded-full', 'text-xs', 'font-bold');
       }
 
       const leftContainer = document.createElement('div');
