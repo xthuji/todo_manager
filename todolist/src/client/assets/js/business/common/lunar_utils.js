@@ -224,6 +224,72 @@ function deduplicateAndSortFestivals(festivals) {
 }
 
 /**
+ * 检查日期是否匹配基于星期的节日配置
+ * 完全独立实现，不依赖lunar.js
+ * @param {Date} date - 要检查的日期
+ * @param {Object} festival - 节日配置对象
+ * @returns {boolean} 是否匹配
+ */
+function isMatchingWeekBasedFestival(date, festival) {
+    if (!festival || !festival.date || festival.dateType !== 'week') {
+        return false;
+    }
+    
+    try {
+        // 解析日期格式 "月-第几个星期-星期几"
+        const [monthStr, weekNumStr, dayOfWeekStr] = festival.date.split('-');
+        
+        if (!monthStr || !weekNumStr || !dayOfWeekStr) {
+            return false;
+        }
+        
+        const month = parseInt(monthStr, 10);
+        const weekNum = parseInt(weekNumStr, 10);
+        const dayOfWeek = parseInt(dayOfWeekStr, 10);
+        
+        if (isNaN(month) || isNaN(weekNum) || isNaN(dayOfWeek)) {
+            return false;
+        }
+        
+        // 检查月份是否匹配
+        if (date.getMonth() + 1 !== month) {
+            return false;
+        }
+        
+        // 获取当前日期的星期几
+        const currentWeek = date.getDay();
+        
+        // 检查星期几是否匹配
+        if (currentWeek !== dayOfWeek) {
+            return false;
+        }
+        
+        // 获取年份和日期
+        const year = date.getFullYear();
+        const currentDay = date.getDate();
+        
+        // 计算当前日期在当月的第几周
+        const weeks = Math.ceil(currentDay / 7);
+        
+        // 获取当月的总天数
+        const daysInMonth = new Date(year, month, 0).getDate();
+        
+        // 处理最后一个星期几（weekNum为0）的特殊情况
+        if (weekNum === 0) {
+            // 检查是否是当月最后一个该星期几
+            // 如果当前日期加7天超过当月天数，则为最后一个该星期几
+            return currentDay + 7 > daysInMonth;
+        } else {
+            // 常规情况：检查是否为第N个特定星期几
+            return weeks === weekNum;
+        }
+    } catch (error) {
+        console.warn(`处理星期类型节日时出错: ${error.message}`);
+        return false;
+    }
+}
+
+/**
  * 同步版本的节日获取函数
  * 使用当前已加载的配置数据，不进行异步加载操作
  */
@@ -244,9 +310,7 @@ function getFestivalsSync(date, limit = 0) {
     // 初始化节日结果数组
     const festivals = [];
 
-    // 1. 优先从配置文件中获取节日信息（避免获取法定节假日信息）
-
-    // 2. 使用lunar.js获取农历信息和节气
+    // 1. 使用lunar.js获取农历信息和节气
     if (window.Solar) {
         try {
             const solar = window.Solar.fromDate(targetDate);
@@ -314,7 +378,7 @@ function getFestivalsSync(date, limit = 0) {
         }
     }
 
-    // 3. 添加自定义节日
+    // 2. 添加自定义节日 - 农历/阳历类型
     try {
         const customFestivals = generateCustomFestivals();
         if (customFestivals && customFestivals[dateStr]) {
@@ -328,6 +392,21 @@ function getFestivalsSync(date, limit = 0) {
         }
     } catch (error) {
         console.warn('获取自定义节日失败:', error);
+    }
+
+    // 3. 添加自定义节日 - 星期类型
+    // 注意：星期类型节日不适合在generateCustomFestivals中预处理，因为它们依赖于具体日期计算
+    if (window.calendarConfig && window.calendarConfig.festivals) {
+        window.calendarConfig.festivals
+            .filter(f => f && f.dateType === 'week' && isMatchingWeekBasedFestival(targetDate, f))
+            .forEach(festival => {
+                festivals.push({
+                    name: festival.name,
+                    type: festival.type || 'custom',
+                    date: dateStr,
+                    priority: festival.priority || 70
+                });
+            });
     }
 
     // 去重和按优先级排序

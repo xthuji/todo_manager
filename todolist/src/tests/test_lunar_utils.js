@@ -16,7 +16,8 @@ global.window = {
             { name: '劳动节', date: '5-1', dateType: 'solar', type: 'chinese_common' },
             { name: '国庆节', date: '10-1', dateType: 'solar', type: 'chinese_common' },
             { name: '圣诞节', date: '12-25', dateType: 'solar', type: 'foreign' },
-            { name: '520', date: '5-20', dateType: 'solar', type: 'custom' }
+            { name: '520', date: '5-20', dateType: 'solar', type: 'custom' },
+            { name: '阳历星期B', date: '9-3-5', dateType: 'week', type: 'custom' }
         ],
         holidays: {},
         workdays: new Set()
@@ -52,9 +53,29 @@ const lunarUtils = {
         };
     },
     
+    // 计算给定月份中的第N个特定星期几的日期
+    _getNthWeekdayOfMonth(year, month, weekNum, dayOfWeek) {
+        // 创建月份的第一天
+        const firstDay = new Date(year, month - 1, 1);
+        // 获取第一天是星期几
+        const firstDayOfWeek = firstDay.getDay();
+        
+        // 计算第一个目标星期几的日期
+        let daysToAdd = dayOfWeek - firstDayOfWeek;
+        if (daysToAdd < 0) {
+            daysToAdd += 7;
+        }
+        
+        // 计算第N个目标星期几的日期
+        const targetDate = new Date(year, month - 1, 1 + daysToAdd + (weekNum - 1) * 7);
+        
+        return targetDate;
+    },
+    
     // 获取节日信息（同步版本）
     getFestivalsSync(dateStr) {
         const date = new Date(dateStr);
+        const year = date.getFullYear();
         const month = date.getMonth() + 1;
         const day = date.getDate();
         const festivals = [];
@@ -72,6 +93,34 @@ const lunarUtils = {
                         date: dateStr,
                         priority: festival.priority || 10
                     });
+                });
+            
+            // 处理基于星期的节日
+            window.calendarConfig.festivals
+                .filter(f => f && f.dateType === 'week')
+                .forEach(festival => {
+                    try {
+                        const [monthStr, weekNumStr, dayOfWeekStr] = festival.date.split('-');
+                        if (monthStr && weekNumStr && dayOfWeekStr) {
+                            const targetMonth = parseInt(monthStr, 10);
+                            const weekNum = parseInt(weekNumStr, 10);
+                            const dayOfWeek = parseInt(dayOfWeekStr, 10);
+                            
+                            if (!isNaN(targetMonth) && !isNaN(weekNum) && !isNaN(dayOfWeek) && targetMonth === month) {
+                                const targetDate = this._getNthWeekdayOfMonth(year, month, weekNum, dayOfWeek);
+                                if (targetDate.getDate() === day) {
+                                    festivals.push({
+                                        name: festival.name,
+                                        type: festival.type || 'custom',
+                                        date: dateStr,
+                                        priority: festival.priority || 70
+                                    });
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`处理星期类型节日时出错: ${e.message}`);
+                    }
                 });
         }
         
@@ -253,6 +302,28 @@ const runTests = async () => {
             passedTests++;
         } else {
             throw new Error('节日类型名称获取失败');
+        }
+    } catch (error) {
+        console.error(`  ❌ 失败: ${error.message}`);
+    }
+    
+    // 测试7: 获取基于星期的节日信息（阳历星期B - 9月第3个星期五）
+    totalTests++;
+    try {
+        console.log('\n测试7: 获取基于星期的节日信息（阳历星期B - 9月第3个星期五）');
+        // 2024年9月第3个星期五是9月20日
+        const festivals = lunarUtils.getFestivalsSync('2024-09-20');
+        
+        // 查找是否包含"阳历星期B"节日
+        const weekFestival = festivals.find(f => f.name === '阳历星期B');
+        
+        if (weekFestival && weekFestival.type === 'custom') {
+            console.log(`  ✅ 通过: 成功获取基于星期的节日信息: ${weekFestival.name}`);
+            console.log(`  ✅ 通过: 节日类型正确: ${weekFestival.type}`);
+            passedTests++;
+        } else {
+            console.log('  节日列表:', festivals.map(f => f.name).join(', '));
+            throw new Error('基于星期的节日信息获取失败');
         }
     } catch (error) {
         console.error(`  ❌ 失败: ${error.message}`);
