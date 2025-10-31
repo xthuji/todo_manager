@@ -9,7 +9,7 @@
  * - loadWeatherData(code, mojiCode)
  */
 
-import {logStep} from "../common/log.js";
+import {logStep} from "../common/base.js";
 import {loadWeatherData} from "./weather_renderer.js";
 
 // 常量定义

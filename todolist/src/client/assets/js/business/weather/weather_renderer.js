@@ -12,7 +12,7 @@
 
 import "../common/holiday_manager.js";
 import "../common/lunar_utils.js";
-import {logStep} from "../common/log.js";
+import {logStep} from "../common/base.js";
 
 // 确保 WeatherModule 命名空间存在
 if (typeof window.WeatherModule === 'undefined') {
