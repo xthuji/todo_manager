@@ -80,9 +80,25 @@ async function initCalendar() {
         }
 
         // 2. 初始化月份导航按钮
-        document.getElementById('prev-month').addEventListener('click', goToPrevMonth);
-        document.getElementById('next-month').addEventListener('click', goToNextMonth);
-        document.getElementById('btn-today').addEventListener('click', goToToday);
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const todayBtn = document.getElementById('btn-today');
+        
+        // 检查按钮是否存在
+        if (!prevMonthBtn || !nextMonthBtn || !todayBtn) {
+            console.error('日历导航按钮不存在');
+            return;
+        }
+        
+        // 先移除旧的事件监听器
+        prevMonthBtn.onclick = null;
+        nextMonthBtn.onclick = null;
+        todayBtn.onclick = null;
+        
+        // 直接设置onclick属性，确保事件处理的一致性和可靠性
+        prevMonthBtn.onclick = goToPrevMonth;
+        nextMonthBtn.onclick = goToNextMonth;
+        todayBtn.onclick = goToToday;
         
         // 3. 初始化年份选择器
         const yearSelector = document.getElementById('year-selector');
@@ -121,38 +137,117 @@ async function initCalendar() {
     }
 }
 
-// 切换到上个月
-function goToPrevMonth() {
-    window.calendarConfig.currentMonth--;
-    if (window.calendarConfig.currentMonth < 0) {
-        window.calendarConfig.currentMonth = 11;
-        window.calendarConfig.currentYear--;
+// 通用的月份切换函数 - 抽象公共逻辑，支持向前和向后翻页
+function changeMonth(direction, buttonId) {
+    // 立即禁用按钮，防止重复点击
+    const button = document.getElementById(buttonId);
+    if (button) {
+        button.disabled = true;
     }
-    renderCalendar();
+    
+    // 获取当前状态
+    const currentYear = window.calendarConfig.currentYear;
+    const currentMonth = window.calendarConfig.currentMonth;
+    
+    console.log(`切换${direction === -1 ? '到上个月' : '到下个月'}前:`, currentYear, currentMonth);
+    
+    try {
+        // 直接计算新的月份和年份，避免依赖当前配置
+        let newMonth = currentMonth + direction;
+        let newYear = currentYear;
+        
+        // 处理月份边界情况
+        if (newMonth < 0) {
+            newMonth = 11;
+            newYear--;
+        } else if (newMonth > 11) {
+            newMonth = 0;
+            newYear++;
+        }
+        
+        // 立即更新全局配置
+        window.calendarConfig.currentYear = newYear;
+        window.calendarConfig.currentMonth = newMonth;
+        
+        console.log('计算并更新后的新月份:', newYear, newMonth);
+        
+        // 获取选择器并强制更新，不依赖之前的值
+        const yearSelector = document.getElementById('year-selector');
+        const monthSelector = document.getElementById('month-selector');
+        
+        if (yearSelector) {
+            // 确保选项存在，如果不存在则添加
+            if (!yearSelector.querySelector(`option[value="${newYear}"]`)) {
+                const option = document.createElement('option');
+                option.value = newYear;
+                option.textContent = `${newYear}年`;
+                yearSelector.appendChild(option);
+            }
+            yearSelector.value = newYear;
+        }
+        
+        if (monthSelector) {
+            monthSelector.value = newMonth;
+        }
+        
+        // 强制重新渲染日历
+        console.log('强制重新渲染日历...');
+        
+        // 确保在下一个渲染周期执行，避免UI阻塞
+        setTimeout(() => {
+            renderCalendar();
+            
+            // 渲染完成后重新启用按钮
+            if (button) {
+                button.disabled = false;
+            }
+        }, 0);
+    } catch (error) {
+        console.error(`切换${direction === -1 ? '到上个月' : '到下个月'}时出错:`, error);
+        // 出错时也需要重新启用按钮
+        if (button) {
+            button.disabled = false;
+        }
+    }
 }
 
-// 切换到下个月
+// 切换到上个月 - 调用通用函数
+function goToPrevMonth() {
+    changeMonth(-1, 'prev-month');
+}
+
+// 切换到下个月 - 调用通用函数
 function goToNextMonth() {
-    window.calendarConfig.currentMonth++;
-    if (window.calendarConfig.currentMonth > 11) {
-        window.calendarConfig.currentMonth = 0;
-        window.calendarConfig.currentYear++;
-    }
-    renderCalendar();
+    changeMonth(1, 'next-month');
 }
 
 // 切换到今天
 function goToToday() {
+    // 添加调试日志
+    console.log('切换到今天前:', window.calendarConfig.currentYear, window.calendarConfig.currentMonth);
+    
     const today = new Date();
     window.calendarConfig.currentYear = today.getFullYear();
     window.calendarConfig.currentMonth = today.getMonth();
     window.calendarConfig.currentDay = today.getDate();
+    
+    // 立即更新选择器，确保状态同步
+    const yearSelector = document.getElementById('year-selector');
+    const monthSelector = document.getElementById('month-selector');
+    if (yearSelector && monthSelector) {
+        yearSelector.value = window.calendarConfig.currentYear;
+        monthSelector.value = window.calendarConfig.currentMonth;
+    }
+    
+    console.log('切换到今天后:', window.calendarConfig.currentYear, window.calendarConfig.currentMonth);
     renderCalendar();
 }
 
 // 渲染日历
 function renderCalendar() {
     try {
+        console.log('开始渲染日历:', window.calendarConfig.currentYear, window.calendarConfig.currentMonth);
+        
         // 缓存DOM引用以提高性能
         const calendarGrid = document.getElementById('calendar-grid');
         
@@ -161,10 +256,11 @@ function renderCalendar() {
             return;
         }
         
-        // 更新选择器
+        // 确保选择器值与配置同步（这是关键步骤）
         const yearSelector = document.getElementById('year-selector');
         const monthSelector = document.getElementById('month-selector');
         if (yearSelector && monthSelector) {
+            // 强制设置选择器的值，确保状态完全同步
             yearSelector.value = window.calendarConfig.currentYear;
             monthSelector.value = window.calendarConfig.currentMonth;
         }

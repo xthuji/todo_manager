@@ -806,7 +806,7 @@ function updateCalendarWeather(calendarWeather) {
                             festivalTag.className = `festival-tag ${festivalTypeClass}`;
 
                             festivalTag.textContent = festival.name;
-                            logStep(`为日期 ${formattedCurrentDate} 添加节日 ${(festival.name)}`);
+                            // logStep(`为日期 ${formattedCurrentDate} 添加节日 ${(festival.name)}`);
                             // 将节日标签添加到容器中
                             festivalContainer.appendChild(festivalTag);
                         }
