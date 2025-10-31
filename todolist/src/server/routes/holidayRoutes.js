@@ -15,12 +15,65 @@ const CACHE_PATH = path.join(__dirname, '../../../data', 'holiday_cache.json');
 router.get('/cache', async (req, res) => {
   try {
     const cachePath = CACHE_PATH;
+    const now = Date.now();
+    
     // 检查缓存文件是否存在
     try {
       await fs.access(cachePath);
       const cacheContent = await fs.readFile(cachePath, 'utf8');
       const cacheData = JSON.parse(cacheContent);
-      res.json(cacheData);
+      
+      // 检查缓存是否过期
+      if (cacheData.expireAt && cacheData.expireAt < now) {
+        console.log('节假日缓存已过期，尝试自动刷新');
+        
+        try {
+          // 缓存过期，使用默认API重新获取数据
+          const finalApiUrl = DEFAULT_HOLIDAY_API_URL;
+          
+          // 从API获取最新数据
+          console.log(`从API获取节假日数据: ${finalApiUrl}`);
+          const apiResponse = await fetch(finalApiUrl, {
+            timeout: 10000, // 10秒超时
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!apiResponse.ok) {
+            throw new Error(`API响应错误: ${apiResponse.status}`);
+          }
+          
+          const holidayData = await apiResponse.json();
+          
+          // 构建新的缓存数据对象
+          const newCacheData = {
+            data: holidayData,
+            timestamp: now,
+            expireAt: now + (HOLIDAY_CACHE_DAYS * 24 * 60 * 60 * 1000),
+            apiUrl: finalApiUrl
+          };
+          
+          // 保存到缓存文件
+          await fs.writeFile(cachePath, JSON.stringify(newCacheData), 'utf8');
+          console.log('节假日缓存已更新');
+          
+          // 返回新数据
+          res.json(newCacheData);
+        } catch (fetchError) {
+          // 无法获取新数据，返回旧数据并标记为已过期
+          console.error('自动刷新缓存失败，返回过期数据作为兜底:', fetchError);
+          res.json({
+            ...cacheData,
+            expired: true,
+            expiredTime: cacheData.expireAt,
+            currentTime: now
+          });
+        }
+      } else {
+        // 缓存未过期，直接返回
+        res.json(cacheData);
+      }
     } catch (error) {
       // 缓存文件不存在或读取失败
       res.status(404).json({ success: false, message: '缓存不存在' });
