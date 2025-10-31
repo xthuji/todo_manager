@@ -33,98 +33,58 @@ function resetHolidayData() {
 // 获取节假日数据
 async function getHolidayData(apiUrl = null) {
     try {
-        const now = Date.now();
-        
-        try {
-            // 尝试从服务器获取缓存
-            const response = await fetch('/api/holiday/cache');
-            if (response.ok) {
-                const cacheData = await response.json();
-                
-                // 检查服务器缓存是否有效
-                if (now - cacheData.timestamp < (HOLIDAY_CACHE_DAYS * 24 * 60 * 60 * 1000)) {
-                    holidayData = cacheData.data;
-                    holidayDataTimestamp = cacheData.timestamp;
-                    
-                    // 转换数据格式为日历显示所需格式
-                    holidayDataForCalendar = convertHolidayDataToCalendarFormat(holidayData);
-                    
-                    // 更新缓存信息显示
-                    updateHolidayCacheInfo();
-                    return holidayData;
-                }
-            }
-        } catch (serverCacheError) {
-            console.error('加载服务器缓存失败:', serverCacheError);
-        }
-        
-        // 从API获取最新数据
-        let finalApiUrl = 'https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json';
-        
-        // 优先使用传入的apiUrl参数
-        if (apiUrl && apiUrl.trim()) {
-            finalApiUrl = apiUrl.trim();
+        // 构建请求URL，添加apiUrl参数
+        const requestUrl = new URL('/api/holiday/cache', window.location.origin);
+        if (typeof apiUrl === 'string' && apiUrl.trim()) {
+            requestUrl.searchParams.append('apiUrl', apiUrl.trim());
         } else {
-            // 如果没有传入参数，尝试从DOM中获取
+            // 如果没有传入参数或参数无效，尝试从DOM中获取
             const apiUrlInput = document.getElementById('holiday-api-url');
-            if (apiUrlInput && apiUrlInput.value.trim()) {
-                finalApiUrl = apiUrlInput.value.trim();
+            if (apiUrlInput && typeof apiUrlInput.value === 'string' && apiUrlInput.value.trim()) {
+                requestUrl.searchParams.append('apiUrl', apiUrlInput.value.trim());
             }
         }
         
-        try {
-            const response = await fetch(finalApiUrl, {
-                timeout: 5000 // 设置5秒超时
-            });
+        // 仅从服务器接口获取节假日数据
+        const response = await fetch(requestUrl);
+        if (response.ok) {
+            const cacheData = await response.json();
             
-            if (response.ok) {
-                    holidayData = await response.json();
-                    holidayDataTimestamp = now;
-                    
-                    // 转换数据格式为日历显示所需格式
-                    holidayDataForCalendar = convertHolidayDataToCalendarFormat(holidayData);
-                    
-                    // 保存到服务器
-                    try {
-                    const saveResponse = await fetch('/api/holiday/save', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            data: holidayData,
-                            timestamp: holidayDataTimestamp
-                        })
-                    });
-                    
-                    if (!saveResponse.ok) {
-                        console.warn('保存节假日缓存到服务器失败，状态码:', saveResponse.status);
-                        // 显示保存失败的提示
-                        alert('节假日缓存已获取，但保存到服务器失败，请稍后再试');
-                    }
-                } catch (saveError) {
-                    console.warn('保存节假日缓存到服务器失败:', saveError);
-                    // 显示保存失败的提示
-                    alert('节假日缓存已获取，但保存到服务器失败: ' + saveError.message);
-                }
+            // 检查是否有缓存数据
+            if (cacheData.data) {
+                holidayData = cacheData.data;
+                holidayDataTimestamp = cacheData.timestamp;
+                
+                // 记录缓存是否过期
+                window.holidayManager._cacheExpired = !!cacheData.isExpired;
+                window.holidayManager._expiredTime = cacheData.expiredTime;
+                
+                // 转换数据格式为日历显示所需格式
+                holidayDataForCalendar = convertHolidayDataToCalendarFormat(holidayData);
                 
                 // 更新缓存信息显示
                 updateHolidayCacheInfo();
                 
-                return holidayData;
+                // 如果缓存过期，提示用户
+                if (cacheData.isExpired) {
+                    console.warn('节假日缓存已过期，建议手动刷新');
+                }
             } else {
-                console.warn('节假日API返回非成功状态码:', response.status);
-                alert('获取节假日数据失败，服务器返回状态码: ' + response.status);
+                // 当没有数据时，重置为null，当作没有节假日
+                resetHolidayData();
+                console.log('未获取到节假日数据，将当作没有节假日处理');
             }
-        } catch (error) {
-            console.error('获取节假日数据失败:', error);
-            alert('获取节假日数据失败: ' + error.message);
+        } else {
+            // 请求失败，重置数据，当作没有节假日
+            resetHolidayData();
+            console.warn('获取节假日数据失败，服务器返回状态码:', response.status);
         }
         
         return holidayData;
     } catch (error) {
+        // 发生异常，重置数据，当作没有节假日
+        resetHolidayData();
         console.error('获取节假日数据时发生异常:', error);
-        alert('获取节假日数据时发生异常: ' + error.message);
         return holidayData;
     }
 }
@@ -143,7 +103,29 @@ function updateHolidayCacheInfo() {
             hour: '2-digit',
             minute: '2-digit'
         });
-        cacheInfoElement.setHTMLUnsafe(`<i class="fa fa-info-circle text-blue-500 mr-2"></i>节假日缓存更新于 ${formattedDate}`);
+        
+        // 检查缓存是否过期
+        if (window.holidayManager._cacheExpired) {
+            // 计算过期时间
+            let expiredInfo = '';
+            if (window.holidayManager._expiredTime) {
+                const expiredDate = new Date(window.holidayManager._expiredTime);
+                const expiredFormatted = expiredDate.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                expiredInfo = `于${expiredFormatted}过期`;
+            }
+            
+            // 显示过期提示
+            cacheInfoElement.setHTMLUnsafe(`<i class="fa fa-exclamation-triangle text-yellow-500 mr-2"></i>节假日缓存已过期 ${expiredInfo}，建议 <button class="text-blue-600 hover:underline text-sm" onclick="window.holidayManager.refreshHolidayCache()">手动刷新</button>`);
+        } else {
+            // 显示正常缓存信息
+            cacheInfoElement.setHTMLUnsafe(`<i class="fa fa-info-circle text-blue-500 mr-2"></i>节假日缓存更新于 ${formattedDate}`);
+        }
     }
 }
 
