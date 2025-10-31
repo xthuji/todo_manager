@@ -83,7 +83,7 @@ async function initFestivals() {
 export async function init() {
     try {
         // 1. 初始化节假日数据
-        await getHolidayData(true);
+        await getHolidayData();
         
         // 2. 初始化节日数据
         await initFestivals();

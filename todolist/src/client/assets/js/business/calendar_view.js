@@ -98,7 +98,7 @@ import './common/lunar_utils.js';
 
                 // 2. 加载法定节假日数据
                 // 假设 holidayManager 在 window 上
-                await window.holidayManager.getHolidayData(true);
+                await window.holidayManager.getHolidayData();
                 // holidayManager 应该会填充 this.config.holidays 和 this.config.workdays
                 // (注意：需要 holiday_manager.js 适配，使其能修改 CalendarView.config)
                 // *安全降级*: 假设 holidayManager 仍然修改 window.calendarConfig
