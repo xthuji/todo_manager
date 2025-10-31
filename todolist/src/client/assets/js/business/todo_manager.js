@@ -1,4 +1,26 @@
-// 主逻辑模块 - 导入导出问题已修复
+/**
+ * 任务管理系统主逻辑模块
+ * 针对页面：任务管理页面 (todo页面)
+ * 业务功能模块：
+ *  1. 任务数据管理 - 加载、保存和维护任务数据
+ *  2. 文件管理 - 支持多任务文件的切换和管理
+ *  3. 日历与任务集成 - 将任务与日历视图关联展示
+ *  4. 初始化协调 - 协调各模块的初始化流程
+ *  5. 用户交互处理 - 处理用户操作事件和界面交互
+ *  6. 通知系统 - 提供操作反馈和状态提示
+ * 使用场景：
+ *  1. 用户首次访问任务管理页面时的初始化流程
+ *  2. 用户切换任务文件或加载不同任务列表
+ *  3. 用户查看日历视图中的任务分布
+ *  4. 用户添加、编辑或删除任务
+ *  5. 系统需要显示操作状态或错误提示
+ * 模块化设计：
+ *  - 作为核心协调模块，集成多个专用子模块
+ *  - 通过export暴露关键函数供其他模块调用
+ *  - 统一管理全局任务状态和当前日期
+ */
+// 导入各功能模块
+
 import { loadTasksFromFile, saveTasksToFile, calculateTaskDisplayStatus } from './todo/task_parser.js';
 import { getHolidayData, holidayDataTimestamp } from './common/holiday_manager.js';
 import { renderCalendar } from './todo/calendar_renderer.js';
