@@ -1,12 +1,23 @@
-// 任务操作模块
-// 针对页面：任务列表视图、任务编辑模态框、删除确认模态框
-// 业务功能模块：
-// 1. 处理任务的新建、编辑、删除操作
-// 2. 管理任务状态切换（完成/进行中/未开始）
-// 3. 提供返回列表视图功能
-// 4. 实现任务跳转日历功能
-// 5. 初始化和管理删除确认模态框
-// 6. 提供日期格式化相关工具函数
+/**
+ * 任务操作模块
+ * 针对页面：任务列表视图页面、任务编辑模态框、删除确认模态框
+ * 业务功能模块：
+ * 1. 处理任务的新建、编辑、删除操作
+ * 2. 管理任务状态切换（完成/进行中/未开始）
+ * 3. 提供返回列表视图功能
+ * 4. 实现任务跳转日历功能
+ * 5. 初始化和管理删除确认模态框
+ * 6. 提供日期格式化相关工具函数
+ * 使用场景：
+ * - 用户在任务列表中执行任务的增删改查操作
+ * - 用户在日历视图中需要查看或编辑任务详情
+ * - 任务状态变更时需要同步更新任务列表和日历视图
+ * - 需要弹出模态框进行任务编辑或删除确认
+ * 与其他模块配合：
+ * - 依赖task_parser.js进行任务数据的保存和状态计算
+ * - 依赖calendar_renderer.js和task_list_renderer.js进行视图更新
+ * - 依赖todo_manager.js获取当前任务列表和文件信息
+ */
 import { tasks, goToDate, getCurrentFileName, currentDate } from '../todo_manager.js';
 import { saveTasksToFile, calculateTaskDisplayStatus } from './task_parser.js';
 import { renderCalendar } from './calendar_renderer.js';

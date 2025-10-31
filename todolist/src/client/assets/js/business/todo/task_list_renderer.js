@@ -1,11 +1,23 @@
-// 任务列表渲染模块
-// 针对页面：任务列表视图页面
-// 业务功能模块：
-// 1. 渲染任务列表，支持任务排序和筛选
-// 2. 处理任务元素的创建与样式设置
-// 3. 初始化并管理项目、上下文、状态等筛选器
-// 4. 提供任务搜索功能
-// 5. 实现任务状态、优先级等多维度筛选逻辑
+/**
+ * 任务列表渲染模块
+ * 针对页面：任务列表视图页面
+ * 业务功能模块：
+ * 1. 渲染任务列表，支持任务排序和筛选
+ * 2. 处理任务元素的创建与样式设置
+ * 3. 初始化并管理项目、上下文、状态等筛选器
+ * 4. 提供任务搜索功能
+ * 5. 实现任务状态、优先级等多维度筛选逻辑
+ * 使用场景：
+ * - 页面首次加载时渲染初始任务列表
+ * - 任务数据更新后（添加、编辑、删除）重新渲染列表
+ * - 用户调整筛选条件或搜索关键词时更新列表显示
+ * - 用户切换任务状态或优先级时更新任务样式
+ * 与其他模块配合：
+ * - 依赖task_parser.js计算任务的显示状态
+ * - 依赖task_operations.js处理任务的编辑、删除等操作
+ * - 依赖todo_manager.js获取任务数据和管理筛选状态
+ * - 依赖holiday_manager.js判断任务日期类型
+ */
 import { renderCalendar } from './calendar_renderer.js';
 import { calculateTaskDisplayStatus } from './task_parser.js';
 import { tasks, handleFilterChange, saveCurrentFilters, currentDate } from '../todo_manager.js';
