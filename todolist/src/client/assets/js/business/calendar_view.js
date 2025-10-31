@@ -334,12 +334,27 @@ function createDayElement(date, isCurrentMonth, dayIndex) {
     
     // 创建日期数字
     const dayNumber = document.createElement('span');
-    dayNumber.className = isCurrentMonth ? 'calendar-day-number' : 'calendar-day-number calendar-day-number-other_month';
     
-    // 如果是今天的日期，添加圆形蓝色高亮样式
+    // 基础类名设置
+    if (isCurrentMonth) {
+        dayNumber.className = 'calendar-day-number';
+    } else {
+        dayNumber.className = 'calendar-day-number calendar-day-number-other_month';
+    }
+    
+    // 直接使用内联样式设置文字颜色，确保优先级
+    if (isHolidayDate || (isWeekend && !isWorkdayDate)) {
+        // 法定节假日或周末放假的日期文字设置为红色
+        dayNumber.style.color = '#dc2626'; // 红色
+    } else {
+        // 补班日和普通工作日的日期文字设置为黑色
+        dayNumber.style.color = '#111827'; // 深黑色
+    }
+    
+    // 如果是今天的日期，添加特殊标记
     if (isToday) {
-        // 重新设置className，确保白色文本样式优先
-        dayNumber.className = 'bg-blue-500 text-white font-medium w-6 h-6 flex items-center justify-center rounded-full inline-flex z-10';
+        // 添加边框高亮效果
+        dayNumber.className += ' border-2 border-blue-500 w-6 h-6 inline-flex items-center justify-center rounded-full';
     }
     
     dayNumber.textContent = day;
