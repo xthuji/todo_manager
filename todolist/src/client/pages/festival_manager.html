@@ -12,21 +12,8 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        // 日期类型图例
-                        calendar: {
-                            weekday: '#ffffff',      // 白色 - 工作日
-                            weekend: '#dcfce7',      // 浅绿色 - 周六日（加深）
-                            holiday: '#fecdd9',      // 浅红色 - 节假日
-                            workday: '#efd8f6',      // 浅紫色 - 补班
-                            other_month: '#f3f4f6'   // 浅灰色 - 非本月日期（加深）
-                        },
-                        // 节日类型样式通过CSS类定义（见下方.bg-festival-*类）
-                    },
-                    fontFamily: {
-                        inter: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                },
+                    // 节日管理页面不需要特殊的颜色配置
+                }
             }
         }
     </script>
@@ -62,7 +49,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-inter">
+<body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-6 max-w-6xl">
         <!-- 页面标题和图例区域 -->
         <header class="mb-8 flex flex-col md:flex-row items-start md:items-center">
