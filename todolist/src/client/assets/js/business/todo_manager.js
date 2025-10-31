@@ -9,18 +9,6 @@ export let tasks = []; // 任务数据
 export let currentDate = new Date(); // 当前日期
 const defaultFileName = 'todo.txt'; // 默认文件名
 
-// 全局日历配置 - 与calendar_view.js保持一致
-window.calendarConfig = {
-    currentYear: new Date().getFullYear(),
-    currentMonth: new Date().getMonth(),
-    currentDay: new Date().getDate(),
-    festivals: [],
-    holidays: {},
-    workdays: new Set()
-};
-
-// 全局节日数据
-window.allFestivals = [];
 
 // 启动脚本相关常量
 const SCRIPT_DIRECTORY = '~/script/todo'; // 脚本目录
@@ -42,40 +30,10 @@ export function goToDate(date) {
 // 初始化节日数据
 async function initFestivals() {
     try {
-        // 初始化全局变量
-        window.allFestivals = [];
-        window.calendarConfig = {
-            currentYear: new Date().getFullYear(),
-            currentMonth: new Date().getMonth(),
-            festivals: [],
-            holidays: {},
-            workdays: new Set()
-        };
-        
-        // 使用lunar_utils.js加载节日配置
-        try {
-            const config = await window.lunarUtils.loadHolidayConfig();
-            window.allFestivals = config.festivals || [];
-            window.calendarConfig.festivals = window.allFestivals;
-        } catch (error) {
-            console.warn('使用lunarUtils加载节日配置失败，尝试直接获取配置:', error);
-            // 降级方案：直接获取配置文件
-            try {
-                const response = await fetch('/data/config/festival_config.json');
-                if (response.ok) {
-                    const config = await response.json();
-                    window.allFestivals = config.festivals || [];
-                    window.calendarConfig.festivals = window.allFestivals;
-                }
-            } catch (fetchError) {
-                console.warn('获取节日配置文件失败:', fetchError);
-            }
-        }
+        // 使用lunar_utils.js中封装的loadHolidayConfig函数获取节日数据
+        const config = await window.lunarUtils.loadHolidayConfig();
     } catch (error) {
         console.error('加载节日配置时出错:', error);
-        // 如果加载失败，使用空数组
-        window.allFestivals = [];
-        window.calendarConfig.festivals = [];
     }
 }
 

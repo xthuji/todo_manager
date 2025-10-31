@@ -14,9 +14,7 @@ import './common/holiday_manager.js';
     
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', async function() {
-    // 全局节日数据
-    window.allFestivals = [];
-    
+
     // 初始化节日管理
     await initFestivalManager();
     
@@ -35,38 +33,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function initFestivalManager() {
     try {
         // 尝试从配置文件加载节日数据
-        window.allFestivals = await loadFestivalsFromConfig();
+        await window.lunarUtils.loadHolidayConfig();
     } catch (error) {
         console.warn('Failed to load festivals from config, using default data:', error);
-        window.allFestivals = [];
     }
     
     // 初始化筛选和分页
-    initFilterAndPagination(window.allFestivals);
+    initFilterAndPagination(window.calendarConfig.festivals);
     
     // 立即初始化节假日缓存信息显示，不延迟
     await window.holidayManager.getHolidayData();
-}
-
-// 从配置文件加载节日数据
-async function loadFestivalsFromConfig() {
-    const response = await fetch('/data/config/festival_config.json');
-    if (!response.ok) {
-        throw new Error(`Failed to fetch festival config: ${response.status}`);
-    }
-    const config = await response.json();
-    
-    // 为每个节日添加唯一ID和确保日期格式正确
-    return config.festivals.map((festival, index) => {
-        const festivalWithId = { ...festival };
-        
-        // 为没有ID的节日生成ID
-        if (!festivalWithId.id) {
-            festivalWithId.id = index.toString();
-        }
-        
-        return festivalWithId;
-    });
 }
 
 // 渲染节日列表
@@ -328,7 +304,7 @@ function closeFestivalModal() {
 
 // 编辑节日
 function editFestival(festivalId) {
-    const festival = window.allFestivals.find(f => f.id === festivalId);
+    const festival = window.calendarConfig.festivals.find(f => f.id === festivalId);
     if (!festival) {
         console.error('找不到要编辑的节日');
         return;
@@ -535,20 +511,20 @@ function saveFestival() {
     // 检查是新增还是编辑
     if (id) {
         // 编辑现有节日
-        const index = window.allFestivals.findIndex(f => f.id === id);
+        const index = window.calendarConfig.festivals.findIndex(f => f.id === id);
         if (index !== -1) {
-            window.allFestivals[index] = festivalData;
+            window.calendarConfig.festivals[index] = festivalData;
         }
     } else {
         // 新增节日
-        window.allFestivals.push(festivalData);
+        window.calendarConfig.festivals.push(festivalData);
     }
     
     // 保存到服务器
     saveFestivalsToServer();
     
     // 更新本地显示
-    initFilterAndPagination(window.allFestivals);
+    initFilterAndPagination(window.calendarConfig.festivals);
     
     // 关闭模态框
     document.getElementById('festival-modal').classList.add('hidden');
@@ -559,7 +535,7 @@ async function saveFestivalsToServer() {
     try {
         // 准备要保存的数据，移除ID字段
         const dataToSave = {
-            festivals: window.allFestivals.map(({ id, ...rest }) => rest)
+            festivals: window.calendarConfig.festivals.map(({ id, ...rest }) => rest)
         };
         
         // 调用服务器API保存数据到festival_config.json配置文件
@@ -600,13 +576,13 @@ function deleteFestival() {
     const festivalId = document.getElementById('delete-festival-id').value;
     
     // 从节日列表中移除
-    window.allFestivals = window.allFestivals.filter(f => f.id !== festivalId);
+    window.calendarConfig.festivals = window.calendarConfig.festivals.filter(f => f.id !== festivalId);
     
     // 保存到服务器
     saveFestivalsToServer();
     
     // 更新本地显示
-    initFilterAndPagination(window.allFestivals);
+    initFilterAndPagination(window.calendarConfig.festivals);
     
     // 关闭删除确认模态框
     document.getElementById('delete-modal').classList.add('hidden');

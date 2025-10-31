@@ -15,7 +15,7 @@ import './common/lunar_utils.js';
 /**
  * [重构]
  * 1. 使用 IIFE (立即执行函数) 创建一个模块 `CalendarView`，避免污染全局命名空间。
- * 2. 所有的全局变量 (window.calendarConfig, window.allFestivals) 都被移入模块内部的 `this.config` 中。
+ * 2. 所有的全局变量 (window.calendarConfig) 都被移入模块内部的 `this.config` 中。
  * 3. 所有的函数都成为模块的方法。
  */
 (function() {

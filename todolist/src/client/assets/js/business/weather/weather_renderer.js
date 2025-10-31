@@ -1055,31 +1055,10 @@ window.WeatherModule.MainController = {
 window.WeatherModule.initFestivals = async function() {
     // ... (原 initFestivals 逻辑)
     try {
-        window.allFestivals = [];
-        window.calendarConfig = {
-            currentYear: new Date().getFullYear(),
-            currentMonth: new Date().getMonth(),
-            festivals: [], holidays: {}, workdays: new Set()
-        };
-
-        // 假设 lunarUtils 已在全局 window 上
-        try {
-            const config = await window.lunarUtils.loadHolidayConfig();
-            window.allFestivals = config.festivals || [];
-            window.calendarConfig.festivals = window.allFestivals;
-        } catch (error) {
-            console.warn('使用lunarUtils加载节日配置失败，尝试直接获取配置:', error);
-            const response = await fetch('/data/config/festival_config.json');
-            if (response.ok) {
-                const config = await response.json();
-                window.allFestivals = config.festivals || [];
-                window.calendarConfig.festivals = window.allFestivals;
-            }
-        }
+        // 使用lunar_utils.js中封装的loadHolidayConfig函数获取节日数据
+        await window.lunarUtils.loadHolidayConfig();
     } catch (error) {
         console.error('加载节日配置时出错:', error);
-        window.allFestivals = [];
-        window.calendarConfig.festivals = [];
     }
 };
 

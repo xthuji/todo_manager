@@ -92,15 +92,37 @@ function getLunarDateText(date) {
 // === 节日配置管理 ===
 async function loadHolidayConfig() {
     if (configLoaded) return holidayConfig;
+
+    if (!window.calendarConfig) {
+        window.calendarConfig = {
+            currentYear: new Date().getFullYear(),
+            currentMonth: new Date().getMonth(),
+            festivals: [], holidays: {}, workdays: new Set()
+        };
+    }
+    let allFestivals = [];
     try {
         const res = await fetch('/data/config/festival_config.json');
         if (res.ok) {
             const config = await res.json();
-            holidayConfig = { ...DEFAULT_HOLIDAY_CONFIG, ...config };
+            // 为每个节日添加唯一ID和确保日期格式正确
+            allFestivals = config.festivals.map((festival, index) => {
+                const festivalWithId = { ...festival };
+
+                // 为没有ID的节日生成ID
+                if (!festivalWithId.id) {
+                    festivalWithId.id = index.toString();
+                }
+
+                return festivalWithId;
+            });
+            holidayConfig = { ...config, ...DEFAULT_HOLIDAY_CONFIG };
         }
     } catch (e) {
         console.warn('节日配置加载失败，使用默认配置');
     }
+    holidayConfig.festivals = allFestivals;
+    window.calendarConfig.festivals = allFestivals;
     configLoaded = true;
     return holidayConfig;
 }
