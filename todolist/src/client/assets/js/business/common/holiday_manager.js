@@ -269,28 +269,33 @@ async function refreshHolidayCache(apiUrl = null) {
     try {
         // 显示加载状态
         const cacheInfoElement = document.getElementById('holiday-cache-info');
-        const originalText = cacheInfoElement ? cacheInfoElement.textContent : '';
         if (cacheInfoElement) {
             cacheInfoElement.textContent = '正在刷新缓存...';
         }
 
-        // 清除服务器缓存
-        try {
-            await fetch('/api/holiday/clear-cache', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-        } catch (error) {
-            console.warn('清除服务器缓存失败:', error);
+        // 调用服务端接口完成缓存刷新
+        const response = await fetch('/api/holiday/refresh-cache', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ apiUrl })
+        });
+
+        if (!response.ok) {
+            throw new Error(`服务器响应错误: ${response.status}`);
         }
 
-        // 重置数据
-        resetHolidayData();
+        // 获取刷新后的节假日数据
+        const result = await response.json();
+        
+        // 更新本地数据
+        holidayData = result.data;
+        holidayDataTimestamp = result.timestamp;
+        holidayDataForCalendar = convertHolidayDataToCalendarFormat(holidayData);
 
-        // 重新获取数据，传入apiUrl参数
-        await getHolidayData(apiUrl);
+        // 更新缓存信息显示
+        updateHolidayCacheInfo();
 
         // 刷新日历和任务列表（需要在主模块中实现）
         // 这里只提供接口，具体实现由调用者负责
@@ -307,6 +312,7 @@ async function refreshHolidayCache(apiUrl = null) {
                 updateHolidayCacheInfo();
             }, 3000);
         }
+        throw error;
     }
 }
 
