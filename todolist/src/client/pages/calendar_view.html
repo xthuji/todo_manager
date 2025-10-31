@@ -10,7 +10,7 @@
     <script type="module" src="/src/client/assets/js/business/calendar_view.js"></script>
     <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
     <script>
-        // 配置Tailwind自定义颜色和字体
+        // 配置Tailwind自定义颜色
         tailwind.config = {
             theme: {
                 extend: {
@@ -22,12 +22,8 @@
                             holiday: '#fecdd9',      // 浅红色 - 节假日
                             workday: '#efd8f6',      // 浅紫色 - 补班
                             other_month: '#f3f4f6'   // 浅灰色 - 非本月日期
-                        },
-                        // 节日类型样式通过CSS类定义（见下方.bg-festival-*类）
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
+                        }
+                    }
                 }
             }
         }
@@ -42,10 +38,7 @@
             .bg-festival-custom { @apply bg-blue-500; } /* 自定义节日：蓝色 */
 
             
-            /* 自定义工具类 - 日历样式 */
-            .content-auto {
-                content-visibility: auto;
-            }
+            /* 日历核心样式 */
             .calendar-day {
                 @apply relative min-h-[107px] border border-gray-200 p-1 overflow-hidden;
             }
@@ -89,6 +82,7 @@
             .btn-action {
                 @apply p-1.5 rounded hover:bg-gray-200 transition-colors duration-150 flex items-center;
             }
+            /* 图例样式 */
             .legend-color {
                 @apply w-3.5 h-3.5 rounded-full mr-1.5;
             }
@@ -98,7 +92,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-inter">
+<body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-6 max-w-6xl">
         <!-- 页面标题和图例区域 -->
         <header class="mb-6">
