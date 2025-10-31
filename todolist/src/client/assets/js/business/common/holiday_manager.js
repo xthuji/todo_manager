@@ -13,7 +13,6 @@ let holidayData = null; // 节假日数据
 // 内部转换后的数据格式，用于日历显示
 let holidayDataForCalendar = null;
 let holidayDataTimestamp = null; // 节假日数据时间戳
-const HOLIDAY_CACHE_DAYS = 100; // 节假日缓存天数
 
 // 绑定到window对象，以便在HTML页面中直接使用
 window.holidayManager = window.holidayManager || {};

@@ -6,10 +6,17 @@
  * 3. LocationController: 负责协调数据和UI，处理业务逻辑 (控制器)
  *
  * 假设全局已定义:
- * - logStep(message)
- * - WEATHER_API (Object)
  * - loadWeatherData(code, mojiCode)
  */
+
+import {logStep} from "../common/log.js";
+import {loadWeatherData} from "./weather_renderer.js";
+
+// 常量定义
+const WEATHER_API = {
+    AREA_CODES: '/api/weather/weather-area-codes',
+    IP_LOCATION: '/api/weather/ip-location',
+};
 
 (function (window) {
     'use strict';

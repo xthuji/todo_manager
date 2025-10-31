@@ -10,10 +10,19 @@
  * - MainController: 负责协调数据和视图的更新流程。
  */
 
+import "../common/holiday_manager.js";
+import "../common/lunar_utils.js";
+import {logStep} from "../common/log.js";
+
 // 确保 WeatherModule 命名空间存在
 if (typeof window.WeatherModule === 'undefined') {
     window.WeatherModule = {};
 }
+
+// 常量定义
+const WEATHER_API = {
+    WEATHER_INFO: '/api/weather/weather-info',
+};
 
 /**
  * 1. 数据服务层 (Service)
@@ -542,8 +551,31 @@ window.WeatherModule.View = {
 
                 const dateAndFestivalContainer = document.createElement('div');
                 dateAndFestivalContainer.className = 'flex items-center justify-between w-full';
+                // 根据日期类型设置字体颜色
+                // 获取日期类型信息（参考calendar_view.js的逻辑）
+                let isHoliday = false;
+                let isWorkday = false;
+                try {
+                    if (window.holidayManager) {
+                        const dateType = window.holidayManager.getDateType(currentDate);
+                        isHoliday = dateType === 'holiday';
+                        isWorkday = dateType === 'workday';
+                    }
+                } catch (error) { console.error('获取日期类型失败:', error); }
+                
+                // 设置日期数字样式和颜色
                 const dateNumber = document.createElement('div');
-                dateNumber.className = isToday ? 'text-blue-600 font-bold text-sm' : 'text-gray-700 text-sm';
+                // 应用字体颜色逻辑：节假日或非补班周末设为红色，否则设为黑色
+                dateNumber.className = 'text-sm';
+                if (isToday) {
+                    dateNumber.className = `${dateNumber.className} text-blue-600 font-bold`;
+                }
+                // 关键逻辑：放假的日期（节假日或非补班周末）设为红色，工作的日期设为黑色
+                if (isHoliday || (isWeekend && !isWorkday)) {
+                    dateNumber.style.color = '#dc2626'; // 红色
+                } else {
+                    dateNumber.style.color = '#111827'; // 黑色
+                }
                 dateNumber.textContent = dayCount;
                 dateAndFestivalContainer.appendChild(dateNumber);
                 const festivalContainer = document.createElement('div');
@@ -1057,8 +1089,10 @@ window.WeatherModule.initFestivals = async function() {
     try {
         // 使用lunar_utils.js中封装的loadHolidayConfig函数获取节日数据
         await window.lunarUtils.loadHolidayConfig();
+        // 获取并缓存法定节假日数据
+        await window.holidayManager.getHolidayData();
     } catch (error) {
-        console.error('加载节日配置时出错:', error);
+        console.error('加载节日数据时出错:', error);
     }
 };
 
@@ -1161,3 +1195,5 @@ function adjustTableResponsive() {
 
 // 页面加载完成后初始化响应式调整
 window.addEventListener('resize', adjustTableResponsive);
+
+export {loadWeatherData};

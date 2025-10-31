@@ -1,19 +1,6 @@
 // 公共节日工具模块已在HTML中直接引入
 
-
-// 常量定义
-const WEATHER_API = {
-    AREA_CODES: '/api/weather/weather-area-codes',
-    IP_LOCATION: '/api/weather/ip-location',
-    WEATHER_INFO: '/api/weather/weather-info',
-};
-
-// 日志序号计数器
-let logCounter = 0;
-// 生成带序号的日志函数 - 只输出错误和警告信息
-function logStep(message) {
-    console.log(`[${logCounter++}] ${message}`);
-}
+import "./weather/location_handler.js";
 
 // 更新当前日期和时间
 function updateCurrentDateTime() {
