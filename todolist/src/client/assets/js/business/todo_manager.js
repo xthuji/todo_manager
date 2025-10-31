@@ -211,19 +211,22 @@ function addEventListeners() {
     
     // 下一月按钮
     document.getElementById('next-month')?.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
+        // 创建新的Date对象而不是修改原对象，避免引用问题
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
         renderCalendar(currentDate, tasks);
     });
     
     // 上一月按钮
     document.getElementById('prev-month')?.addEventListener('click', () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
+        // 创建新的Date对象而不是修改原对象，避免引用问题
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
         renderCalendar(currentDate, tasks);
     });
     
     // 今天按钮
-    document.getElementById('btn-today')?.addEventListener('click', () => {
+    document.getElementById('btn-today')?.addEventListener('click', async () => {
         currentDate = new Date();
+        await renderCalendar(currentDate, tasks); // 确保日历显示正确更新到今天
         performFiltering(); // 使用performFiltering确保应用筛选条件
     });
     
