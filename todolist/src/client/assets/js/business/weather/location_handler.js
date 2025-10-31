@@ -881,10 +881,11 @@
         }
     };
 
-    // 暴露唯一的全局入口
-    if (!window.WeatherModule) {
+    // 确保 WeatherModule 命名空间存在
+    if (typeof window.WeatherModule === 'undefined') {
         window.WeatherModule = {};
     }
+    // 暴露唯一的全局入口
     window.WeatherModule.initLocation = () => LocationController.initialize();
 
 })(window);
