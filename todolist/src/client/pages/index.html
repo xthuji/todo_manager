@@ -14,22 +14,12 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#3b82f6',
-                        secondary: '#10b981',
-                        accent: '#6366f1',
-                        dark: '#1e293b',
-                        light: '#f1f5f9',
-                        festival: {
-                            normal: '#dc2626', // 红色 - 普通节日
-                            foreign: '#a855f7', // 紫色 - 外国节日
-                            solarTerm: '#10b981', // 绿色 - 节气
-                            important: '#ef4444', // 深红色 - 重要节日
-                            custom: '#6366f1' // 靛蓝色 - 自定义节日
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
+                primary: '#3b82f6',
+                secondary: '#10b981',
+                accent: '#6366f1',
+                dark: '#1e293b',
+                light: '#f1f5f9'
+            },
                 }
             }
         }
@@ -45,9 +35,6 @@
                 width: 14px;
                 justify-content: flex-start;
                 padding-left: 1px;
-            }
-            .sidebar-btn:hover {
-                @apply w-32;
             }
             .sidebar-btn.todo {
                 @apply bg-blue-500 hover:bg-blue-600;
@@ -96,24 +83,7 @@
             .page-content.active {
                 @apply block;
             }
-            .btn-primary {
-                @apply bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors duration-200;
-            }
-            .btn-secondary {
-                @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded transition-colors duration-200;
-            }
-            .btn-danger {
-                @apply bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded transition-colors duration-200;
-            }
-            .form-input {
-                @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-            }
-            .form-select {
-                @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-            }
-            .festival-tag {
-                @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
-            }
+
         }
     </style>
 </head>
