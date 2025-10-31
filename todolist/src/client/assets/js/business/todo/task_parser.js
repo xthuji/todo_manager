@@ -353,7 +353,7 @@ export async function loadTasksFromFile(filename = 'todo.txt') {
             return mockTasks;
         }
 
-        const url = `/api/read-file/${encodeURIComponent(filename)}`;
+        const url = `/api/file/read/${encodeURIComponent(filename)}`;
         
         try {
             // 首先尝试从服务器加载
@@ -421,7 +421,7 @@ export async function saveTasksToFile(tasks, filename = 'todo.txt') {
         const content = convertTasksToTodoTxtFormat(tasks);
         
         // 发送到服务器保存
-        const response = await fetch(`/api/write-file/${encodeURIComponent(filename)}`, {
+        const response = await fetch(`/api/file/write/${encodeURIComponent(filename)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

@@ -42,11 +42,11 @@ app.get('/', (req, res) => {
 });
 
 // 使用路由模块
-app.use('/api', fileRoutes);
+app.use('/api/file', fileRoutes);
 app.use('/api/holiday', holidayRoutes);
 app.use('/api/festival', festivalRoutes);
 app.use('/api', statusRoutes);
-app.use('/api', weatherProxyRoutes);
+app.use('/api/weather', weatherProxyRoutes);
 
 // 启动服务器
 const server = app.listen(port, () => {

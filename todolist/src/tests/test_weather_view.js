@@ -2,7 +2,7 @@
 console.log('开始运行天气功能测试...');
 
 // 设置环境变量和全局配置
-const API_BASE_URL = 'http://localhost:3000/api'; // 假设服务运行在3000端口
+const API_BASE_URL = 'http://localhost:3000/api/weather'; // 假设服务运行在3000端口
 
 // 模拟fetch API，避免依赖真实服务器
 let mockResponses = {};
@@ -42,7 +42,7 @@ global.fetch = mockFetch;
 // 全局配置
 const WEATHER_API = {
     WEATHER_DATA: `${API_BASE_URL}/weather-info`,
-    IP_LOCATION: `${API_BASE_URL}/weather-ip-location`,
+    IP_LOCATION: `${API_BASE_URL}/ip-location`,
 };
 
 // 测试用的固定城市代码

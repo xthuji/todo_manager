@@ -274,7 +274,7 @@ async function getLocation2() {
 // http://ip-api.com/json/?lang=zh-CN
 // https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}
 // https://weather.cma.cn/api/weather/view
-router.get('/ip-location-area', async (req, res) => {
+router.get('/ip-location', async (req, res) => {
     if (USE_MOCK) {
         const addressAreaContent = fs.readFileSync(path.join(CACHE_DIR, 'mock_ip_area.json'), 'utf-8');
         return res.json(JSON.parse(addressAreaContent));

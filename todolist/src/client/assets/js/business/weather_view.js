@@ -3,9 +3,9 @@
 
 // 常量定义
 const WEATHER_API = {
-    AREA_CODES: '/api/weather-area-codes',
-    IP_API: '/api/ip-location-area',
-    WEATHER_INFO: '/api/weather-info',
+    AREA_CODES: '/api/weather/weather-area-codes',
+    IP_LOCATION: '/api/weather/ip-location',
+    WEATHER_INFO: '/api/weather/weather-info',
 };
 
 // 日志序号计数器

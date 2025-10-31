@@ -207,7 +207,7 @@
          */
         _getLocationDataInternal: async function () {
             this._log('发送请求获取位置信息');
-            const response = await fetch(WEATHER_API.IP_API, { cache: 'no-store' });
+            const response = await fetch(WEATHER_API.IP_LOCATION, { cache: 'no-store' });
 
             if (!response.ok) {
                 throw new Error(`API请求失败: ${response.status}`);

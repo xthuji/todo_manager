@@ -4,7 +4,7 @@ const path = require('path');
 const router = express.Router();
 
 // API端点：扫描todo文件
-router.get('/scan-files', async (req, res) => {
+router.get('/scan', async (req, res) => {
   try {
     // 读取data目录中的所有todo*.txt文件
     const files = await fs.readdir(path.join(__dirname, '../../../data'));
@@ -51,7 +51,7 @@ router.get('/scan-files', async (req, res) => {
 });
 
 // API端点：读取todo文件内容
-router.get('/read-file/:filename', async (req, res) => {
+router.get('/read/:filename', async (req, res) => {
   try {
     const filename = req.params.filename;
     
@@ -78,7 +78,7 @@ router.get('/read-file/:filename', async (req, res) => {
 });
 
 // API端点：写入todo文件内容
-router.post('/write-file/:filename', async (req, res) => {
+router.post('/write/:filename', async (req, res) => {
   try {
     const filename = req.params.filename;
     const content = req.body.content || '';

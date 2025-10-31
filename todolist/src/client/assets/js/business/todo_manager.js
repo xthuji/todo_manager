@@ -143,7 +143,7 @@ export async function init() {
 // 更新文件下拉框
 async function updateFileDropdown() {
     try {
-        const response = await fetch('/api/scan-files');
+        const response = await fetch('/api/file/scan');
         const data = await response.json();
         
         if (data.success) {
