@@ -13,6 +13,24 @@ import { editTask } from './task_operations.js';
 // 引入lunar_utils.js工具
 import '../common/lunar_utils.js';
 
+// 设置非本月日期的文字颜色
+function setNotCurrMonthDateNumberTextColor(day, dateNumberElement) {
+    try {
+        const dateType = getDateType(day);
+        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+
+        // 法定放假或周末放假的日期文字设置为红色
+        if (dateType === 'holiday' || (isWeekend && dateType !== 'workday')) {
+            dateNumberElement.style.color = '#dc2626'; // 红色
+        } else {
+            // 补班日期和普通工作日的日期文字设置为黑色
+            dateNumberElement.style.color = '#111827'; // 黑色
+        }
+    } catch (e) {
+        console.warn('设置非本月日期颜色失败:', e);
+    }
+}
+
 // 渲染日历
 export async function renderCalendar(date, tasks = []) {
     console.log('renderCalendar:', date);
@@ -86,7 +104,7 @@ export async function renderCalendar(date, tasks = []) {
         for (let i = prevDaysToShow; i > 0; i--) {
             const prevDay = new Date(year, month, -i + 1);
             const dayElement = document.createElement('div');
-            dayElement.classList.add('calendar-day', 'text-gray-400', 'bg-calendar-other_month');
+            dayElement.classList.add('calendar-day', 'bg-calendar-other_month');
             
             // 添加日期头部
             const dateHeader = document.createElement('div');
@@ -99,6 +117,9 @@ export async function renderCalendar(date, tasks = []) {
             // 创建日期数字元素
             const dateNumberElement = document.createElement('span');
             dateNumberElement.textContent = prevDay.getDate();
+            
+            // 设置非本月日期的文字颜色
+            setNotCurrMonthDateNumberTextColor(prevDay, dateNumberElement);
             
             // 创建左侧容器（包含日期数字和农历）
             const leftContentContainer = document.createElement('div');
@@ -210,10 +231,20 @@ export async function renderCalendar(date, tasks = []) {
         // 检查是否是今天
         const isToday = currentDay.getTime() === today.getTime();
         
-        // 如果是今天，添加蓝色圆形背景和白色文字
+        // 根据日期类型设置文字颜色
+        if (dateType === 'holiday' || (isWeekend && dateType !== 'workday')) {
+            // 法定放假或周末放假的日期文字设置为红色
+            dateNumberElement.style.color = '#dc2626'; // 红色
+        } else {
+            // 补班日期和普通工作日的日期文字设置为黑色
+            dateNumberElement.style.color = '#111827'; // 黑色
+        }
+        
+        // 如果是今天，添加蓝色边框高亮
         if (isToday) {
             dayElement.classList.add('calendar-day-today', 'bg-blue-100');
-            dateNumberElement.classList.add('w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'bg-blue-500', 'text-white', 'rounded-full', 'text-xs', 'font-bold');
+            // 保留原有的文字颜色设置，添加蓝色边框
+            dateNumberElement.classList.add('w-6', 'h-6', 'flex', 'items-center', 'justify-center', 'border-2', 'border-blue-500', 'rounded-full', 'text-xs', 'font-bold');
         }
         
         // 创建左侧容器（包含日期数字和农历）
@@ -240,7 +271,7 @@ export async function renderCalendar(date, tasks = []) {
                     // 添加统一的节日标签样式，包含festival-tag类和通用样式
                     festivalInfo = `${festivalInfo}<span class="${festivalStyle} festival-tag text-xs px-1 py-0.5 rounded text-white whitespace-nowrap">${festival.name}</span>`;
                 }
-                console.log('currentDay:', currentDay, 'festivalInfo:', festivalInfo);
+                // console.log('currentDay:', currentDay, 'festivalInfo:', festivalInfo);
             }
         } catch (error) {
             console.warn('获取农历或节日信息失败:', error);
@@ -267,7 +298,7 @@ export async function renderCalendar(date, tasks = []) {
         
         dateHeader.appendChild(dateContentContainer);
 
-        dayElement.classList.add('text-gray-800');
+        // 移除全局文字颜色设置，使用日期元素的内联样式
         
         dayElement.appendChild(dateHeader);
         
@@ -839,7 +870,7 @@ export async function renderCalendar(date, tasks = []) {
         for (let i = 1; i <= remainingDays; i++) {
             const nextDay = new Date(year, month + 1, i);
             const dayElement = document.createElement('div');
-            dayElement.classList.add('calendar-day', 'text-gray-400', 'bg-calendar-other_month');
+            dayElement.classList.add('calendar-day', 'bg-calendar-other_month');
             
             // 添加日期头部
             const dateHeader = document.createElement('div');
@@ -853,6 +884,9 @@ export async function renderCalendar(date, tasks = []) {
             const dateNumberElement = document.createElement('span');
             dateNumberElement.textContent = i;
             
+            // 设置下个月日期的文字颜色
+            setNotCurrMonthDateNumberTextColor(nextDay, dateNumberElement);
+
             // 创建左侧容器（包含日期数字和农历）
             const leftContentContainer = document.createElement('div');
             leftContentContainer.classList.add('flex', 'items-center');
