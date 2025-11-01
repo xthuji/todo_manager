@@ -24,7 +24,7 @@
 import { loadTasksFromFile, saveTasksToFile, calculateTaskDisplayStatus } from './todo/task_parser.js';
 import { getHolidayData, holidayDataTimestamp } from './common/holiday_manager.js';
 import { renderCalendar } from './todo/calendar_renderer.js';
-import { renderTaskList, performFiltering, initProjectAndContextFilters, setAllFiltersToDefault } from './todo/task_list_renderer.js';
+import { renderTaskList, performFiltering, initProjectAndContextFilters, setAllFiltersToDefault, filterTasks } from './todo/task_list_renderer.js';
 
 // 全局变量
 export let tasks = []; // 任务数据
@@ -59,19 +59,31 @@ async function initFestivals() {
     }
 }
 
+// 清理旧的筛选参数缓存
+function clearOldFilterCache() {
+    // 移除可能存在的旧筛选参数缓存
+    if (localStorage.getItem('taskFilters')) {
+        localStorage.removeItem('taskFilters');
+        console.log('已清理旧的筛选参数缓存');
+    }
+}
+
 // 初始化函数
 export async function init() {
     try {
-        // 1. 初始化节假日数据
+        // 1. 清理旧的筛选参数缓存
+        clearOldFilterCache();
+        
+        // 2. 初始化节假日数据
         await getHolidayData();
         
-        // 2. 初始化节日数据
+        // 3. 初始化节日数据
         await initFestivals();
         
-        // 2. 更新文件下拉框
+        // 4. 更新文件下拉框
         await updateFileDropdown();
         
-        // 3. 确保始终有模拟数据显示
+        // 5. 确保始终有模拟数据显示
         // 生成当前日期和未来几天的日期
         const today = new Date();
         const tomorrow = new Date(today);
@@ -94,13 +106,21 @@ export async function init() {
             console.error('加载任务文件失败:', error);
         }
         
-        // 4. 渲染日历
-        await renderCalendar(currentDate, tasks);
+        // 6. 渲染日历
+        const filteredTasks = filterTasks(tasks);
+        await renderCalendar(currentDate, filteredTasks);
         
-        // 5. 渲染任务列表
+        // 7. 渲染任务列表
         renderTaskList(tasks);
         
-        // 6. 添加事件监听器
+        // 8. 初始化时设置默认筛选参数（仅在页面首次加载时执行一次）
+        // 等待DOM完全加载后再设置筛选参数
+        setTimeout(async () => {
+            const { setAllFiltersToDefault } = await import('./todo/task_list_renderer.js');
+            setAllFiltersToDefault();
+        }, 100);
+        
+        // 9. 添加事件监听器
         addEventListeners();
     } catch (error) {
         console.error('初始化失败:', error);
@@ -185,25 +205,11 @@ export function handleFilterChange(filterId) {
     }
 }
 
-// 保存当前筛选值
+// 保存当前筛选值 - 不再保存到localStorage，避免使用缓存
 export function saveCurrentFilters() {
-    // 辅助函数：安全地获取筛选器值
-    const getFilterValues = (filterId) => {
-        const element = document.getElementById(filterId);
-        if (!element || !element.selectedOptions) {
-            return ['all']; // 默认返回全部选项
-        }
-        return Array.from(element.selectedOptions).map(option => option.value);
-    };
-    
-    const filters = {
-        priority: getFilterValues('priority-filter'),
-        status: getFilterValues('status-filter'),
-        date: getFilterValues('date-filter'),
-        project: getFilterValues('project-filter'),
-        context: getFilterValues('context-filter')
-    };
-    localStorage.setItem('taskFilters', JSON.stringify(filters));
+    // 为了保持接口兼容性，保留函数声明，但不再执行保存操作
+    // 筛选参数将不再被缓存，每次页面加载都会使用默认值
+    console.log('筛选参数不再保存到缓存');
 }
 
 // 添加事件监听器
@@ -219,7 +225,9 @@ function addEventListeners() {
         const fileDropdown = document.getElementById('todo-file-select');
         const loadedTasks = await loadTasksFromFile(fileDropdown.value);
         tasks = loadedTasks;
-        await renderCalendar(currentDate, tasks);
+        // 使用筛选后的任务数据渲染日历
+        const filteredTasks = filterTasks(tasks);
+        await renderCalendar(currentDate, filteredTasks);
         renderTaskList(tasks);
         // 切换文件后更新显示
         updateCurrentTodoFileDisplay();
@@ -235,14 +243,18 @@ function addEventListeners() {
     document.getElementById('next-month')?.addEventListener('click', () => {
         // 创建新的Date对象而不是修改原对象，避免引用问题
         currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-        renderCalendar(currentDate, tasks);
+        // 使用筛选后的任务数据渲染日历
+        const filteredTasks = filterTasks(tasks);
+        renderCalendar(currentDate, filteredTasks);
     });
     
     // 上一月按钮
     document.getElementById('prev-month')?.addEventListener('click', () => {
         // 创建新的Date对象而不是修改原对象，避免引用问题
         currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-        renderCalendar(currentDate, tasks);
+        // 使用筛选后的任务数据渲染日历
+        const filteredTasks = filterTasks(tasks);
+        renderCalendar(currentDate, filteredTasks);
     });
     
     // 今天按钮

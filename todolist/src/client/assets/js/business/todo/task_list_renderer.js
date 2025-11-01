@@ -66,8 +66,7 @@ export async function renderTaskList(tasks) {
         deleteModalInitialized = true;
     }
     
-    // 加载保存的筛选值
-    loadSavedFilters();
+    // 注意：不再在此处调用loadSavedFilters()，避免每次渲染都重置筛选参数
     
     // 为所有任务重新计算displayStatus
     const tasksWithUpdatedStatus = tasks.map(task => ({
@@ -545,47 +544,10 @@ export async function performFiltering() {
 
 
 
-// 加载保存的筛选值
+// 加载保存的筛选值 - 不再使用缓存，直接设置为默认值
 export function loadSavedFilters() {
-    const savedFilters = localStorage.getItem('taskFilters');
-    
-    // 获取所有筛选器
-    const filterIds = ['priority-filter', 'status-filter', 'date-filter', 'project-filter', 'context-filter'];
-    
-    if (savedFilters) {
-        try {
-            const filters = JSON.parse(savedFilters);
-            
-            filterIds.forEach(filterId => {
-                const filterName = filterId.replace('-filter', '');
-                
-                if (filters[filterName] && filters[filterName].length > 0) {
-                    const filterElement = document.getElementById(filterId);
-                    if (filterElement) {
-                        // 对于项目和上下文筛选器，需要延迟执行以确保选项已生成
-                        if (filterId === 'project-filter' || filterId === 'context-filter') {
-                            setTimeout(() => {
-                                filterElement.querySelectorAll('option').forEach(option => {
-                                    option.selected = filters[filterName].includes(option.value);
-                                });
-                            }, 100);
-                        } else {
-                            filterElement.querySelectorAll('option').forEach(option => {
-                                option.selected = filters[filterName].includes(option.value);
-                            });
-                        }
-                    }
-                }
-            });
-        } catch (e) {
-            console.error('加载保存的筛选值失败:', e);
-            // 加载失败时，默认选中"全部"选项
-            setAllFiltersToDefault();
-        }
-    } else {
-        // 没有保存的筛选值时，默认选中"全部"选项
-        setAllFiltersToDefault();
-    }
+    // 直接设置所有筛选器为默认值，不再从localStorage加载
+    setAllFiltersToDefault();
 }
 
 // 设置所有筛选器为默认值
@@ -643,7 +605,7 @@ function resetFilterToDefaultValue(filterElement, filterId) {
 }
 
 // 筛选任务
-function filterTasks(tasks) {
+export function filterTasks(tasks) {
     try {
         const searchInput = document.getElementById('search-input') || { value: '' };
         const searchTerm = searchInput.value || '';
