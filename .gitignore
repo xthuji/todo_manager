@@ -115,8 +115,11 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# History directory
+# IDE files directory
 .history
+.idea
+.cursor
+.codebuddy
 
 # TodoList cache directory
 /todolist/data/cache/
