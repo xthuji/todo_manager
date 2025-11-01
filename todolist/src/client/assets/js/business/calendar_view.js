@@ -479,7 +479,7 @@ import './common/lunar_utils.js';
             }
 
             if (info.isToday) {
-                dayNumber.className += ' border-2 border-blue-500 w-6 h-6 inline-flex items-center justify-center rounded-full';
+                dayNumber.className += 'text-sm border-2 border-blue-500 w-6 h-6 inline-flex items-center justify-center rounded-full';
             }
             dayNumber.textContent = info.dayNum;
 

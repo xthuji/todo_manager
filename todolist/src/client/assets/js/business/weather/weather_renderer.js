@@ -578,7 +578,7 @@ window.WeatherModule.View = {
                 // 应用字体颜色逻辑：节假日或非补班周末设为红色，否则设为黑色
                 dateNumber.className = 'text-sm';
                 if (isToday) {
-                    dateNumber.className = `${dateNumber.className} text-blue-600 font-bold`;
+                    dateNumber.className = 'text-sm border-2 border-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-blue-600 font-bold';
                 }
                 // 关键逻辑：放假的日期（节假日或非补班周末）设为红色，工作的日期设为黑色
                 if (isHoliday || (isWeekend && !isWorkday)) {

@@ -119,4 +119,4 @@ dist
 .history
 
 # TodoList cache directory
-/todolist/cache/
+#/todolist/data/cache/

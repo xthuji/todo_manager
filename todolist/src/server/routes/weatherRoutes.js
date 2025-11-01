@@ -11,12 +11,11 @@ const router = express.Router();
 
 const USE_MOCK = false;
 const USE_CACHE = true;
-const BASE_DIR = path.join(__dirname, '../../../');
-const CACHE_DIR = path.join(BASE_DIR, 'cache');
+const CACHE_DIR = path.join(__dirname, '../../../data/cache');
 // tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js 
 // moji_weather_area_codes.json 数据源： https://m.moji.com/weather/china/beijing
 // 天气地区编码缓存文件路径(合并了天气网和墨迹天气的地区代码)
-const AREA_CODES_FILE = path.join(BASE_DIR, 'data/weather/merged_tianqi_moji_area_codes.json');
+const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_tianqi_moji_area_codes.json');
 let areaCodesData;
 if (fs.existsSync(AREA_CODES_FILE)) {
     const areaCodesContent = fs.readFileSync(AREA_CODES_FILE, 'utf-8');

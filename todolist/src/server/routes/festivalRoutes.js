@@ -3,15 +3,15 @@ const fs = require('fs').promises;
 const path = require('path');
 const router = require('express').Router();
 
+const CONFIG_PATH = path.join(__dirname, '../../../data/config/festival_config.json');
+
 // API端点：获取节日配置
 router.get('/config', async (req, res) => {
   try {
-    const configPath = path.join(__dirname, '../../../data/config/festival_config.json');
-    
     // 检查文件是否存在
     try {
-      await fs.access(configPath);
-      const configContent = await fs.readFile(configPath, 'utf8');
+      await fs.access(CONFIG_PATH);
+      const configContent = await fs.readFile(CONFIG_PATH, 'utf8');
       const configData = JSON.parse(configContent);
       res.json(configData);
     } catch (error) {
@@ -28,7 +28,6 @@ router.get('/config', async (req, res) => {
 // API端点：保存节日配置
 router.post('/save', async (req, res) => {
   try {
-    const configPath = path.join(__dirname, '../../../data/config/festival_config.json');
     const configData = req.body;
     
     // 验证配置数据的基本结构
@@ -43,7 +42,7 @@ router.post('/save', async (req, res) => {
     
     // 写入配置文件
     try {
-      await fs.writeFile(configPath, JSON.stringify(configData, null, 2), 'utf8');
+      await fs.writeFile(CONFIG_PATH, JSON.stringify(configData, null, 2), 'utf8');
       console.log('节日配置文件保存成功');
       res.json({ success: true, message: '节日配置保存成功' });
     } catch (error) {

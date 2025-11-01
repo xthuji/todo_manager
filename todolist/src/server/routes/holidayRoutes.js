@@ -9,7 +9,7 @@ const DEFAULT_HOLIDAY_API_URL = 'https://www.shuyz.com/githubfiles/china-holiday
 // 节假日缓存天数
 const HOLIDAY_CACHE_DAYS = 100;
 // 节假日缓存文件路径
-const CACHE_PATH = path.join(__dirname, '../../../data', 'holiday_cache.json');
+const CACHE_PATH = path.join(__dirname, '../../../data/cache', 'holiday_cache.json');
 
 /**
  * 从API获取节假日数据

@@ -5,5 +5,5 @@
 (D) 低优先级任务test +杂事 @waiting
 x (A) 已完成的重要任务test 2025-09-20 +项目1 @done
 x 简单已完成任务test @done
-(B) due:2025-10-01 任务test包含"引号"和\反斜杠 start:2025-09-01 +项目3 @doing
+(B) due:2025-10-12 任务test包含"引号"和\反斜杠 start:2025-08-28 +项目3 @doing
 due:2025-09-19 test1 start:2025-09-19

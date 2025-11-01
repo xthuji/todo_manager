@@ -3,17 +3,19 @@ const fs = require('fs').promises;
 const path = require('path');
 const router = express.Router();
 
+const DATA_DIR = path.join(__dirname, '../../../data');
+
 // API端点：扫描todo文件
 router.get('/scan', async (req, res) => {
   try {
     // 读取data目录中的所有todo*.txt文件
-    const files = await fs.readdir(path.join(__dirname, '../../../data'));
+    const files = await fs.readdir(DATA_DIR);
     const todoFiles = files.filter(file => file.startsWith('todo') && file.endsWith('.txt'));
     
     // 获取每个文件的信息（包括修改时间）
     const fileInfoPromises = todoFiles.map(async file => {
       try {
-        const stats = await fs.stat(path.join(__dirname, '../../../data', file));
+        const stats = await fs.stat(path.join(DATA_DIR, file));
         return {
           name: file,
           exists: true,
@@ -60,7 +62,7 @@ router.get('/read/:filename', async (req, res) => {
       return res.status(403).json({ success: false, message: '不允许访问此文件' });
     }
     
-    const filePath = path.join(__dirname, '../../../data', filename);
+    const filePath = path.join(DATA_DIR, filename);
     
     // 检查文件是否存在，如果不存在则创建空文件
     try {
@@ -88,7 +90,7 @@ router.post('/write/:filename', async (req, res) => {
       return res.status(403).json({ success: false, message: '不允许访问此文件' });
     }
     
-    const filePath = path.join(__dirname, '../../../data', filename);
+    const filePath = path.join(DATA_DIR, filename);
     await fs.writeFile(filePath, content, 'utf8');
     res.json({ success: true, message: '文件保存成功' });
   } catch (error) {

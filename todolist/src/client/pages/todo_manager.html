@@ -158,6 +158,12 @@
             .bg-task-color-8 {
                 background-color: #fdf2f8;
             }
+            .bg-task-color-9 {
+                background-color: #f59e0b;
+            }
+            .bg-task-color-10 {
+                background-color: #ef4444;
+            }
             
             .calendar-task.pending {
                 @apply border-status-pending;
@@ -546,39 +552,11 @@
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         
-        /* 美化滚动条 */
-        .multiselect-dropdown select::-webkit-scrollbar {
-          width: 6px;
-        }
-        
-        .multiselect-dropdown select::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 3px;
-        }
-        
-        .multiselect-dropdown select::-webkit-scrollbar-thumb {
-          background: #c5c5c5;
-          border-radius: 3px;
-        }
-        
-        .multiselect-dropdown select::-webkit-scrollbar-thumb:hover {
-          background: #a8a8a8;
-        }
-        
         /* 响应式调整 */
         @media (max-width: 768px) {
           .multiselect-dropdown {
             width: 100%;
           }
-          
-          /* 移除下拉框高度限制 */
-        }
-        
-        /* 美化focus状态 */
-        .multiselect-dropdown select:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         
         /* 美化滚动条 */
@@ -605,26 +583,7 @@
           /* 移除下拉框固定高度 */
         }
         
-        /* 任务背景色类定义 - 从HTML的tailwind.config中提取 */
-        .bg-task-color-1 {
-          background-color: #3b82f6; /* 蓝色 */
-        }
-        
-        .bg-task-color-2 {
-          background-color: #10b981; /* 绿色 */
-        }
-        
-        .bg-task-color-3 {
-          background-color: #8b5cf6; /* 紫色 */
-        }
-        
-        .bg-task-color-4 {
-          background-color: #f97316; /* 橙色 */
-        }
-        
-        .bg-task-color-5 {
-          background-color: #ec4899; /* 粉色 */
-        }
+        /* 任务背景色样式已在前面定义 */
         
         /* 缩小任务列表中任务相关文案的字体 */
         #task-list h3 {
@@ -678,25 +637,6 @@
           font-size: 0.75rem !important;
         }
         
-        .bg-task-color-6 {
-          background-color: #06b6d4; /* 青色 */
-        }
-        
-        .bg-task-color-7 {
-          background-color: #84cc16; /* 黄绿 */
-        }
-        
-        .bg-task-color-8 {
-          background-color: #d946ef; /* 亮紫 */
-        }
-        
-        .bg-task-color-9 {
-          background-color: #f59e0b; /* 金黄 */
-        }
-        
-        .bg-task-color-10 {
-          background-color: #ef4444; /* 红色 */
-        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
