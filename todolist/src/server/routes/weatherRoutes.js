@@ -15,8 +15,9 @@ const CACHE_DIR = path.join(__dirname, '../../../data/cache');
 const MOCK_DIR = path.join(__dirname, '../../../data/mock');
 // tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js
 // moji_weather_area_codes.json 数据源： https://m.moji.com/weather/china/beijing
-// 天气地区编码缓存文件路径(合并了天气网和墨迹天气的地区代码)
-const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_tianqi_moji_area_codes.json');
+// merged_tianqi_moji_area_codes        天气地区编码缓存文件路径(合并了天气网和墨迹天气的地区代码)
+// merged_tianqi_moji_nmc_area_codes    天气地区编码缓存文件路径(合并了天气网,墨迹天气和中央气象台的地区代码)
+const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_tianqi_moji_nmc_area_codes.json');
 let mockWeatherData;
 let mockIpAreaData;
 let areaCodesData;
@@ -136,7 +137,7 @@ function cacheWeatherInfo(weatherCode, mojiAreaCode = null, weatherData = null) 
 function findDistrictInfo(areaData, provinceName, districtName) {
     let result = null;
     // 递归搜索函数
-    function searchRecursive(data, currentProvince, currentCity, provinceMojiCode) {
+    function searchRecursive(data, currentProvince, currentCity, provinceItem) {
         if (!data || !Array.isArray(data)) return;
 
         for (const item of data) {
@@ -145,10 +146,12 @@ function findDistrictInfo(areaData, provinceName, districtName) {
                 result = {
                     province: currentProvince,
                     city: currentCity,
-                    district: item.name,
                     code: item.code,
+                    district: item.name,
+                    provinceMojiCode: provinceItem.mojiCode,
                     mojiCode: item.mojiCode,
-                    provinceMojiCode: provinceMojiCode
+                    provinceNmcCode: provinceItem.nmcCode,
+                    nmcCode: item.nmcCode,
                 };
                 return;
             }
@@ -157,13 +160,13 @@ function findDistrictInfo(areaData, provinceName, districtName) {
             if (item.children && item.children.length > 0) {
                 if (currentProvince === null) {
                     // 第一级：省份
-                    searchRecursive(item.children, item.name, null, item.mojiCode);
+                    searchRecursive(item.children, item.name, null, item);
                 } else if (currentCity === null) {
                     // 第二级：城市
-                    searchRecursive(item.children, currentProvince, item.name, provinceMojiCode);
+                    searchRecursive(item.children, currentProvince, item.name, provinceItem);
                 } else {
                     // 第三级：区县
-                    searchRecursive(item.children, currentProvince, currentCity, provinceMojiCode);
+                    searchRecursive(item.children, currentProvince, currentCity, provinceItem);
                 }
             }
 
@@ -319,6 +322,8 @@ router.get('/ip-location', async (req, res) => {
                 addressData.code = districtInfo.code;
                 addressData.provinceMojiCode = districtInfo.provinceMojiCode;
                 addressData.districtMojiCode = districtInfo.mojiCode;
+                addressData.provinceNmcCode = districtInfo.provinceNmcCode;
+                addressData.districtNmcCode = districtInfo.nmcCode;
             }
         }
         console.log('返回完整的位置数据:', addressData.toString());
@@ -581,9 +586,10 @@ router.get('/weather-info', async (req, res) => {
         return res.json(mockWeatherData);
     }
     console.log('收到今日天气请求，查询参数:', req.query);
-    const mojiAreaCode = req.query.mojiAreaCode;
     const weatherCode = req.query.weatherCode;
-    
+    const mojiAreaCode = req.query.mojiAreaCode;
+    const nmcAreaCode = req.query.nmcAreaCode;
+
     // 验证必要参数
     if (!weatherCode) {
         return res.status(400).json({ error: '缺少weatherCode参数' });
@@ -788,7 +794,7 @@ router.get('/weather-info', async (req, res) => {
         }
         
         const weatherData = {
-            timestamp: timestamp, mojiAreaCode: mojiAreaCode, weatherCode: weatherCode,
+            timestamp: timestamp, weatherCode: weatherCode, mojiAreaCode: mojiAreaCode, nmcAreaCode: nmcAreaCode,
             todayWeather:todayWeather, recentDaysWeather:recentDaysWeatherData, calendarWeather:calendarWeather,
         };
         console.log('天气数据提取完成');
@@ -801,7 +807,6 @@ router.get('/weather-info', async (req, res) => {
         const hasDetail = Object.keys(todayDetailWeatherData || {}).length;
         const hasRecentDays = Object.keys(recentDaysWeatherData || {}).length;
         const hasCalendar = Object.keys(calendarAndHistoryWeatherData || {}).length;
-        console.log(`calendarAndHistoryWeatherData: ${JSON.stringify(calendarAndHistoryWeatherData)}`)
 
         if (hasMoji && hasToday && hasTodayLiveWeather && hasTodayHourlyWeather && hasTodayLifeHelper && hasDetail && hasRecentDays&& hasCalendar) {
             console.log('所有API结果数据完整，缓存天气数据');

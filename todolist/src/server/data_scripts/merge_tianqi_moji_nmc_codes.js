@@ -3,28 +3,28 @@ const path = require('path');
 
 const BASE_DIR = path.join(__dirname, '../../../');
 // 文件路径
-const tianqiAreaCodesPath = path.join(BASE_DIR, 'todolist/data/weather/tianqi_area_codes.json');
-const mojiWeatherAreaCodesPath = path.join(BASE_DIR, 'todolist/data/weather/moji_weather_area_codes.json');
-const outputFilePath = path.join(BASE_DIR, 'todolist/data/weather/merged_tianqi_moji_area_codes.json');
-const logFilePath = path.join(BASE_DIR, 'todolist/logs/moji_code_merge_log.txt');
+const mergedTianqiMojiPath = path.join(BASE_DIR, 'data/weather/merged_tianqi_moji_area_codes.json');
+const nmcWeatherAreaCodesPath = path.join(BASE_DIR, 'data/weather/nmc_weather_area_codes.json');
+const outputFilePath = path.join(BASE_DIR, 'data/weather/merged_tianqi_moji_nmc_area_codes.json');
+const logFilePath = path.join(BASE_DIR, 'logs/nmc_code_merge_log.txt');
 
 try {
     console.log('开始读取文件...');
     
     // 读取并解析JSON文件
-    const tianqiData = JSON.parse(fs.readFileSync(tianqiAreaCodesPath, 'utf8'));
-    const mojiData = JSON.parse(fs.readFileSync(mojiWeatherAreaCodesPath, 'utf8'));
+    const mergedData = JSON.parse(fs.readFileSync(mergedTianqiMojiPath, 'utf8'));
+    const nmcData = JSON.parse(fs.readFileSync(nmcWeatherAreaCodesPath, 'utf8'));
     
-    console.log('文件读取完成，开始构建mojiCode映射...');
+    console.log('文件读取完成，开始构建nmcCode映射...');
     
-    // 存储所有moji数据项，方便后续查找
-    const allMojiItems = [];
+    // 存储所有nmc数据项，方便后续查找
+    const allNmcItems = [];
     
-    // 收集所有moji数据项
-    function collectMojiItems(items, parentName = '', provinceCode = null) {
+    // 收集所有nmc数据项
+    function collectNmcItems(items, parentName = '', provinceCode = null) {
         items.forEach(item => {
             // 保存完整信息，包括父级名称（用于构建完整路径）
-            allMojiItems.push({
+            allNmcItems.push({
                 ...item,
                 parentName,
                 provinceCode: provinceCode || item.code,
@@ -33,28 +33,33 @@ try {
             
             // 递归收集子项
             if (item.children && Array.isArray(item.children)) {
-                collectMojiItems(item.children, item.name, provinceCode || item.code);
+                collectNmcItems(item.children, item.name, provinceCode || item.code);
             }
         });
     }
     
-    // 收集所有moji数据
-    collectMojiItems(mojiData.data);
+    // 收集所有nmc数据
+    collectNmcItems(nmcData.data);
     
-    console.log(`收集完成，共收集 ${allMojiItems.length} 个地区项`);
+    console.log(`收集完成，共收集 ${allNmcItems.length} 个地区项`);
     
     // 统计信息
     let totalProcessed = 0;
     let provinceProcessed = 0;
     let districtProcessed = 0;
-    let provinceMojiCodeFound = 0;
-    let districtMojiCodeFound = 0;
+    let provinceNmcCodeFound = 0;
+    let districtNmcCodeFound = 0;
     let matchDetails = [];
     
     // 移除地区名称后缀的函数
     function removeRegionSuffix(name) {
         // 移除常见的行政区划后缀
         return name.replace(/[市区县旗盟特区]$|自治区$/, '');
+    }
+    
+    // 移除括号中的内容
+    function removeBracketsContent(name) {
+        return name.replace(/\([^)]*\)/g, '').trim();
     }
     
     // 添加可能的后缀进行尝试匹配
@@ -73,58 +78,66 @@ try {
     }
     
     // 模糊匹配函数
-    function fuzzyMatch(targetName, mojiItem) {
-        const cleanTargetName = removeRegionSuffix(targetName);
-        const cleanMojiName = removeRegionSuffix(mojiItem.name);
+    function fuzzyMatch(targetName, nmcItem) {
+        // 处理目标名称，移除括号内容和后缀
+        const cleanTargetName = removeRegionSuffix(removeBracketsContent(targetName));
+        // 处理nmc名称，移除后缀
+        const cleanNmcName = removeRegionSuffix(nmcItem.name);
         
         // 完全匹配
-        if (cleanTargetName === cleanMojiName || 
-            targetName === mojiItem.name ||
-            cleanTargetName === mojiItem.name ||
-            targetName === cleanMojiName) {
+        if (cleanTargetName === cleanNmcName || 
+            targetName === nmcItem.name ||
+            cleanTargetName === nmcItem.name ||
+            targetName === cleanNmcName ||
+            removeBracketsContent(targetName) === nmcItem.name ||
+            targetName === removeBracketsContent(nmcItem.name)) {
             return true;
         }
         
-        // 部分匹配（目标名称是moji名称的一部分，或者反之）
-        if (cleanMojiName.includes(cleanTargetName) || 
-            cleanTargetName.includes(cleanMojiName)) {
+        // 部分匹配（目标名称是nmc名称的一部分，或者反之）
+        if (cleanNmcName.includes(cleanTargetName) || 
+            cleanTargetName.includes(cleanNmcName)) {
             return true;
         }
         
         // 所有字符都被包含
-        if (cleanTargetName.split('').every(char => cleanMojiName.includes(char)) || 
-            cleanMojiName.split('').every(char => cleanTargetName.includes(char))) {
+        if (cleanTargetName.split('').every(char => cleanNmcName.includes(char)) || 
+            cleanNmcName.split('').every(char => cleanTargetName.includes(char))) {
             return true;
         }
         
         return false;
     }
     
-    // 查找匹配的mojiCode
-    function findMojiCode(targetName, province = null) {
-        // 先根据省份筛选moji数据（如果提供了省份）
-        let filteredItems = allMojiItems;
+    // 查找匹配的nmcCode
+    function findNmcCode(targetName, province = null) {
+        // 先根据省份筛选nmc数据（如果提供了省份）
+        let filteredItems = allNmcItems;
         if (province) {
-            // 尝试找到对应省份的moji数据
-            const provinceMoji = allMojiItems.find(item => 
+            // 尝试找到对应省份的nmc数据
+            const provinceNmc = allNmcItems.find(item => 
                 item.parentName === '' && // 顶级项目（省份）
-                (item.name === province || removeRegionSuffix(item.name) === removeRegionSuffix(province))
+                (removeBracketsContent(item.name) === province || 
+                 removeRegionSuffix(removeBracketsContent(item.name)) === removeRegionSuffix(province))
             );
             
-            if (provinceMoji) {
+            if (provinceNmc) {
                 // 筛选出该省份下的所有地区
-                filteredItems = allMojiItems.filter(item => 
-                    item.provinceCode === provinceMoji.code || 
-                    (item.parentName === provinceMoji.name && item.provinceCode === item.code)
+                filteredItems = allNmcItems.filter(item => 
+                    item.provinceCode === provinceNmc.code
                 );
             }
         }
         
+        // 处理目标名称，移除括号内容
+        const cleanTargetName = removeBracketsContent(targetName);
+        
         // 1. 尝试精确匹配
         let match = filteredItems.find(item => 
             item.name === targetName || 
+            item.name === cleanTargetName ||
             removeRegionSuffix(item.name) === targetName ||
-            item.name === removeRegionSuffix(targetName)
+            removeRegionSuffix(item.name) === cleanTargetName
         );
         
         if (match) {
@@ -132,7 +145,7 @@ try {
         }
         
         // 2. 尝试添加后缀匹配
-        const withSuffix = tryWithSuffixes(targetName, (testName) => {
+        const withSuffix = tryWithSuffixes(cleanTargetName, (testName) => {
             return filteredItems.find(item => 
                 item.name === testName || 
                 removeRegionSuffix(item.name) === testName
@@ -151,7 +164,6 @@ try {
         
         // 如果只有一个模糊匹配结果，使用它
         if (fuzzyMatches.length === 1) {
-            // console.log(`${targetName} 模糊匹配到唯一结果: ${fuzzyMatches[0].name}`);
             return { code: fuzzyMatches[0].code, method: '模糊匹配' };
         } else if (fuzzyMatches.length > 1) {
             // 对模糊匹配的结果进行排序
@@ -194,16 +206,16 @@ try {
         items.forEach(item => {
             totalProcessed++;
             
-            // 根据层级决定是否设置mojiCode
+            // 根据层级决定是否设置nmcCode
             if (level === 0) { // 省份级别
                 provinceProcessed++;
                 
-                // 查找省份的mojiCode
-                const { code, method } = findMojiCode(item.name);
+                // 查找省份的nmcCode
+                const { code, method } = findNmcCode(item.name);
                 
                 if (code) {
-                    item.mojiCode = code;
-                    provinceMojiCodeFound++;
+                    item.nmcCode = code;
+                    provinceNmcCodeFound++;
                     
                     matchDetails.push({
                         name: item.name,
@@ -214,15 +226,15 @@ try {
                     
                     // console.log(`省份 ${item.name} -> ${code} (${method})`);
                 } else {
-                    item.mojiCode = null;
-                    console.log(`省份 ${item.name} 未找到匹配的mojiCode`);
+                    item.nmcCode = null;
+                    console.log(`省份 ${item.name} 未找到匹配的nmcCode`);
                 }
                 
                 // 递归处理子项（城市级别）
                 if (item.children && Array.isArray(item.children)) {
                     processData(item.children, 1, item.name);
                 }
-            } else if (level === 1) { // 城市级别 - 不设置mojiCode
+            } else if (level === 1) { // 城市级别 - 不设置nmcCode
                 // 递归处理子项（区县级别）
                 if (item.children && Array.isArray(item.children)) {
                     processData(item.children, 2, provinceName);
@@ -230,12 +242,12 @@ try {
             } else if (level === 2) { // 区县级别
                 districtProcessed++;
                 
-                // 查找区县的mojiCode，使用省份名称进行关联
-                const { code, method } = findMojiCode(item.name, provinceName);
+                // 查找区县的nmcCode，使用省份名称进行关联
+                const { code, method } = findNmcCode(item.name, provinceName);
                 
                 if (code) {
-                    item.mojiCode = code;
-                    districtMojiCodeFound++;
+                    item.nmcCode = code;
+                    districtNmcCodeFound++;
                     
                     matchDetails.push({
                         name: item.name,
@@ -247,8 +259,8 @@ try {
                     
                     // console.log(`区县 ${provinceName} - ${item.name} -> ${code} (${method})`);
                 } else {
-                    item.mojiCode = null;
-                    console.log(`区县 ${provinceName} - ${item.name} 未找到匹配的mojiCode`);
+                    item.nmcCode = null;
+                    console.log(`区县 ${provinceName} - ${item.name} 未找到匹配的nmcCode`);
                 }
             }
         });
@@ -257,25 +269,25 @@ try {
     console.log('开始处理数据结构...');
     
     // 处理数据
-    processData(tianqiData.data);
+    processData(mergedData.data);
     
     // 更新时间戳
-    tianqiData.timestamp = Date.now();
+    mergedData.timestamp = Date.now();
     
     console.log('数据处理完成，开始写入文件...');
     
     // 写入合并后的数据
-    fs.writeFileSync(outputFilePath, JSON.stringify(tianqiData, null, 2), 'utf8');
+    fs.writeFileSync(outputFilePath, JSON.stringify(mergedData, null, 2), 'utf8');
     
     // 写入匹配详情日志
     const logContent = [
-        '=== mojiCode 合并日志 ===',
+        '=== nmcCode 合并日志 ===',
         `更新时间: ${new Date().toLocaleString()}`,
         `总共处理的地区数量: ${totalProcessed}`,
         `省份数量: ${provinceProcessed}`,
-        `成功匹配省份mojiCode数量: ${provinceMojiCodeFound}`,
+        `成功匹配省份nmcCode数量: ${provinceNmcCodeFound}`,
         `区县数量: ${districtProcessed}`,
-        `成功匹配区县mojiCode数量: ${districtMojiCodeFound}`,
+        `成功匹配区县nmcCode数量: ${districtNmcCodeFound}`,
         '',
         '匹配详情:',
         matchDetails.map(d => {
@@ -292,9 +304,9 @@ try {
     console.log('合并统计信息:');
     console.log(`- 总共处理的地区数量: ${totalProcessed}`);
     console.log(`- 省份数量: ${provinceProcessed}`);
-    console.log(`- 成功匹配省份mojiCode数量: ${provinceMojiCodeFound}`);
+    console.log(`- 成功匹配省份nmcCode数量: ${provinceNmcCodeFound}`);
     console.log(`- 区县数量: ${districtProcessed}`);
-    console.log(`- 成功匹配区县mojiCode数量: ${districtMojiCodeFound}`);
+    console.log(`- 成功匹配区县nmcCode数量: ${districtNmcCodeFound}`);
     console.log(`- 合并后的数据已保存至: ${outputFilePath}`);
     console.log(`- 合并日志已保存至: ${logFilePath}`);
     console.log('========================================');
