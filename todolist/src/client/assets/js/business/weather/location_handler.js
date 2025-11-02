@@ -48,6 +48,7 @@ const WEATHER_API = {
             fullDistrictMap: {},
             mojiCodeMap: {},
             nmcCodeMap: {},
+            cmaCodeMap: {},
         },
 
         /**
@@ -59,6 +60,7 @@ const WEATHER_API = {
             this.dataCache.districtMap = {};
             this.dataCache.mojiCodeMap = {};
             this.dataCache.nmcCodeMap = {};
+            this.dataCache.cmaCodeMap = {};
             this.dataCache.fullDistrictMap = {};
         },
 
@@ -140,6 +142,7 @@ const WEATHER_API = {
                 mojiCode: district.mojiCode || '',
                 provinceNmcCode: province.nmcCode || '',
                 nmcCode: district.nmcCode || '',
+                cmaCode: district.cmaCode || '',
                 cityName: city.name || '',
                 districtName: district.name || '',
                 fullName: `${province.name || ''}${city.name || ''}${district.name || ''}`
@@ -172,6 +175,16 @@ const WEATHER_API = {
             if (district.name) {
                 this.dataCache.nmcCodeMap[district.name] = district.code;
             }
+
+            // 存储中国气象局编码映射
+            if (district.cmaCode) {
+                this.dataCache.cmaCodeMap[district.code] = `${district.cmaCode}`;
+            } else if (district.code) {
+                this.dataCache.cmaCodeMap[district.code] = this.dataCache.cmaCodeMap[district.code] || '';
+            }
+            if (district.name) {
+                this.dataCache.cmaCodeMap[district.name] = district.code;
+            }
         },
 
         _normalizeProvinceName: (name) => String(name || '').replace(/省$/, '').trim(),
@@ -185,9 +198,10 @@ const WEATHER_API = {
                 districtCount: Object.keys(this.dataCache.districtMap).length,
                 mojiCodeCount: Object.keys(this.dataCache.mojiCodeMap).length,
                 nmcCodeCount: Object.keys(this.dataCache.nmcCodeMap).length,
+                cmaCodeCount: Object.keys(this.dataCache.cmaCodeMap).length,
                 fullDistrictCount: Object.keys(this.dataCache.fullDistrictMap).length
             };
-            this._log(`区域映射构建完成 - 省份: ${stats.provinceCount}, 城市: ${stats.cityCount}, 区县: ${stats.districtCount}, 墨迹编码: ${stats.mojiCodeCount}, 中央气象台编码: ${stats.nmcCodeCount}, 完整区县信息: ${stats.fullDistrictCount}`);
+            this._log(`区域映射构建完成 - 省份: ${stats.provinceCount}, 城市: ${stats.cityCount}, 区县: ${stats.districtCount}, 墨迹编码: ${stats.mojiCodeCount}, 中央气象台编码: ${stats.nmcCodeCount}, 中国气象局编码: ${stats.cmaCodeCount}, 完整区县信息: ${stats.fullDistrictCount}`);
         },
 
         /**
@@ -333,6 +347,12 @@ const WEATHER_API = {
         getNmcCode: function (districtCode) {
             return this.dataCache.nmcCodeMap[districtCode] || '';
         },
+        /**
+         * [公共] 获取中国气象局编码
+         */
+        getCmaCode: function (districtCode) {
+            return this.dataCache.cmaCodeMap[districtCode] || '';
+        },
 
         /**
          * [公共] 在省份下直接查找区县（用于IP定位只有province和district的情况）
@@ -376,6 +396,7 @@ const WEATHER_API = {
                                         mojiCode: district.mojiCode || '',
                                         provinceNmcCode: province.nmcCode || '',
                                         nmcCode: district.nmcCode || '',
+                                        cmaCode: district.cmaCode || '',
                                         cityName: city.name || '',
                                         districtName: district.name || '',
                                         fullName: `${province.name || ''}${city.name || ''}${district.name || ''}`
@@ -781,10 +802,12 @@ const WEATHER_API = {
             const mojiAreaCode = this.dataManager.getMojiCode(selectedDistrictCode);
             // 获取NmcCode
             const nmcAreaCode = this.dataManager.getNmcCode(selectedDistrictCode);
-            this._log(`选择的区县代码: ${selectedDistrictCode}, 墨迹编码: ${mojiAreaCode || '未找到'}, 中央气象台编码: ${nmcAreaCode || '未找到'}`);
+            // 获取CmaCode
+            const cmaAreaCode = this.dataManager.getCmaCode(selectedDistrictCode);
+            this._log(`选择的区县代码: ${selectedDistrictCode}, 墨迹编码: ${mojiAreaCode || '未找到'}, 中央气象台编码: ${nmcAreaCode || '未找到'}, 中国气象局编码: ${cmaAreaCode || '未找到'}`);
 
             // 调用全局天气加载函数
-            loadWeatherData(selectedDistrictCode, mojiAreaCode, nmcAreaCode);
+            loadWeatherData(selectedDistrictCode, mojiAreaCode, nmcAreaCode, cmaAreaCode);
         },
 
         /**
@@ -800,7 +823,7 @@ const WEATHER_API = {
             // 如果IP API直接返回了weatherCode，优先加载一次天气
             if (locationData.weatherCode) {
                 this._log('IP定位已获取weatherCode，优先加载天气数据');
-                loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode, locationData.nmcAreaCode);
+                loadWeatherData(locationData.weatherCode, locationData.mojiAreaCode, locationData.nmcAreaCode, locationData.cmaAreaCode);
             }
 
             // 开始匹配下拉框
@@ -917,7 +940,7 @@ const WEATHER_API = {
 
             // 即使匹配下拉框失败，如果IP返回了code，也加载天气
             if (weatherCode) {
-                loadWeatherData(weatherCode, locationData.mojiAreaCode || '', locationData.nmcAreaCode || '');
+                loadWeatherData(weatherCode, locationData.mojiAreaCode || '', locationData.nmcAreaCode || '', locationData.cmaAreaCode || '');
             } else {
                 // 如果连code都没有，切换到手动
                 this.uiManager.showManualSelection();

@@ -17,7 +17,8 @@ const MOCK_DIR = path.join(__dirname, '../../../data/mock');
 // moji_weather_area_codes.json 数据源： https://m.moji.com/weather/china/beijing
 // merged_tianqi_moji_area_codes        天气地区编码缓存文件路径(合并了天气网和墨迹天气的地区代码)
 // merged_tianqi_moji_nmc_area_codes    天气地区编码缓存文件路径(合并了天气网,墨迹天气和中央气象台的地区代码)
-const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_tianqi_moji_nmc_area_codes.json');
+// merged_weather_area_codes            天气地区编码缓存文件路径(合并了天气网,墨迹天气和,央气象台和中国气象局的地区代码)
+const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
 let mockWeatherData;
 let mockIpAreaData;
 let areaCodesData;
@@ -152,6 +153,7 @@ function findDistrictInfo(areaData, provinceName, districtName) {
                     mojiCode: item.mojiCode,
                     provinceNmcCode: provinceItem.nmcCode,
                     nmcCode: item.nmcCode,
+                    cmaCode: item.cmaCode,
                 };
                 return;
             }
@@ -324,6 +326,7 @@ router.get('/ip-location', async (req, res) => {
                 addressData.districtMojiCode = districtInfo.mojiCode;
                 addressData.provinceNmcCode = districtInfo.provinceNmcCode;
                 addressData.districtNmcCode = districtInfo.nmcCode;
+                addressData.districtCmaCode = districtInfo.cmaCode;
             }
         }
         console.log('返回完整的位置数据:', addressData.toString());
@@ -589,6 +592,7 @@ router.get('/weather-info', async (req, res) => {
     const weatherCode = req.query.weatherCode;
     const mojiAreaCode = req.query.mojiAreaCode;
     const nmcAreaCode = req.query.nmcAreaCode;
+    const cmaAreaCode = req.query.cmaAreaCode;
 
     // 验证必要参数
     if (!weatherCode) {
@@ -794,7 +798,7 @@ router.get('/weather-info', async (req, res) => {
         }
         
         const weatherData = {
-            timestamp: timestamp, weatherCode: weatherCode, mojiAreaCode: mojiAreaCode, nmcAreaCode: nmcAreaCode,
+            timestamp: timestamp, weatherCode: weatherCode, mojiAreaCode: mojiAreaCode, nmcAreaCode: nmcAreaCode, cmaAreaCode: cmaAreaCode,
             todayWeather:todayWeather, recentDaysWeather:recentDaysWeatherData, calendarWeather:calendarWeather,
         };
         console.log('天气数据提取完成');

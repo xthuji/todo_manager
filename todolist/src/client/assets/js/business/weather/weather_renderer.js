@@ -139,9 +139,10 @@ window.WeatherModule.View = {
      * @param {string} weatherCode - 中国天气网代码
      * @param {string} mojiAreaCode - 墨迹区域代码
      * @param {string} nmcAreaCode - 中央气象台区域代码
+     * @param {string} cmaAreaCode - 中国气象台区域代码
      */
-    updateLinks: function(weatherCode, mojiAreaCode, nmcAreaCode) {
-        logStep(`更新天气网站链接: weatherCode=${weatherCode}, mojiAreaCode=${mojiAreaCode}, nmcAreaCode=${nmcAreaCode}`);
+    updateLinks: function(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode) {
+        logStep(`更新天气网站链接: weatherCode=${weatherCode}, mojiAreaCode=${mojiAreaCode}, nmcAreaCode=${nmcAreaCode}, cmaAreaCode=${cmaAreaCode}`);
 
         const weatherComCnLink = document.getElementById('weather-com-cn-link');
         if (weatherComCnLink) {
@@ -169,10 +170,21 @@ window.WeatherModule.View = {
         if (nmcLink) {
             if (nmcAreaCode) {
                 nmcLink.href = `https://www.nmc.cn/publish/forecast/${nmcAreaCode}.html`;
-                nmcLink.title = `中央气象台 - ${mojiAreaCode}`;
+                nmcLink.title = `中央气象台 - ${nmcAreaCode}`;
             } else {
                 nmcLink.href = 'https://www.nmc.cn/publish/forecast/ABJ/beijing.html';
                 nmcLink.title = '中央气象台';
+            }
+        }
+
+        const cmaLink = document.getElementById('cma-link');
+        if (cmaLink) {
+            if (cmaAreaCode) {
+                cmaLink.href = `https://weather.cma.cn/web/weather/${cmaAreaCode}.html`;
+                cmaLink.title = `中国气象局 - ${cmaAreaCode}`;
+            } else {
+                cmaLink.href = 'https://weather.cma.cn/';
+                cmaLink.title = '中国气象局';
             }
         }
     },
@@ -1040,7 +1052,7 @@ window.WeatherModule.MainController = {
             const View = window.WeatherModule.View;
             const Charts = window.WeatherModule.Charts;
 
-            View.updateLinks(weatherData.weatherCode, weatherData.mojiAreaCode, weatherData.nmcAreaCode);
+            View.updateLinks(weatherData.weatherCode, weatherData.mojiAreaCode, weatherData.nmcAreaCode, weatherData.cmaAreaCode);
 
             const { todayWeather, calendarWeather, hourlyForecast, hourlyWeather, recentDaysWeather } = weatherData;
 
@@ -1131,10 +1143,11 @@ window.WeatherModule.initFestivals = async function() {
  * @param {string} weatherCode - 天气代码
  * @param {string} mojiAreaCode - 墨迹区域代码
  * @param {string} nmcAreaCode - 中央气象台区域代码
+ * @param {string} cmaAreaCode - 中国气象局区域代码
  * @param {number} [retryCount=0] - 重试次数
  */
-function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, retryCount = 0) {
-    logStep(`加载天气数据，代码: ${weatherCode}, 墨迹编码: ${mojiAreaCode}, 重试次数: ${retryCount}`);
+function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, retryCount = 0) {
+    logStep(`加载天气数据，代码: ${weatherCode}, 墨迹编码: ${mojiAreaCode}, 中央气象台编码: ${nmcAreaCode}, 中国气象局编码: ${cmaAreaCode}, 重试次数: ${retryCount}`);
 
     if (!weatherCode) {
         logStep('错误: 缺少必要的天气代码参数');
@@ -1151,6 +1164,9 @@ function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, retryCount = 0)
     }
     if (nmcAreaCode) {
         url += `&nmcAreaCode=${encodeURIComponent(nmcAreaCode)}`;
+    }
+    if (cmaAreaCode) {
+        url += `&cmaAreaCode=${encodeURIComponent(cmaAreaCode)}`;
     }
     logStep(`发送天气数据请求: ${url}`);
 
@@ -1184,7 +1200,7 @@ function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, retryCount = 0)
                 if (retryCount < 2) {
                     logStep(`尝试重新获取天气数据，当前重试次数: ${retryCount + 1}`);
                     setTimeout(() => {
-                        loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, retryCount + 1); // 递归调用全局函数
+                        loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, retryCount + 1); // 递归调用全局函数
                     }, 1000);
                 } else {
                     window.WeatherModule.View.showError('获取天气数据失败，请稍后重试'); // 调用 View 模块
@@ -1202,7 +1218,7 @@ function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, retryCount = 0)
             if (retryCount < 2) {
                 logStep(`因错误尝试重新获取天气数据，当前重试次数: ${retryCount + 1}`);
                 setTimeout(() => {
-                    loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, retryCount + 1); // 递归调用全局函数
+                    loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, retryCount + 1); // 递归调用全局函数
                 }, 1000);
             } else {
                 window.WeatherModule.View.showError(errorMessage); // 调用 View 模块
