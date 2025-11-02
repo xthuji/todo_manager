@@ -7,6 +7,9 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
+import {handleCache} from '../utils/cacheUtil.js'
+import {getLocation, getAreaCodes} from '../service/locationAreaService.js'
+
 const router = express.Router();
 
 const USE_MOCK = false;
@@ -25,58 +28,6 @@ let areaCodesData;
 if (fs.existsSync(AREA_CODES_FILE)) {
     const areaCodesContent = fs.readFileSync(AREA_CODES_FILE, 'utf-8');
     areaCodesData = JSON.parse(areaCodesContent);
-}
-
-// 通用缓存处理函数
-/**
- * 通用缓存处理函数，根据参数决定执行读取或写入操作
- * @param {string} cacheKey - 缓存的唯一标识符（如IP地址）
- * @param {Object|null} data - 要缓存的数据，如果为null则执行读取操作
- * @param {Object} options - 配置项
- * @param {string} options.cacheDir - 缓存目录路径
- * @param {string} options.cachePrefix - 缓存文件前缀
- * @param {number} options.ttl - 缓存过期时间（毫秒）
- * @param {string} options.extension - 缓存文件扩展名
- * @returns {Object|null} 读取模式下返回缓存的数据，写入模式下返回null
- */
-function handleCache(cacheKey, data = null, options = {}) {
-    if (!USE_CACHE) {
-        return null;
-    }
-    try {
-        // 清理缓存键，避免文件系统特殊字符问题
-        const safeCacheKey = cacheKey.replace(/\./g, '_');
-        const cacheFile = path.join(
-            options.cacheDir,
-            `${options.cachePrefix}${safeCacheKey}.${options.extension}`
-        );
-        
-        // 确保缓存目录存在
-        if (!fs.existsSync(options.cacheDir)) {
-            fs.mkdirSync(options.cacheDir, { recursive: true });
-        }
-        
-        // 写入模式
-        if (data !== null) {
-            fs.writeFileSync(cacheFile, JSON.stringify({
-                timestamp: Date.now(),
-                data: data
-            }), 'utf8');
-            return null;
-        }
-        
-        // 读取模式
-        if (fs.existsSync(cacheFile)) {
-            const cachedData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-            // 检查缓存是否有效
-            if (Date.now() - cachedData.timestamp < options.ttl) {
-                return cachedData.data;
-            }
-        }
-    } catch (error) {
-        console.error(`缓存${data !== null ? '写入' : '读取'}失败:`, error);
-    }
-    return null;
 }
 
 // 接口级别响应缓存处理函数
@@ -282,58 +233,11 @@ async function getLocation2() {
 // https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}
 // https://weather.cma.cn/api/weather/view
 router.get('/ip-location', async (req, res) => {
-    if (USE_MOCK) {
-        if (!mockIpAreaData) {
-            const mockIpAreaStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_ip_area.json'), 'utf-8');
-            mockIpAreaData = JSON.parse(mockIpAreaStr);
-        }
-        return res.json(mockIpAreaData);
-    }
     try {
         // 获取客户端IP地址
         const clientIp = getClientIp(req);
         console.log('接收到IP位置信息请求，客户端IP:', clientIp);
-        
-        // 尝试从接口级缓存获取结果
-        const cachedAddressData = cacheIpLocation(clientIp);
-        if (cachedAddressData) {
-            console.log('使用接口级缓存的位置信息响应');
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            return res.status(200).json({data: cachedAddressData});
-        }
-        
-        console.log('正在调用接口获取位置信息...');
-        
-        
-        // 位置数据
-        // 创建并行请求的Promise数组
-        const promises = [];
-        promises.push(getLocation1(), getLocation2());
-        const [addressData1, addressData2] = await Promise.all(promises);
-        const addressData = addressData2 || addressData1;
-        console.log(`定位数据: ${JSON.stringify(addressData)}. 结果1:${JSON.stringify(addressData1)}, 结果2:${JSON.stringify(addressData2)}`);
-
-        // 读取地区编码数据，用于查找完整的省市县信息
-        if (areaCodesData && addressData.province !== '未知省份' && addressData.district !== '未知区县') {
-            // 使用辅助函数查找完整的省市县信息
-            const districtInfo = findDistrictInfo(areaCodesData.data, addressData.province, addressData.district);
-            if (districtInfo) {
-                addressData.province = districtInfo.province || addressData.province;
-                addressData.city = districtInfo.city || addressData.city;
-                addressData.district = districtInfo.district || addressData.district;
-                addressData.code = districtInfo.code;
-                addressData.provinceMojiCode = districtInfo.provinceMojiCode;
-                addressData.districtMojiCode = districtInfo.mojiCode;
-                addressData.provinceNmcCode = districtInfo.provinceNmcCode;
-                addressData.districtNmcCode = districtInfo.nmcCode;
-                addressData.districtCmaCode = districtInfo.cmaCode;
-            }
-        }
-        console.log('返回完整的位置数据:', addressData.toString());
-        
-        // 将最终响应数据缓存到接口级缓存
-        cacheIpLocation(clientIp, addressData);
-        
+        let addressData = await getLocation(clientIp);
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.status(200).json({data: addressData});
     } catch (error) {
@@ -350,23 +254,8 @@ router.get('/ip-location', async (req, res) => {
 // 抓取省市县三级地址的天气区域编码数据
 router.get('/weather-area-codes', async (req, res) => {
     try {
-        if (areaCodesData) {
-            return res.status(200).json({
-                timestamp: areaCodesData.timestamp,
-                data: areaCodesData.data
-            });
-        }
-        if (fs.existsSync(AREA_CODES_FILE)) {
-            const areaCodesStr = fs.readFileSync(AREA_CODES_FILE, 'utf-8');
-            areaCodesData = JSON.parse(areaCodesStr);
-            // 省份（第一级）有mojiCode，没有code, 城市（第二级）没有code和mojiCode, 区县（第三级/叶子节点）有code和mojiCode
-            return res.status(200).json({
-                timestamp: areaCodesData.timestamp,
-                data: areaCodesData.data
-            });
-        } else {
-            throw new Error(`文件不存在，无法返回数据`);
-        }
+        let areaCodesData = getAreaCodes();
+        return res.status(200).json(areaCodesData);
     } catch (error) {
         console.error('获取天气区域编码数据时发生错误:', error);
         res.status(500).json({
