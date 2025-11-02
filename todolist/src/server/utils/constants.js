@@ -1,4 +1,15 @@
 
+// 是否mock接口数据
+import path from "path";
+
+export const USE_MOCK = false;
+// 是否使用接口缓存数据
+export const USE_CACHE = true;
+
+export const CACHE_DIR = path.join(__dirname, '../../../data/cache');
+export const MOCK_DIR = path.join(__dirname, '../../../data/mock');
+
+
 // 设置通用请求头
 export const WEATHER_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',

@@ -2,8 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 
-const USE_CACHE = true;
-
 /**
  * 通用缓存处理函数，根据参数决定执行读取或写入操作
  * @param {string} cacheKey - 缓存的唯一标识符（如IP地址）
@@ -16,9 +14,6 @@ const USE_CACHE = true;
  * @returns {Object|null} 读取模式下返回缓存的数据，写入模式下返回null
  */
 export function handleCache(cacheKey, data = null, options = {}) {
-    if (!USE_CACHE) {
-        return null;
-    }
     try {
         // 清理缓存键，避免文件系统特殊字符问题
         const safeCacheKey = cacheKey.replace(/\./g, '_');

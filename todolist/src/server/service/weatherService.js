@@ -1,67 +1,20 @@
 // 天气数据代理服务示例
 // 由于浏览器的同源策略限制，前端无法直接获取不同域名的天气数据
 // 此文件提供了一个Node.js + Express服务器端代理的路由模块实现
-const express = require('express');
+import {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK} from '../utils/constants.js'
+import {handleCache} from '../utils/cacheUtil.js'
+import {fetchMojiWeather} from "./weather/weatherMojiService";
+import {fetchTodayWeather, fetchRecentDaysWeather, fetchTodayDetailWeather, fetchCalendarAndHistoryWeather} from "./weather/weatherTianqiService";
+import {fetchNmcWeather} from "./weather/weatherNmcService";
+import {fetchCmaWeather} from "./weather/weatherCmaService";
+
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-import {handleCache} from '../utils/cacheUtil.js'
-import {getLocation, getAreaCodes} from '../service/locationAreaService.js'
-
-const router = express.Router();
-
-const USE_MOCK = false;
-const USE_CACHE = true;
-const CACHE_DIR = path.join(__dirname, '../../../data/cache');
-const MOCK_DIR = path.join(__dirname, '../../../data/mock');
-// tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js
-// moji_weather_area_codes.json 数据源： https://m.moji.com/weather/china/beijing
-// merged_tianqi_moji_area_codes        天气地区编码缓存文件路径(合并了天气网和墨迹天气的地区代码)
-// merged_tianqi_moji_nmc_area_codes    天气地区编码缓存文件路径(合并了天气网,墨迹天气和中央气象台的地区代码)
-// merged_weather_area_codes            天气地区编码缓存文件路径(合并了天气网,墨迹天气和,央气象台和中国气象局的地区代码)
-const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
 let mockWeatherData;
-let mockIpAreaData;
-let areaCodesData;
-if (fs.existsSync(AREA_CODES_FILE)) {
-    const areaCodesContent = fs.readFileSync(AREA_CODES_FILE, 'utf-8');
-    areaCodesData = JSON.parse(areaCodesContent);
-}
 
-// 接口级别响应缓存处理函数
-/**
- * 接口级别响应缓存处理函数，用于缓存整个API的响应结果
- * @param {string} clientIp - 客户端IP地址
- * @param {Object|null} responseData - 要缓存的响应数据，如果为null则执行读取操作
- * @returns {Object|null} 读取模式下返回缓存的响应数据，写入模式下返回null
- */
-function cacheIpLocation(clientIp, responseData = null) {
-    const cacheKey = `${clientIp}`.replaceAll(':', "_");
-    const defaultOptions = {
-        cachePrefix: 'ip_',
-        ttl: 300 * 60 * 1000, // 5小时缓存
-        cacheDir: CACHE_DIR,
-        extension: 'json'
-    };
-    
-    if (responseData !== null) {
-        console.log('缓存接口响应:', cacheKey);
-    }
-    
-    return handleCache(cacheKey, responseData, defaultOptions);
-}
-
-// 获取客户端IP地址
-function getClientIp(req) {
-    // 优先从X-Forwarded-For头获取（考虑代理），其次使用req.ip
-    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-           req.ip || 
-           'unknown_ip';
-}
-
-// 天气信息缓存入口函数
 /**
  * 天气信息缓存处理函数，封装handleCache并提供默认配置
  * @param {string} weatherCode - 天气代码
@@ -70,6 +23,9 @@ function getClientIp(req) {
  * @returns {Object|null} 读取模式下返回缓存的天气数据，写入模式下返回null
  */
 function cacheWeatherInfo(weatherCode, mojiAreaCode = null, weatherData = null) {
+    if (!USE_CACHE) {
+        return null;
+    }
     const cacheKey = `${weatherCode}_${mojiAreaCode || 'default'}`.replaceAll('/', '_');
     const defaultOptions = {
         cachePrefix: 'weather_',
@@ -86,388 +42,11 @@ function cacheWeatherInfo(weatherCode, mojiAreaCode = null, weatherData = null) 
 }
 
 // 辅助函数：递归查找区县信息，确定完整的省市县信息
-function findDistrictInfo(areaData, provinceName, districtName) {
-    let result = null;
-    // 递归搜索函数
-    function searchRecursive(data, currentProvince, currentCity, provinceItem) {
-        if (!data || !Array.isArray(data)) return;
-
-        for (const item of data) {
-            // 检查是否为叶子节点（区县）
-            if (item.code && item.name === districtName && currentProvince === provinceName) {
-                result = {
-                    province: currentProvince,
-                    city: currentCity,
-                    code: item.code,
-                    district: item.name,
-                    provinceMojiCode: provinceItem.mojiCode,
-                    mojiCode: item.mojiCode,
-                    provinceNmcCode: provinceItem.nmcCode,
-                    nmcCode: item.nmcCode,
-                    cmaCode: item.cmaCode,
-                };
-                return;
-            }
-
-            // 如果有children，继续递归搜索
-            if (item.children && item.children.length > 0) {
-                if (currentProvince === null) {
-                    // 第一级：省份
-                    searchRecursive(item.children, item.name, null, item);
-                } else if (currentCity === null) {
-                    // 第二级：城市
-                    searchRecursive(item.children, currentProvince, item.name, provinceItem);
-                } else {
-                    // 第三级：区县
-                    searchRecursive(item.children, currentProvince, currentCity, provinceItem);
-                }
-            }
-
-            if (result) break;
-        }
-    }
-
-    searchRecursive(areaData, null, null, null);
-    return result;
-}
-
-async function getLocation1() {
-    try {
-        console.log('正在调用气象局天气接口获取天气和位置信息...');
-        const weatherLocationApiResponse = await fetch('https://weather.cma.cn/api/weather/view', {
-            timeout: 10000 // 设置10秒超时
-        });
-        
-        if (!weatherLocationApiResponse.ok) {
-            throw new Error(`气象局天气接口接口响应状态码: ${weatherLocationApiResponse.status}`);
-        }
-        
-        const weatherLocationData = await weatherLocationApiResponse.json();
-        console.log('成功获取气象局天气接口数据');
-        
-        // 位置数据
-        return {
-            province: weatherLocationData.data.location.path
-                ? weatherLocationData.data.location.path.split(',')[1].replace('省', '').trim()
-                : '未知省份',
-            city: '未知城市',
-            district: weatherLocationData.data.location.name
-                ? weatherLocationData.data.location.name.replace(/[区县]$/, '')
-                : '未知区县',
-        };
-    } catch (error) {
-        console.error('气象局天气接口获取和处理位置信息时发生错误:', error);
-        return null;
-    }
-}
-
-async function getLocation2() {
-    try {
-        // 1. 调用ip-api获取基础位置信息
-        console.log('正在调用ip-api获取位置信息...');
-        const ipApiUrl = 'http://ip-api.com/json/?lang=zh-CN';
-        
-        const ipApiResponse = await fetch(ipApiUrl, {
-            timeout: 5000 // 设置5秒超时
-        });
-        
-        if (!ipApiResponse.ok) {
-            throw new Error(`ip-api响应状态码: ${ipApiResponse.status}`);
-        }
-        
-        let ipLocationData = await ipApiResponse.json();
-        console.log('成功获取ip-api位置数据');
-        
-        // 验证是否成功获取到经纬度信息
-        if (ipLocationData && typeof ipLocationData.lat === 'number' && typeof ipLocationData.lon === 'number') {
-            console.log(`从ip-api获取到的经纬度：纬度=${ipLocationData.lat}, 经度=${ipLocationData.lon}`);
-        } else {
-            console.warn('从ip-api未能获取到有效的经纬度信息');
-        }
-        
-        // 2. 使用从ip-api获取的IP地址调用美团地理位置服务获取省市区县信息
-        let weatherLocationData = null;
-        if (ipLocationData && ipLocationData.query) {
-            const ipAddress = ipLocationData.query;
-            console.log('正在调用美团地理位置服务获取详细地区信息...');
-            // 从ip-api获取的IP地址，传递给美团API
-            const meituanUrl = `https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}`;
-            console.log(`使用从ip-api获取的IP地址构建美团API请求: ${meituanUrl}`);
-
-            const meituanResponse = await fetch(meituanUrl, {
-                timeout: 5000,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (!meituanResponse.ok) {
-                throw new Error(`美团地理位置服务响应状态码: ${meituanResponse.status}`);
-            }
-
-            weatherLocationData = await meituanResponse.json();
-            console.log('成功获取美团地理位置服务数据');
-        }
-        
-        // 3. 综合两个API的数据，只返回省市区县信息
-        return {
-            province: weatherLocationData && weatherLocationData.data && weatherLocationData.data.rgeo && weatherLocationData.data.rgeo.province
-                ? weatherLocationData.data.rgeo.province.replace('省', '')
-                : '未知省份',
-            city: weatherLocationData && weatherLocationData.data && weatherLocationData.data.rgeo && weatherLocationData.data.rgeo.city
-                ? weatherLocationData.data.rgeo.city.replace('市', '')
-                : '未知城市',
-            district: weatherLocationData && weatherLocationData.data && weatherLocationData.data.rgeo && weatherLocationData.data.rgeo.district
-                ? weatherLocationData.data.rgeo.district.replace(/[区县]$/, '')
-                : '未知区县'
-        };
-    } catch (error) {
-        console.error('ip-api&美团位置接口获取和处理位置信息时发生错误:', error);
-        return null;
-    }
-}
-
-// 根据IP地址获取位置信息 - 综合多个API获取准确的城市地区信息
-// http://ip-api.com/json/?lang=zh-CN
-// https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}
-// https://weather.cma.cn/api/weather/view
-router.get('/ip-location', async (req, res) => {
-    try {
-        // 获取客户端IP地址
-        const clientIp = getClientIp(req);
-        console.log('接收到IP位置信息请求，客户端IP:', clientIp);
-        let addressData = await getLocation(clientIp);
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.status(200).json({data: addressData});
-    } catch (error) {
-        console.error('获取和处理位置信息时发生错误:', error);
-        // 异常时直接返回错误信息，由客户端自行处理
-        res.status(500).json({
-            success: false,
-            message: '获取位置信息失败',
-            error: error.message
-        });
-    }
-});
-
-// 抓取省市县三级地址的天气区域编码数据
-router.get('/weather-area-codes', async (req, res) => {
-    try {
-        let areaCodesData = getAreaCodes();
-        return res.status(200).json(areaCodesData);
-    } catch (error) {
-        console.error('获取天气区域编码数据时发生错误:', error);
-        res.status(500).json({
-            success: false,
-            message: '获取数据失败',
-            error: error.message
-        });
-    }
-});
-
-
 // 提取天气数据
-function extractMojiWeatherData(html) {
-    const $ = cheerio.load(html);
-    const weatherData = {
-        liveWeather: {},     // 实况天气
-        calendarWeather: []  // 天气日历
-    };
-
-    // 1. 提取今日实时天气
-    const tempRange = $('.forecast .days:nth-child(2) > li:nth-child(3)').text().replaceAll('°', '').trim() || '';
-    weatherData.liveWeather = {
-        time: $('.wea_info .wea_weather .info_uptime').text().replace('今天', '').replace('更新', '').trim() || '', // 更新时间
-        weather: $('.forecast .days:nth-child(2) > li:nth-child(2) b').text().trim() || '', // 天气状况
-        temperature: $('.wea_info .wea_weather em').text().replace('°', '').trim() || '',  // 实时温度
-        tempMin: tempRange.split('/')[0].trim() || '', // 最低温
-        tempMax: tempRange.split('/')[1].trim() || '', // 最高温
-        wind: $('.wea_info .wea_about em').text().trim() || '',        // 风向风力
-        humidity: $('.wea_info .wea_about span').text().replace('湿度：', '').replace('湿度', '').trim() || '', // 湿度
-        airQuality: $('.wea_info .wea_alert em').text().trim() || '', // 空气质量
-        tips: $('.wea_info .wea_tips em').text().trim() || '', // 天气提示
-    };
-
-    // 2. 提取天气日历
-    const calendarEls = $('.calendar #calendar_grid ul li.item');
-    const yearMonthStr = `${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
-    calendarEls.each((i, el) => {
-        if ($(el).find('em')?.text()?.trim() || '' === '') {
-            return;
-        }
-        const tempRange = $(el).find('p:nth-child(3)').text().replaceAll('°', '').trim() || ''
-        weatherData.calendarWeather.push({
-            date: `${yearMonthStr}${$(el).find('em').text().trim().padStart(2, '0')}`, // 20251002 格式
-            weather: $(el).find('b img').attr('alt')?.trim(),
-            tempMin: tempRange.split('/')[0].trim() || '', // 最低温
-            tempMax: tempRange.split('/')[1].trim() || '', // 最高温
-            wind: $(el).find('p:nth-child(4)').text().trim()
-        });
-    });
-
-    return weatherData;
-}
-
 // 提取今日天气数据
-function extractTodayWeatherData(html) {
-    const $ = cheerio.load(html);
-    const weatherData = {
-        liveWeather: {},    // 实况天气
-        hourlyWeather: [], // 逐小时预报
-        lifeHelper: []      // 生活助手
-    };
-
-    // 从js脚本中获取 实时天气 和 逐小时预报
-    const scriptContent = $('.L_weather > script:nth-child(3)').html();
-    if (scriptContent) {
-        // 使用正则表达式提取对象定义
-        const matchForecast1h = scriptContent.match(/var forecast_1h\s?=\s?(\[.*?\]);/s);
-        const matchForecastDefault = scriptContent.match(/var forecast_default\s?=\s?(\{.*?\});/s);
-    
-        if (matchForecastDefault) {
-            const forecastDefault = JSON.parse(matchForecastDefault[1]);
-            weatherData.liveWeather = {
-                time: forecastDefault.time,
-                weather: forecastDefault.weather,
-                temperature: forecastDefault.temp,
-                tempMax: forecastDefault.maxTemp,
-                tempMin: forecastDefault.minTemp,
-                wind: forecastDefault.wind, // 风向风力
-                humidity: forecastDefault.humidity,
-            };
-        }
-        if (matchForecast1h) {
-            const forecast1h = JSON.parse(matchForecast1h[1]);
-            weatherData.hourlyWeather = forecast1h.map(item => ({
-                hour: item.time,
-                weather: item.weather,
-                temperature: item.temp,
-                wind: `${item.windD} ${item.windL}`, // 风向风力
-            }));
-        }
-    }
-    // 从页面中获取 生活助手 数据
-    const lifeTitleContent = $('div.weather_shzs_1d > ul > li');
-    const lifeValueContent = $('div.weather_shzs_1d > div.lv > dl');
-    lifeTitleContent.each((i, el) => {
-        const value = $(lifeValueContent[i])
-        weatherData.lifeHelper.push({
-            title: $(el).find('h2').text().trim(),
-            value: value.find('em').text().trim(),
-            desc: value.find('dd').text().trim(),
-        });
-    });
-    return weatherData;
-}
-
 // 提取今日天气补充数据的函数
-function extractTodayDetailWeatherData(html) {
-    let weatherData = {};
-
-    // 使用正则表达式提取对象定义
-    const matchContent = html.match(/var dataSK\s?=\s?(\{.*?\});?/s);
-    if (matchContent) {
-        const detailWeather = JSON.parse(matchContent[1]);
-        weatherData = {
-            time: detailWeather.time, // 数据时间，与 liveWeather 的数据做合并时，比较时间来决定保留哪一边的数据
-            weather: detailWeather.weather,
-            temperature: detailWeather.temp,
-            // tempMin: detailWeather.temp,
-            // tempMax: detailWeather.temp,
-            wind: `${detailWeather.WD} ${detailWeather.WS}`, // 风向风力
-            humidity: detailWeather.sd, // 湿度
-            airQuality: detailWeather.aqi_pm25, // 空气质量
-            visibility: detailWeather.njd, // 能见度
-            limit: detailWeather.limitnumber, // 限行
-        };
-    }
-    return weatherData;
-}
-
 // 提取近几日天气补充数据的函数
-function extractRecentDaysWeatherData(html) {
-    const $ = cheerio.load(html);
-    const weatherData = [];
-
-    // 定位到7天预报的ul列表
-    const forecastItems = $('#7d ul li');
-    forecastItems.each((i, el) => {
-        const $li = $(el);
-
-        // 改用今天日期连续加一天的方式获取日期
-        const today = new Date();
-        const date = new Date(today);
-        date.setDate(today.getDate() + i); // i 为当前遍历的索引
-        const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        const dateStr = `${year}${month}${day}`;
-
-        // 将计算得到的 day 与页面中 li 元素里的日期数值比对，仅保留匹配项
-        const pageDateStr = $li.find('h1').text().trim().replace(/[^\d]/g, '');
-        if (!pageDateStr || (pageDateStr !== day && day !== pageDateStr.padStart(2, '0'))) return;
-
-        // 提取天气描述
-        const weather = $li.find('.wea').text().trim();
-
-        // 提取温度范围
-        const tempMax = $li.find('.tem span').text().trim().replace('℃', '');     // 最高温
-        const tempMin = $li.find('.tem i').text().trim().replace('℃', '');        // 最低温
-
-        // 提取风向风力
-        const windDir = $li.find('.win em span:first-child').attr('title').trim();      // 风向
-        const windSpeed = $li.find('.win i').text().trim();      // 风力
-        const wind = `${windDir} ${windSpeed}`;
-
-        weatherData.push({ date:dateStr, weather, tempMin, tempMax, wind });
-    });
-
-    return weatherData;
-}
-// 40天天气预报中的天气代码映射。 来源：https://i.tq121.com.cn/j/weather2017/c_40d.js
-const calendarWeatherMap = {0:"晴",1:"多云",2:"阴",3:"阵雨",4:"雷阵雨",5:"雷阵雨伴有冰雹",6:"雨夹雪",7:"小雨",8:"中雨",9:"大雨","00":"晴","01":"多云","02":"阴","03":"阵雨","04":"雷阵雨","05":"雷阵雨伴有冰雹","06":"雨夹雪","07":"小雨","08":"中雨","09":"大雨",10:"暴雨",11:"大暴雨",12:"特大暴雨",13:"阵雪",14:"小雪",15:"中雪",16:"大雪",17:"暴雪",18:"雾",19:"冻雨",20:"沙尘暴",21:"小到中雨",22:"中到大雨",23:"大到暴雨",24:"暴雨到大暴雨",25:"大暴雨到特大暴雨",26:"小到中雪",27:"中到大雪",28:"大到暴雪",29:"浮尘",30:"扬沙",31:"强沙尘暴",53:"霾",99:"无",32:"浓雾",49:"强浓雾",54:"中度霾",55:"重度霾",56:"严重霾",57:"大雾",58:"特强浓雾",301:"雨",302:"雪"};
-function getCalendarWeatherByCode(code1, code2) {
-    if (!code1 && !code2) {
-        return '';
-    }
-    const weather1 = code1 ? calendarWeatherMap[parseInt(code1)] : '';
-    const weather2 = code2 ? calendarWeatherMap[parseInt(code2)] : '';
-    if (weather1 && weather2) {
-        return `${weather1}转${weather2}`;
-    }
-    return weather1 || weather2 || '';
-}
 // 提取历史天气数据的函数
-function extractCalendarAndHistoryWeatherData(html) {
-    let weatherData = [];
-
-    // 使用正则表达式提取对象定义
-    const matchHistory = html.match(/var fc40\s?=\s?(\[.*?\]);?/s);
-    if (matchHistory) {
-        const calendarAndHistoryWeather = JSON.parse(matchHistory[1]);
-        // 过滤出本月的天气数据
-        // 获取 本月 和 下个月的 日期表示 yyyyMM 格式, 这里允许出现 202500 和 202513 的情况出现，过滤时不影响
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear();
-        const currMonthStr = `${currentYear}${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`; // 月份从0开始，需要+1
-        const nextMonthStr = `${currentYear}${(currentDate.getMonth() + 2).toString().padStart(2, '0')}`; // 月份从0开始，需要+1
-        // 过滤出本月的天气数据
-        weatherData = calendarAndHistoryWeather.filter(item => item.date>currMonthStr && item.date<nextMonthStr).map(el => {
-            return {
-                date: el.date, // 20251002 格式 
-                weather: el.w1 || getCalendarWeatherByCode(el.c1, el.c2), // 天气
-                wind: el.wd1, // 风力风向
-                historyTempMin: el.hmin, historyTempMax: el.hmax, // 历史均值
-                realTempMin: el.minobs, realTempMax: el.maxobs, // 实际天气
-                tempMin: el.min, tempMax: el.max, // 预报天气
-            };
-        });
-    }
-    return weatherData;
-}
-
-
 // 获取天气数据（实时处理 - 并行方式）
 // https://tianqi.moji.com/weather/china/zhejiang/xiaoshan-district
 // https://forecast.weather.com.cn/town/weather1dn/101210102.shtml
@@ -477,23 +56,23 @@ function extractCalendarAndHistoryWeatherData(html) {
 // https://www.weather.com.cn/weather40dn/101210102.shtml
 // https://weather.cma.cn/web/weather/58459.html
 // https://www.nmc.cn/publish/forecast/AZJ/wdcXE.html
-router.get('/weather-info', async (req, res) => {
+export async function getWeatherData(weatherAreaCodeParams){
     if (USE_MOCK) {
         if (!mockWeatherData) {
             const mockWeatherDataStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_weather_info.json'), 'utf-8');
             mockWeatherData = JSON.parse(mockWeatherDataStr)
         }
-        return res.json(mockWeatherData);
+        return mockWeatherData;
     }
-    console.log('收到今日天气请求，查询参数:', req.query);
-    const weatherCode = req.query.weatherCode;
-    const mojiAreaCode = req.query.mojiAreaCode;
-    const nmcAreaCode = req.query.nmcAreaCode;
-    const cmaAreaCode = req.query.cmaAreaCode;
+    console.log('收到今日天气请求，查询参数:', JSON.stringify(weatherAreaCodeParams));
+    const weatherCode = weatherAreaCodeParams.weatherCode;
+    const mojiAreaCode = weatherAreaCodeParams.mojiAreaCode;
+    const nmcAreaCode = weatherAreaCodeParams.nmcAreaCode;
+    const cmaAreaCode = weatherAreaCodeParams.cmaAreaCode;
 
     // 验证必要参数
     if (!weatherCode) {
-        return res.status(400).json({ error: '缺少weatherCode参数' });
+        throw new Error('缺少weatherCode参数');
     }
     
     // 根据新的规则：weatherCode=区县的code，mojiAreaCode=省份的mojiCode/区县的mojiCode
@@ -502,469 +81,112 @@ router.get('/weather-info', async (req, res) => {
     
     if (cachedWeatherData) {
         console.log('使用缓存的天气数据', weatherCode, mojiAreaCode);
-        return res.json(cachedWeatherData);
+        return cachedWeatherData;
     }
 
-    try {
-        // 创建并行请求的Promise数组
-        const promises = [];
-        const timestamp = Date.now();
-        
-        // 设置通用请求头
-        const headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2'
-        };
-        
-        // 1. 墨迹天气数据获取Promise
-        if (mojiAreaCode) {
-            const fetchMojiWeather = async () => {
-                try {
-                    const weatherUrl = `https://tianqi.moji.com/weather/china/${mojiAreaCode}`;
-                    console.log(`开始获取墨迹天气数据，正在访问: ${weatherUrl}`);
-                    const weatherResponse = await fetch(weatherUrl, { headers: headers, timeout: 5000 });
-            
-                    if (!weatherResponse.ok) {
-                        throw new Error(`HTTP响应状态码: ${weatherResponse.status}`);
-                    }
-                    const weatherHtml = await weatherResponse.text();
-                    const mojiWeatherData = extractMojiWeatherData(weatherHtml);
-                    console.log('成功提取墨迹天气数据');
-                    return mojiWeatherData;
-                } catch (error) {
-                    console.error('获取墨迹天气数据失败:', error.message);
-                    return { error: error.message || '获取墨迹天气数据失败' };
-                }
-            };
-            promises.push(fetchMojiWeather());
-        } else {
-            promises.push(Promise.resolve(null));
-        }
-        
-        // 2.1 今日天气数据获取Promise
-        const fetchTodayWeather = async () => {
-            try {
-                // 访问天气页面
-                const todayWeatherUrl = `https://forecast.weather.com.cn/town/weather1dn/${weatherCode}.shtml`;
-                console.log(`开始获取今日天气数据，正在访问: ${todayWeatherUrl}`);
-                
-                const weatherResponse = await fetch(todayWeatherUrl, { method: 'GET', headers: headers, timeout: 5000 });
-                
-                if (!weatherResponse.ok) {
-                    throw new Error(`HTTP响应状态码: ${weatherResponse.status}`);
-                }
-                
-                // 获取页面HTML内容
-                const weatherContent = await weatherResponse.text();
-                // 提取天气数据
-                const weatherData = extractTodayWeatherData(weatherContent);
-                console.log('成功提取今日天气数据');
-                return weatherData;
-            } catch (error) {
-                console.error('获取今日天气数据失败:', error.message);
-                return { error: error.message || '获取天气数据失败' };
-            }
-        };
-        promises.push(fetchTodayWeather());
-        
-        // 2.2 今日天气补充数据获取Promise
-        const fetchTodayDetailWeather = async () => {
-            try {
-                // 访问天气页面
-                const todayWeatherUrl = `https://d1.weather.com.cn/sk_2d/${weatherCode}.html?_=${timestamp}`;
-                console.log(`开始获取今日天气补充数据，正在访问: ${todayWeatherUrl}`);
-                
-                const weatherResponse = await fetch(todayWeatherUrl, { method: 'GET', headers: { ... headers, 'Referer': 'https://www.weather.com.cn/'}, timeout: 5000 });
-                
-                if (!weatherResponse.ok) {
-                    throw new Error(`HTTP响应状态码: ${weatherResponse.status}`);
-                }
-                
-                // 获取页面HTML内容
-                const weatherContent = await weatherResponse.text();
-                // 提取天气数据
-                const weatherData = extractTodayDetailWeatherData(weatherContent);
-                console.log('成功提取今日天气补充数据');
-                return weatherData;
-            } catch (error) {
-                console.error('获取今日天气补充数据失败:', error.message);
-                return { error: error.message || '获取天气数据失败' };
-            }
-        };
-        promises.push(fetchTodayDetailWeather());
-        
-        // 3. 近几日天气数据获取Promise
-        const fetchRecentDaysWeather = async () => {
-            try {
-                const daysWeatherUrl = `https://www.weather.com.cn/weather/${weatherCode}.shtml`;
-                console.log(`开始获取近几日天气数据，正在访问: ${daysWeatherUrl}`);
-                
-                const weatherResponse = await fetch(daysWeatherUrl, { method: 'GET', headers: headers, timeout: 5000 });
-                
-                if (!weatherResponse.ok) {
-                    throw new Error(`HTTP响应状态码: ${weatherResponse.status}`);
-                }
-                
-                // 获取页面HTML内容
-                const weatherContent = await weatherResponse.text();
-                // 提取近几日天气数据
-                const weatherData = extractRecentDaysWeatherData(weatherContent);
-                console.log('成功提取近几日天气数据');
-                return weatherData;
-            } catch (error) {
-                console.error('获取近几日天气数据失败:', error.message);
-                return { error: error.message || '获取近几日天气数据失败' };
-            }
-        };
-        promises.push(fetchRecentDaysWeather());
-        
-        // 4. 天气历史数据获取Promise
-        const fetchCalendarAndHistoryWeather = async () => {
-            try {
-                // 访问天气历史页面
-                const year = new Date().getFullYear();
-                // 日期格式化为 202510 yyyyMM 的形式
-                const yearMonth = `${year}${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
-                const historyWeatherUrl = `https://d1.weather.com.cn/calendarFromMon/${year}/${weatherCode}_${yearMonth}.html?_=${timestamp}`;
-                console.log(`开始获取天气历史数据，正在访问: ${historyWeatherUrl}`);
-                
-                const weatherResponse = await fetch(historyWeatherUrl, { method: 'GET', headers: { ... headers, 'Referer': 'https://www.weather.com.cn/'}, timeout: 5000 });
-                
-                if (!weatherResponse.ok) {
-                    throw new Error(`HTTP响应状态码: ${weatherResponse.status}`);
-                }
-                
-                // 获取页面HTML内容
-                const weatherContent = await weatherResponse.text();
-                // 提取天气历史数据
-                const weatherData = extractCalendarAndHistoryWeatherData(weatherContent);
-                console.log('成功提取天气历史数据');
-                return weatherData;
-            } catch (error) {
-                console.error('获取天气历史数据失败:', error.message);
-                return { error: error.message || '获取天气历史数据失败' };
-            }
-        };
-        promises.push(fetchCalendarAndHistoryWeather());
-        
-        // 5. CMA(中国气象局)天气数据获取Promise - 备用数据源
-        const fetchCmaWeather = async () => {
-            try {
-                if (!cmaAreaCode) {
-                    return null;
-                }
-                // 仅使用指定的URL接口
-                const cmaWeatherUrl = `https://weather.cma.cn/api/now/${cmaAreaCode}`;
-                console.log(`开始获取CMA天气数据，正在访问: ${cmaWeatherUrl}`);
-                
-                const weatherResponse = await fetch(cmaWeatherUrl, { method: 'GET', headers: headers, timeout: 5000 });
-                
-                if (!weatherResponse.ok) {
-                    throw new Error(`HTTP响应状态码: ${weatherResponse.status}`);
-                }
-                
-                const cmaData = await weatherResponse.json();
-                console.log('成功获取CMA天气数据');
-                
-                // 格式化CMA数据为统一格式
-                if (cmaData && cmaData.code === 200 && cmaData.data) {
-                    // 从lastUpdate获取时间，只保留HH:MM格式
-                    let timeStr = new Date().toLocaleTimeString('zh-CN');
-                    if (cmaData.data.lastUpdate) {
-                        const lastUpdate = cmaData.data.lastUpdate;
-                        if (typeof lastUpdate === 'string') {
-                            // 提取时间部分，格式如12:45
-                            const timeMatch = lastUpdate.match(/(\d{2}:\d{2})/);
-                            if (timeMatch && timeMatch[1]) {
-                                timeStr = timeMatch[1];
-                            }
-                        }
-                    }
-                    
-                    return {
-                        time: timeStr,
-                        weather: cmaData.data.weather || '',
-                        temperature: cmaData.data.temp || '',
-                        wind: `${cmaData.data.wd || ''} ${cmaData.data.ws || ''}`,
-                        humidity: cmaData.data.sd || '',
-                        pressure: cmaData.data.pressure || '',
-                        visibility: cmaData.data.visibility || '',
-                        precipitation: cmaData.data.precipitation || '',
-                        source: 'cma'
-                    };
-                }
-                return null;
-            } catch (error) {
-                console.error('获取CMA天气数据失败:', error.message);
-                return null;
-            }
-        };
-        promises.push(fetchCmaWeather());
-        
-        // 6. NMC(中央气象台)天气数据获取Promise - 备用数据源
-        const fetchNmcWeather = async () => {
-            try {
-                if (!nmcAreaCode) {
-                    return null;
-                }
-                // 仅使用指定的URL接口，使用当前时间戳
-                const nmcWeatherUrl = `https://www.nmc.cn/rest/weather?stationid=${nmcAreaCode}&_=${timestamp}`;
-                console.log(`开始获取NMC天气数据，正在访问: ${nmcWeatherUrl}`);
-                
-                const weatherResponse = await fetch(nmcWeatherUrl, { method: 'GET', headers: headers, timeout: 5000 });
-                
-                if (!weatherResponse.ok) {
-                    throw new Error(`HTTP响应状态码: ${weatherResponse.status}`);
-                }
-                
-                const nmcData = await weatherResponse.json();
-                console.log('成功获取NMC天气数据');
-                
-                // 格式化NMC数据为统一格式
-                if (nmcData && nmcData.code === 0 && nmcData.data) {
-                    // 从publish_time获取时间，只保留HH:MM格式
-                    let timeStr = new Date().toLocaleTimeString('zh-CN');
-                    if (nmcData.data.publish_time) {
-                        const publishTime = nmcData.data.publish_time;
-                        if (typeof publishTime === 'string') {
-                            // 提取时间部分，格式如12:35
-                            const timeMatch = publishTime.match(/(\d{2}:\d{2})/);
-                            if (timeMatch && timeMatch[1]) {
-                                timeStr = timeMatch[1];
-                            }
-                        }
-                    }
-                    
-                    const formattedData = {
-                        time: timeStr,
-                        weather: nmcData.data.real?.weather || nmcData.data.weather || '',
-                        temperature: nmcData.data.real?.temperature || nmcData.data.temp || '',
-                        wind: `${nmcData.data.real?.wind?.direct || nmcData.data.windDir || ''} ${nmcData.data.real?.wind?.power || nmcData.data.windPower || ''}`,
-                        humidity: nmcData.data.real?.humidity || nmcData.data.humidity || '',
-                        source: 'nmc'
-                    };
-                    
-                    // 提取接口中已有的近几日天气预报数据（如果有）
-                    if (nmcData.data.forecast && Array.isArray(nmcData.data.forecast)) {
-                        formattedData.dailyWeather = nmcData.data.forecast.map(item => ({
-                            date: item.date || '',
-                            dayWeather: item.day?.weather?.info || '',
-                            dayTemp: item.day?.weather?.temperature || '',
-                            nightWeather: item.night?.weather?.info || '',
-                            nightTemp: item.night?.weather?.temperature || '',
-                            dayWind: `${item.day?.wind?.direct || ''} ${item.day?.wind?.power || ''}`,
-                            nightWind: `${item.night?.wind?.direct || ''} ${item.night?.wind?.power || ''}`,
-                            precipitation: item.precipitation || ''
-                        }));
-                        console.log(`成功提取NMC近几日预报数据，共${formattedData.dailyWeather.length}天`);
-                    }
-                    
-                    // 提取接口中已有的空气质量信息（如果有）
-                    if (nmcData.data.aqi && nmcData.data.aqi.quality) {
-                        formattedData.aqi = {
-                            quality: nmcData.data.aqi.quality || '',
-                            level: nmcData.data.aqi.level || '',
-                            pm25: nmcData.data.aqi.pm25 || '',
-                            pm10: nmcData.data.aqi.pm10 || ''
-                        };
-                    }
-                    
-                    return formattedData;
-                }
-                return null;
-            } catch (error) {
-                console.error('获取NMC天气数据失败:', error.message);
-                return null;
-            }
-        };
-        promises.push(fetchNmcWeather());
-        
-        // 并行执行所有请求
-        const [mojiWeatherData, todayWeatherData, todayDetailWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, cmaWeatherData, nmcWeatherData] = await Promise.all(promises);
-        
-        // 今日天气信息。优先取更新时间更晚的那个数据
-        const todayWeatherList = [mojiWeatherData?.liveWeather, todayWeatherData?.liveWeather, todayDetailWeatherData].filter(Boolean).sort((a, b) => (b.time || 0) - (a.time || 0));
-        
-        // 合并主数据源的数据
-        let todayWeather = {};
-        if (todayWeatherList.length > 0) {
-            todayWeather = { ...todayWeatherList[0], ...todayDetailWeatherData, ...mojiWeatherData?.liveWeather, ...todayWeatherData?.liveWeather };
-        } else {
-            console.log('主数据源无天气数据，尝试使用备用数据源');
-            // 当主数据源没有数据时，使用备用数据源
-            if (cmaWeatherData) {
-                console.log('使用CMA备用天气数据');
-                todayWeather = { ...cmaWeatherData };
-            } else if (nmcWeatherData) {
-                console.log('使用NMC备用天气数据');
-                todayWeather = { ...nmcWeatherData };
-            }
-        }
-        
-        // 如果主数据源有部分数据缺失，使用备用数据源补充
-        if (Object.keys(todayWeather).length > 0) {
-            // 使用CMA备用数据补充缺失字段（今日天气信息）
-            if (cmaWeatherData) {
-                console.log('使用CMA备用数据补充缺失字段');
-                todayWeather.weather = todayWeather.weather || cmaWeatherData.weather;
-                todayWeather.temperature = todayWeather.temperature || cmaWeatherData.temperature;
-                todayWeather.wind = todayWeather.wind || cmaWeatherData.wind;
-                todayWeather.humidity = todayWeather.humidity || cmaWeatherData.humidity;
-                todayWeather.pressure = todayWeather.pressure || cmaWeatherData.pressure;
-                todayWeather.visibility = todayWeather.visibility || cmaWeatherData.visibility;
-                todayWeather.precipitation = todayWeather.precipitation || cmaWeatherData.precipitation;
-            }
-            
-            // 使用NMC备用数据补充缺失字段
-            if (nmcWeatherData) {
-                console.log('使用NMC备用数据补充缺失字段');
-                // 补充今日天气信息
-                todayWeather.weather = todayWeather.weather || nmcWeatherData.weather;
-                todayWeather.temperature = todayWeather.temperature || nmcWeatherData.temperature;
-                todayWeather.wind = todayWeather.wind || nmcWeatherData.wind;
-                todayWeather.humidity = todayWeather.humidity || nmcWeatherData.humidity;
-                
-                // 补充空气质量信息（如果有）
-                if (nmcWeatherData.aqi) {
-                    todayWeather.aqi = nmcWeatherData.aqi;
-                }
-                
-                // 不再提取雷达信息
-            }
-        }
-        // 遍历 todayWeather 的各个字段。 如果相同字段都有值时，根据数据源的时间字段，取时间更晚的那个数据源的值
-        if (todayWeatherList.length > 0) {
-            for (const key in todayWeather) {
-                // 如果字段在 todayWeatherList 中都有值，且时间更晚的数据源的值不为空，则取该值
-                let list = todayWeatherList.filter(item => item?.[key] !== undefined && item?.[key] !== '');
-                if (list.length > 0 && todayWeatherList[0][key] !== undefined && todayWeatherList[0][key] !== '') {
-                    todayWeather[key] = todayWeatherList[0][key];
-                }
-            }
-        }
-        todayWeather.hourlyWeather = todayWeatherData?.hourlyWeather || [];
-        todayWeather.lifeHelper = todayWeatherData?.lifeHelper || [];
-        
-        // 合并 mojiWeatherData?.calendarWeather， calendarAndHistoryWeatherData 数据，补全 calendarAndHistoryWeatherData 中 今天之前的实时天气数据
-        let calendarWeather = calendarAndHistoryWeatherData || [];
-        if (mojiWeatherData?.calendarWeather) {
-            if (!calendarWeather) {
-                calendarWeather = mojiWeatherData?.calendarWeather;
-            } else {
-                // mojiWeatherData?.calendarWeather 转换成 date 为key 的map形式
-                const mojiWeatherMap = mojiWeatherData?.calendarWeather?.reduce((acc, item) => {
-                    acc[item.date] = item;
-                    return acc;
-                }, {});
-                
-                const todayStr = `${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}`;
-                calendarWeather.forEach(item => {
-                    if (item.date < todayStr) {
-                        const mojiItem = mojiWeatherMap[item.date];
-                        if (mojiItem && mojiItem.weather) {
-                            item.weather = mojiItem.weather;
-                            item.tempMin = mojiItem.tempMin;
-                            item.tempMax = mojiItem.tempMax;
-                            item.wind = mojiItem.wind;
-                        }
-                    }
-                });
-            }
-        }
-        
-        // 使用NMC数据补充近几日天气预报（如果有）
-        if (nmcWeatherData && nmcWeatherData.dailyWeather && nmcWeatherData.dailyWeather.length > 0) {
-            console.log('使用NMC数据补充近几日天气预报');
-            
-            if (!calendarWeather || calendarWeather.length === 0) {
-                // 如果没有calendarWeather数据，直接使用NMC数据
-                calendarWeather = nmcWeatherData.dailyWeather.map(day => ({
-                    date: day.date.replace(/-/g, ''),
-                    weather: `${day.dayWeather}/${day.nightWeather}`,
-                    tempMax: day.dayTemp,
-                    tempMin: day.nightTemp,
-                    wind: day.dayWind,
-                    precipitation: day.precipitation
-                }));
-            } else {
-                // 如果已有calendarWeather数据，补充缺失的信息
-                const nmcWeatherMap = nmcWeatherData.dailyWeather.reduce((acc, item) => {
-                    acc[item.date.replace(/-/g, '')] = item;
-                    return acc;
-                }, {});
-                
-                calendarWeather.forEach(item => {
-                    const nmcItem = nmcWeatherMap[item.date];
-                    if (nmcItem) {
-                        // 补充降水概率等信息
-                        if (nmcItem.precipitation) {
-                            item.precipitation = nmcItem.precipitation;
-                        }
-                        // 如果没有天气信息，补充
-                        if (!item.weather) {
-                            item.weather = `${nmcItem.dayWeather}/${nmcItem.nightWeather}`;
-                        }
-                        // 如果没有温度信息，补充
-                        if (!item.tempMax) {
-                            item.tempMax = nmcItem.dayTemp;
-                        }
-                        if (!item.tempMin) {
-                            item.tempMin = nmcItem.nightTemp;
-                        }
-                    }
-                });
-            }
-        }
-        
-        const weatherData = {
-            timestamp: timestamp, weatherCode: weatherCode, mojiAreaCode: mojiAreaCode, nmcAreaCode: nmcAreaCode, cmaAreaCode: cmaAreaCode,
-            todayWeather:todayWeather, recentDaysWeather:recentDaysWeatherData, calendarWeather:calendarWeather,
-            cmaWeatherData: cmaWeatherData,  // 保存原始CMA数据，供调试或备用
-            nmcWeatherData: nmcWeatherData   // 保存原始NMC数据，供调试或备用
-        };
-        console.log('天气数据提取完成');
-        // 检查是否所有必要的API结果都有数据，只有在所有数据都有效时才缓存。如果没有提供mojiAreaCode，则跳过mojiWeatherData的检查
-        const hasMoji = !mojiAreaCode || Object.keys(mojiWeatherData || {}).length;
-        const hasToday = Object.keys(todayWeatherData || {}).length;
-        const hasTodayLiveWeather = todayWeatherData?.liveWeather && Object.keys(todayWeatherData.liveWeather).length;
-        const hasTodayHourlyWeather = todayWeatherData?.hourlyWeather && todayWeatherData.hourlyWeather?.length;
-        const hasTodayLifeHelper = todayWeatherData?.lifeHelper && todayWeatherData.lifeHelper?.length;
-        const hasDetail = Object.keys(todayDetailWeatherData || {}).length;
-        const hasRecentDays = Object.keys(recentDaysWeatherData || {}).length;
-        const hasCalendar = Object.keys(calendarAndHistoryWeatherData || {}).length;
+    // 创建并行请求的Promise数组
+    const promises = [];
+    const timestamp = Date.now();
 
-        if (hasMoji && hasToday && hasTodayLiveWeather && hasTodayHourlyWeather && hasTodayLifeHelper && hasDetail && hasRecentDays&& hasCalendar) {
-            console.log('所有API结果数据完整，缓存天气数据');
-            cacheWeatherInfo(weatherCode, mojiAreaCode, weatherData);
-        } else {
-            console.log('部分API结果数据不完整，不缓存天气数据');
-            // 日志记录结果数据是否为空 mojiWeatherData, todayWeatherData, todayDetailWeatherData, calendarAndHistoryWeatherData
-            if (!hasMoji) { console.log('天气数据为空, mojiWeatherData:', JSON.stringify(mojiWeatherData)); }
-            if (!hasToday) { console.log('天气数据为空, todayWeatherData:', JSON.stringify(todayWeatherData)); }
-            if (!hasTodayLiveWeather) { console.log('天气数据为空, todayWeatherData.liveWeather:', JSON.stringify(todayWeatherData.liveWeather)); }
-            if (!hasTodayHourlyWeather) { console.log('天气数据为空, todayWeatherData.hourlyWeather:', JSON.stringify(todayWeatherData.hourlyWeather)); }
-            if (!hasTodayLifeHelper) { console.log('天气数据为空, todayWeatherData.lifeHelper:', JSON.stringify(todayWeatherData.lifeHelper)); }
-            if (!hasDetail) { console.log('天气数据为空, todayDetailWeatherData:', JSON.stringify(todayDetailWeatherData)); }
-            if (!hasRecentDays) { console.log('天气数据为空, recentDaysWeatherData:', JSON.stringify(recentDaysWeatherData)); }
-            if (!hasCalendar) { console.log('天气数据为空, calendarAndHistoryWeatherData:', JSON.stringify(calendarAndHistoryWeatherData)); }
-        }
-        
-        // 返回数据
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.json(weatherData);
-    } catch (error) {
-        console.error('获取天气数据失败:', error);
+    // 1. 墨迹天气数据获取Promise
+    promises.push(fetchMojiWeather(mojiAreaCode));
 
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.status(500).json({
-            error: '获取天气数据失败',
-            message: error.message,
-            mojiAreaCode: mojiAreaCode,
-            weatherCode: weatherCode
-        });
+    // 2.1 今日天气数据获取Promise
+    promises.push(fetchTodayWeather(weatherCode));
+
+    // 2.2 今日天气补充数据获取Promise
+    promises.push(fetchTodayDetailWeather(weatherCode));
+
+    // 3. 近几日天气数据获取Promise
+    promises.push(fetchRecentDaysWeather(weatherCode));
+
+    // 4. 天气历史数据获取Promise
+    promises.push(fetchCalendarAndHistoryWeather(weatherCode));
+
+    // 5. CMA(中国气象局)天气数据获取Promise - 备用数据源
+    promises.push(fetchCmaWeather(cmaAreaCode));
+
+    // 6. NMC(中央气象台)天气数据获取Promise - 备用数据源
+    promises.push(fetchNmcWeather(nmcAreaCode));
+
+    // 并行执行所有请求
+    const [mojiWeatherData, todayWeatherData, todayDetailWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, cmaWeatherData, nmcWeatherData] = await Promise.all(promises);
+
+    // 今日天气信息。优先取更新时间更晚的那个数据
+    const todayWeatherList = [mojiWeatherData?.liveWeather, todayWeatherData?.liveWeather, todayDetailWeatherData, cmaWeatherData, nmcWeatherData?.liveWeather].sort((a, b) => (b.time || 0) - (a.time || 0));
+    // 合并 mojiWeatherData?.liveWeather， todayWeatherData?.liveWeather， todayDetailWeatherData 数据，字段缺失的进行补全（取并集）
+    // const todayWeather = { ...todayDetailWeatherData, ...mojiWeatherData?.liveWeather, ...todayWeatherData?.liveWeather };
+    const todayWeather = { ...todayWeatherList[0], ...todayDetailWeatherData, ...mojiWeatherData?.liveWeather, ...todayWeatherData?.liveWeather, ...cmaWeatherData, ...nmcWeatherData?.liveWeather };
+    // 遍历 todayWeather 的各个字段。 如果相同字段都有值时，根据数据源的时间字段，取时间更晚的那个数据源的值
+    for (const key in todayWeather) {
+        // 如果字段在 todayWeatherList 中都有值，且时间更晚的数据源的值不为空，则取该值
+        let list = todayWeatherList.filter(item => item?.[key] !== undefined && item?.[key] !== '');
+        if (list.length > 0 && todayWeatherList[0][key] !== undefined && todayWeatherList[0][key] !== '') {
+            todayWeather[key] = todayWeatherList[0][key];
+        }
     }
-});
+    todayWeather.hourlyWeather = todayWeatherData?.hourlyWeather || [];
+    todayWeather.lifeHelper = todayWeatherData?.lifeHelper || [];
 
-// 导出路由
-module.exports = router;
+    const recentDaysWeather = recentDaysWeatherData || nmcWeatherData?.dailyWeather || [];
+
+    // 合并 mojiWeatherData?.calendarWeather， calendarAndHistoryWeatherData 数据，补全 calendarAndHistoryWeatherData 中 今天之前的实时天气数据
+    let calendarWeather = calendarAndHistoryWeatherData || [];
+    if (mojiWeatherData?.calendarWeather) {
+        if (!calendarWeather) {
+            calendarWeather = mojiWeatherData?.calendarWeather;
+        } else {
+            // mojiWeatherData?.calendarWeather 转换成 date 为key 的map形式
+            const mojiWeatherMap = mojiWeatherData?.calendarWeather?.reduce((acc, item) => {
+                acc[item.date] = item;
+                return acc;
+            }, {});
+
+            const todayStr = `${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}`;
+            calendarWeather.forEach(item => {
+                if (item.date < todayStr) {
+                    const mojiItem = mojiWeatherMap[item.date];
+                    if (mojiItem && mojiItem.weather) {
+                        item.weather = mojiItem.weather;
+                        item.tempMin = mojiItem.tempMin;
+                        item.tempMax = mojiItem.tempMax;
+                        item.wind = mojiItem.wind;
+                    }
+                }
+            });
+        }
+    }
+
+    const weatherData = {
+        timestamp: timestamp, weatherCode: weatherCode, mojiAreaCode: mojiAreaCode, nmcAreaCode: nmcAreaCode, cmaAreaCode: cmaAreaCode,
+        todayWeather:todayWeather, recentDaysWeather:recentDaysWeather, calendarWeather:calendarWeather,
+    };
+    console.log('天气数据提取完成');
+    // 检查是否所有必要的API结果都有数据，只有在所有数据都有效时才缓存。如果没有提供mojiAreaCode，则跳过mojiWeatherData的检查
+    const hasMoji = !mojiAreaCode || Object.keys(mojiWeatherData || {}).length;
+    const hasToday = Object.keys(todayWeatherData || {}).length;
+    const hasTodayLiveWeather = todayWeatherData?.liveWeather && Object.keys(todayWeatherData.liveWeather).length;
+    const hasTodayHourlyWeather = todayWeatherData?.hourlyWeather && todayWeatherData.hourlyWeather?.length;
+    const hasTodayLifeHelper = todayWeatherData?.lifeHelper && todayWeatherData.lifeHelper?.length;
+    const hasDetail = Object.keys(todayDetailWeatherData || {}).length;
+    const hasRecentDays = recentDaysWeatherData && recentDaysWeatherData?.length;
+    const hasCalendar = calendarAndHistoryWeatherData && calendarAndHistoryWeatherData?.length;
+
+    if (hasMoji && hasToday && hasTodayLiveWeather && hasTodayHourlyWeather && hasTodayLifeHelper && hasDetail && hasRecentDays&& hasCalendar) {
+        console.log('所有API结果数据完整，缓存天气数据');
+        cacheWeatherInfo(weatherCode, mojiAreaCode, weatherData);
+    } else {
+        console.log('部分API结果数据不完整，不缓存天气数据');
+        // 日志记录结果数据是否为空 mojiWeatherData, todayWeatherData, todayDetailWeatherData, calendarAndHistoryWeatherData
+        if (!hasMoji) { console.log('天气数据为空, mojiWeatherData:', JSON.stringify(mojiWeatherData)); }
+        if (!hasToday) { console.log('天气数据为空, todayWeatherData:', JSON.stringify(todayWeatherData)); }
+        if (!hasTodayLiveWeather) { console.log('天气数据为空, todayWeatherData.liveWeather:', JSON.stringify(todayWeatherData.liveWeather)); }
+        if (!hasTodayHourlyWeather) { console.log('天气数据为空, todayWeatherData.hourlyWeather:', JSON.stringify(todayWeatherData.hourlyWeather)); }
+        if (!hasTodayLifeHelper) { console.log('天气数据为空, todayWeatherData.lifeHelper:', JSON.stringify(todayWeatherData.lifeHelper)); }
+        if (!hasDetail) { console.log('天气数据为空, todayDetailWeatherData:', JSON.stringify(todayDetailWeatherData)); }
+        if (!hasRecentDays) { console.log('天气数据为空, recentDaysWeatherData:', JSON.stringify(recentDaysWeatherData)); }
+        if (!hasCalendar) { console.log('天气数据为空, calendarAndHistoryWeatherData:', JSON.stringify(calendarAndHistoryWeatherData)); }
+    }
+    // 返回数据
+    return weatherData;
+}
