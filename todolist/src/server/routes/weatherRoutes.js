@@ -580,6 +580,14 @@ function extractCalendarAndHistoryWeatherData(html) {
 
 
 // 获取天气数据（实时处理 - 并行方式）
+// https://tianqi.moji.com/weather/china/zhejiang/xiaoshan-district
+// https://forecast.weather.com.cn/town/weather1dn/101210102.shtml
+// https://www.weather.com.cn/weather1d/101210102.shtml
+// https://www.weather.com.cn/weather1dn/101210102.shtml
+// https://www.weather.com.cn/weather40d/101210102.shtml
+// https://www.weather.com.cn/weather40dn/101210102.shtml
+// https://weather.cma.cn/web/weather/58459.html
+// https://www.nmc.cn/publish/forecast/AZJ/wdcXE.html
 router.get('/weather-info', async (req, res) => {
     if (USE_MOCK) {
         if (!mockWeatherData) {
