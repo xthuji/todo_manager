@@ -1,4 +1,4 @@
-import {WEATHER_HEADERS} from "../../utils/constants";
+const {WEATHER_HEADERS} = require("../../utils/constants");
 
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
@@ -56,7 +56,7 @@ function extractTodayWeatherData(html) {
 }
 
 // 获取今日天气数据
-export async function fetchTodayWeather(weatherCode){
+async function fetchTodayWeather(weatherCode){
     try {
         // 访问天气页面
         const todayWeatherUrl = `https://forecast.weather.com.cn/town/weather1dn/${weatherCode}.shtml`;
@@ -79,6 +79,13 @@ export async function fetchTodayWeather(weatherCode){
         return { error: error.message || '获取天气数据失败' };
     }
 }
+
+module.exports = {
+    fetchTodayWeather,
+    fetchRecentDaysWeather,
+    fetchTodayDetailWeather,
+    fetchCalendarAndHistoryWeather
+};
 
 // 提取今日天气补充数据的函数
 function extractTodayDetailWeatherData(html) {
@@ -105,7 +112,7 @@ function extractTodayDetailWeatherData(html) {
 }
 
 // 获取今日天气补充数据
-export async function fetchTodayDetailWeather(weatherCode){
+async function fetchTodayDetailWeather(weatherCode){
     try {
         // 访问天气页面
         const todayWeatherUrl = `https://d1.weather.com.cn/sk_2d/${weatherCode}.html?_=${Date.now()}`;
@@ -171,7 +178,7 @@ function extractRecentDaysWeatherData(html) {
 }
 
 // 获取近几日天气数据
-export async function fetchRecentDaysWeather(weatherCode){
+async function fetchRecentDaysWeather(weatherCode){
     try {
         const daysWeatherUrl = `https://www.weather.com.cn/weather/${weatherCode}.shtml`;
         console.log(`开始获取近几日天气数据，正在访问: ${daysWeatherUrl}`);
@@ -238,7 +245,7 @@ function extractCalendarAndHistoryWeatherData(html) {
 }
 
 // 获取天气历史数据
-export async function fetchCalendarAndHistoryWeather(weatherCode){
+async function fetchCalendarAndHistoryWeather(weatherCode){
     try {
         // 访问天气历史页面
         const year = new Date().getFullYear();

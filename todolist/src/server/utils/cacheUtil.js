@@ -13,7 +13,7 @@ const path = require('path');
  * @param {string} options.extension - 缓存文件扩展名
  * @returns {Object|null} 读取模式下返回缓存的数据，写入模式下返回null
  */
-export function handleCache(cacheKey, data = null, options = {}) {
+function handleCache(cacheKey, data = null, options = {}) {
     try {
         // 清理缓存键，避免文件系统特殊字符问题
         const safeCacheKey = cacheKey.replace(/\./g, '_');
@@ -49,3 +49,7 @@ export function handleCache(cacheKey, data = null, options = {}) {
     }
     return null;
 }
+
+module.exports = {
+    handleCache
+};

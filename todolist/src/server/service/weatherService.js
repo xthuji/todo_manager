@@ -1,12 +1,12 @@
 // 天气数据代理服务示例
 // 由于浏览器的同源策略限制，前端无法直接获取不同域名的天气数据
 // 此文件提供了一个Node.js + Express服务器端代理的路由模块实现
-import {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK} from '../utils/constants.js'
-import {handleCache} from '../utils/cacheUtil.js'
-import {fetchMojiWeather} from "./weather/weatherMojiService";
-import {fetchTodayWeather, fetchRecentDaysWeather, fetchTodayDetailWeather, fetchCalendarAndHistoryWeather} from "./weather/weatherTianqiService";
-import {fetchNmcWeather} from "./weather/weatherNmcService";
-import {fetchCmaWeather} from "./weather/weatherCmaService";
+const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK} = require('../utils/constants.js');
+const {handleCache} = require('../utils/cacheUtil.js');
+const {fetchMojiWeather} = require("./weather/weatherMojiService");
+const {fetchTodayWeather, fetchRecentDaysWeather, fetchTodayDetailWeather, fetchCalendarAndHistoryWeather} = require("./weather/weatherTianqiService");
+const {fetchNmcWeather} = require("./weather/weatherNmcService");
+const {fetchCmaWeather} = require("./weather/weatherCmaService");
 
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
@@ -56,7 +56,7 @@ function cacheWeatherInfo(weatherCode, mojiAreaCode = null, weatherData = null) 
 // https://www.weather.com.cn/weather40dn/101210102.shtml
 // https://weather.cma.cn/web/weather/58459.html
 // https://www.nmc.cn/publish/forecast/AZJ/wdcXE.html
-export async function getWeatherData(weatherAreaCodeParams){
+async function getWeatherData(weatherAreaCodeParams){
     if (USE_MOCK) {
         if (!mockWeatherData) {
             const mockWeatherDataStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_weather_info.json'), 'utf-8');
@@ -190,3 +190,7 @@ export async function getWeatherData(weatherAreaCodeParams){
     // 返回数据
     return weatherData;
 }
+
+module.exports = {
+    getWeatherData
+};

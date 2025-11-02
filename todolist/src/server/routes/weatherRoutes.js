@@ -4,8 +4,8 @@
 
 const express = require('express');
 
-import {getLocation, getAllAreaCodes, getDistrictAreaCodes} from '../service/locationAreaService.js'
-import {getWeatherData} from "../service/weatherService";
+const {getLocation, getAllAreaCodes, getDistrictAreaCodes} = require('../service/locationAreaService.js');
+const {getWeatherData} = require("../service/weatherService");
 
 const router = express.Router();
 

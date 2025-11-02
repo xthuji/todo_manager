@@ -1,5 +1,4 @@
-import {WEATHER_HEADERS} from "../../utils/constants";
-
+const {WEATHER_HEADERS} = require("../../utils/constants");
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 
@@ -20,7 +19,7 @@ function extractCmaWeatherData(cmaData) {
 }
 
 // 获取中国气象局天气数据
-export async function fetchCmaWeather(cmaAreaCode){
+async function fetchCmaWeather(cmaAreaCode){
     if (!cmaAreaCode) {
         return null;
     }
@@ -46,3 +45,7 @@ export async function fetchCmaWeather(cmaAreaCode){
         return null;
     }
 }
+
+module.exports = {
+    fetchCmaWeather
+};

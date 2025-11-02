@@ -1,4 +1,4 @@
-import {WEATHER_HEADERS} from "../../utils/constants";
+const {WEATHER_HEADERS} = require("../../utils/constants");
 
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
@@ -37,13 +37,13 @@ function extractNmcWeatherData(nmcData) {
 }
 
 // 获取中央气象台天气数据
-export async function fetchNmcWeather(nmcAreaCode){
+async function fetchNmcWeather(nmcAreaCode){
     if (!nmcAreaCode) {
         return null;
     }
     try {
         // 仅使用指定的URL接口，使用当前时间戳
-        const nmcWeatherUrl = `https://www.nmc.cn/rest/weather?stationid=${nmcAreaCode}&_=${timestamp}`;
+        const nmcWeatherUrl = `https://www.nmc.cn/rest/weather?stationid=${nmcAreaCode}&_=${Date.now()}`;
         console.log(`开始获取中央气象台天气数据，正在访问: ${nmcWeatherUrl}`);
 
         const weatherResponse = await fetch(nmcWeatherUrl, { method: 'GET', headers: WEATHER_HEADERS, timeout: 5000 });
@@ -63,3 +63,7 @@ export async function fetchNmcWeather(nmcAreaCode){
         return null;
     }
 }
+
+module.exports = {
+    fetchNmcWeather
+};

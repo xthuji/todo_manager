@@ -1,4 +1,4 @@
-import {WEATHER_HEADERS} from "../../utils/constants";
+const {WEATHER_HEADERS} = require("../../utils/constants");
 
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
@@ -47,7 +47,7 @@ function extractMojiWeatherData(html) {
 
 
 // 获取墨迹天气数据
-export async function fetchMojiWeather(mojiAreaCode){
+async function fetchMojiWeather(mojiAreaCode){
     if (!mojiAreaCode) {
         return null;
     }
@@ -68,3 +68,7 @@ export async function fetchMojiWeather(mojiAreaCode){
         return { error: error.message || '获取墨迹天气数据失败' };
     }
 }
+
+module.exports = {
+    fetchMojiWeather
+};

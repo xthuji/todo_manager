@@ -2,8 +2,8 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
-import {USE_MOCK, USE_CACHE, MOCK_DIR, CACHE_DIR} from '../utils/constants.js'
-import {handleCache} from '../utils/cacheUtil.js'
+const {USE_MOCK, USE_CACHE, MOCK_DIR, CACHE_DIR} = require('../utils/constants.js');
+const {handleCache} = require('../utils/cacheUtil.js');
 
 
 // tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js
@@ -189,7 +189,7 @@ async function getLocation2() {
 // http://ip-api.com/json/?lang=zh-CN
 // https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}
 // https://weather.cma.cn/api/weather/view
-export async function getLocation(clientIp) {
+async function getLocation(clientIp) {
     if (USE_MOCK) {
         if (!mockIpAreaData) {
             const mockIpAreaStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_ip_area.json'), 'utf-8');
@@ -241,7 +241,7 @@ export async function getLocation(clientIp) {
 }
 
 // 获取省市县三级地址的天气区域编码数据
-export function getAllAreaCodes() {
+function getAllAreaCodes() {
     if (areaCodesData) {
         return areaCodesData;
     }
@@ -256,7 +256,7 @@ export function getAllAreaCodes() {
 }
 
 // 获取District对应的各种天气区域编码数据
-export function getDistrictAreaCodes(areaCode) {
+function getDistrictAreaCodes(areaCode) {
     if (!areaCodesMap) {
         areaCodesMap = {};
         // 遍历 allAreaCodes 数据，查找叶子节点的数据，将数据中的code作为Map的key，将数据对象作为Map的value
@@ -283,3 +283,9 @@ export function getDistrictAreaCodes(areaCode) {
     return areaCodesMap[areaCode];
 }
 
+
+module.exports = {
+    getLocation,
+    getAllAreaCodes,
+    getDistrictAreaCodes
+};
