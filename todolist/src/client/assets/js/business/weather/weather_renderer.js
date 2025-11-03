@@ -137,11 +137,12 @@ window.WeatherModule.View = {
     /**
      * 更新天气网站链接
      * @param {string} weatherCode - 中国天气网代码
-     * @param {string} mojiAreaCode - 墨迹区域代码
-     * @param {string} nmcAreaCode - 中央气象台区域代码
-     * @param {string} cmaAreaCode - 中国气象台区域代码
      */
-    updateLinks: function(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode) {
+    updateLinks: function(weatherCode) {
+        let areaCodeInfo = window.WeatherModule.getDistrictCodes(weatherCode);
+        const mojiAreaCode = areaCodeInfo?.mojiCode || '';
+        const nmcAreaCode  = areaCodeInfo?.nmcCode || '';
+        const cmaAreaCode = areaCodeInfo?.cmaCode || '';
         logStep(`更新天气网站链接: weatherCode=${weatherCode}, mojiAreaCode=${mojiAreaCode}, nmcAreaCode=${nmcAreaCode}, cmaAreaCode=${cmaAreaCode}`);
 
         const weatherComCnLink = document.getElementById('weather-com-cn-link');
@@ -1052,7 +1053,7 @@ window.WeatherModule.MainController = {
             const View = window.WeatherModule.View;
             const Charts = window.WeatherModule.Charts;
 
-            View.updateLinks(weatherData.weatherCode, weatherData.mojiAreaCode, weatherData.nmcAreaCode, weatherData.cmaAreaCode);
+            View.updateLinks(weatherData.weatherCode);
 
             const { todayWeather, calendarWeather, hourlyForecast, hourlyWeather, recentDaysWeather } = weatherData;
 
@@ -1141,9 +1142,6 @@ window.WeatherModule.initFestivals = async function() {
 /**
  * 加载天气数据 (核心入口)
  * @param {string} weatherCode - 天气代码
- * @param {string} mojiAreaCode - 墨迹区域代码
- * @param {string} nmcAreaCode - 中央气象台区域代码
- * @param {string} cmaAreaCode - 中国气象局区域代码
  * @param {number} [retryCount=0] - 重试次数
  */
 function loadWeatherData(weatherCode, retryCount = 0) {
@@ -1183,19 +1181,8 @@ function loadWeatherData(weatherCode, retryCount = 0) {
             let weatherData = window.WeatherModule.DataService.normalize(data);
 
             if (weatherData) {
-                // 3. 获取完整的地区编码信息并添加到weatherData对象中
-                if (window.WeatherModule && window.WeatherModule.LocationModule && 
-                    window.WeatherModule.LocationModule.dataManager && 
-                    weatherCode) {
-                    const districtCodes = window.WeatherModule.LocationModule.dataManager.getDistrictCodes(weatherCode);
-                    if (districtCodes) {
-                        weatherData.mojiAreaCode = districtCodes.mojiCode || weatherData.mojiAreaCode || '';
-                        weatherData.nmcAreaCode = districtCodes.nmcCode || weatherData.nmcAreaCode || '';
-                        weatherData.cmaAreaCode = districtCodes.cmaCode || weatherData.cmaAreaCode || '';
-                        weatherData.weatherCode = weatherCode; // 确保weatherCode存在
-                        logStep(`补充地区编码信息: mojiAreaCode=${weatherData.mojiAreaCode}, nmcAreaCode=${weatherData.nmcAreaCode}`);
-                    }
-                }
+                // 3.将仅地区编码信息添加到weatherData对象中
+                weatherData.weatherCode = weatherCode; // 确保weatherCode存在
                 // 4. 使用 MainController 进行渲染
                 window.WeatherModule.MainController.updateDisplay(weatherData);
             } else {

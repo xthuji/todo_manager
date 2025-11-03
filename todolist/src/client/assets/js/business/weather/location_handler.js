@@ -328,7 +328,7 @@ const WEATHER_API = {
          * @returns {object} 包含mojiCode、nmcCode、cmaCode的对象
          */
         getDistrictCodes: function (districtCode) {
-            return this.dataCache.districtCodesMap[districtCode] || {
+            return this.dataCache?.districtCodesMap[districtCode] || {
                 mojiCode: '',
                 nmcCode: '',
                 cmaCode: ''
@@ -927,6 +927,8 @@ const WEATHER_API = {
     if (typeof window.WeatherModule === 'undefined') {
         window.WeatherModule = {};
     }
+    // 暴露访问地区编码映射Map的函数
+    window.WeatherModule.getDistrictCodes = LocationDataManager.getDistrictCodes;
     // 暴露唯一的全局入口
     window.WeatherModule.initLocation = () => LocationController.initialize();
 
