@@ -1183,7 +1183,20 @@ function loadWeatherData(weatherCode, retryCount = 0) {
             let weatherData = window.WeatherModule.DataService.normalize(data);
 
             if (weatherData) {
-                // 3. 使用 MainController 进行渲染
+                // 3. 获取完整的地区编码信息并添加到weatherData对象中
+                if (window.WeatherModule && window.WeatherModule.LocationModule && 
+                    window.WeatherModule.LocationModule.dataManager && 
+                    weatherCode) {
+                    const districtCodes = window.WeatherModule.LocationModule.dataManager.getDistrictCodes(weatherCode);
+                    if (districtCodes) {
+                        weatherData.mojiAreaCode = districtCodes.mojiCode || weatherData.mojiAreaCode || '';
+                        weatherData.nmcAreaCode = districtCodes.nmcCode || weatherData.nmcAreaCode || '';
+                        weatherData.cmaAreaCode = districtCodes.cmaCode || weatherData.cmaAreaCode || '';
+                        weatherData.weatherCode = weatherCode; // 确保weatherCode存在
+                        logStep(`补充地区编码信息: mojiAreaCode=${weatherData.mojiAreaCode}, nmcAreaCode=${weatherData.nmcAreaCode}`);
+                    }
+                }
+                // 4. 使用 MainController 进行渲染
                 window.WeatherModule.MainController.updateDisplay(weatherData);
             } else {
                 // 规范化失败，数据格式无效，触发重试
