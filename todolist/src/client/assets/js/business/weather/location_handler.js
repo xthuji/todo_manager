@@ -42,23 +42,9 @@ const WEATHER_API = {
             loading: false,
             loadingPromise: null,
             lastLocationSource: null,
-            provinceMap: {},
-            cityMap: {},
-            districtMap: {},
             fullDistrictMap: {},
             // 统一的地区编码映射表，key为县级地区编码，value为包含所有类型编码的对象
             districtCodesMap: {},
-        },
-
-        /**
-         * 初始化所有数据映射表
-         */
-        _initializeMaps: function () {
-            this.dataCache.provinceMap = {};
-            this.dataCache.cityMap = {};
-            this.dataCache.districtMap = {};
-            this.dataCache.fullDistrictMap = {};
-            this.dataCache.districtCodesMap = {}; // 初始化统一编码映射表
         },
 
         /**
@@ -86,14 +72,11 @@ const WEATHER_API = {
          * [内部] 构建所有区域的查找映射表
          */
         _buildAreaMaps: function (areaData) {
-            this._log('开始构建区域查找映射表');
-            this._initializeMaps();
-
             if (!areaData || !Array.isArray(areaData) || areaData.length === 0) {
                 this._log('警告: 无效的区域数据，无法构建映射表');
                 return;
             }
-
+            this._log('开始构建区域查找映射表');
             try {
                 areaData.forEach(province => this._processProvinceData(province));
                 this._logBuildStats();
@@ -106,7 +89,6 @@ const WEATHER_API = {
             if (!province || typeof province !== 'object' || !province.name) return;
 
             const provinceName = this._normalizeProvinceName(province.name);
-            this.dataCache.provinceMap[provinceName] = province.code || '';
 
             if (province.children && Array.isArray(province.children)) {
                 province.children.forEach(city => this._processCityData(city, provinceName, province));
@@ -117,7 +99,6 @@ const WEATHER_API = {
             if (!city || typeof city !== 'object' || !city.name) return;
 
             const cityName = this._normalizeCityName(city.name);
-            this.dataCache.cityMap[provinceName + '_' + cityName] = city.code || '';
 
             if (city.children && Array.isArray(city.children)) {
                 city.children.forEach(district => this._processDistrictData(district, provinceName, cityName, province, city));
@@ -128,21 +109,12 @@ const WEATHER_API = {
             if (!district || typeof district !== 'object' || !district.name || !district.code) return;
 
             const districtName = this._normalizeDistrictName(district.name);
-            const mapKey = provinceName + '_' + cityName + '_' + districtName;
-            this.dataCache.districtMap[mapKey] = district.code;
 
-            // 存储完整区县信息映射
+            // 存储完整区县信息映射（只保留必要字段）
             const districtMapKey = provinceName + '_' + districtName;
             this.dataCache.fullDistrictMap[districtMapKey] = {
-                code: district.code,
-                provinceMojiCode: province.mojiCode || '',
-                mojiCode: district.mojiCode || '',
-                provinceNmcCode: province.nmcCode || '',
-                nmcCode: district.nmcCode || '',
-                cmaCode: district.cmaCode || '',
-                cityName: city.name || '',
-                districtName: district.name || '',
-                fullName: `${province.name || ''}${city.name || ''}${district.name || ''}`
+                cityName: city.name || '', // 仅保留cityName字段，其他字段未被使用
+                districtName: district.name || '' // 保留districtName用于日志记录
             };
 
             // 计算完整的墨迹天气编码
@@ -169,11 +141,7 @@ const WEATHER_API = {
             const cmaCode = district.cmaCode ? String(district.cmaCode) : '';
 
             // 构建统一的地区编码映射表
-            this.dataCache.districtCodesMap[district.code] = {
-                mojiCode: fullMojiCode,
-                nmcCode: fullNmcCode,
-                cmaCode: cmaCode
-            };
+            this.dataCache.districtCodesMap[district.code] = {mojiCode: fullMojiCode, nmcCode: fullNmcCode, cmaCode: cmaCode};
         },
 
         _normalizeProvinceName: (name) => String(name || '').replace(/省$/, '').trim(),
@@ -182,13 +150,10 @@ const WEATHER_API = {
 
         _logBuildStats: function () {
             const stats = {
-                provinceCount: Object.keys(this.dataCache.provinceMap).length,
-                cityCount: Object.keys(this.dataCache.cityMap).length,
-                districtCount: Object.keys(this.dataCache.districtMap).length,
                 districtCodesCount: Object.keys(this.dataCache.districtCodesMap).length,
                 fullDistrictCount: Object.keys(this.dataCache.fullDistrictMap).length
             };
-            this._log(`区域映射构建完成 - 省份: ${stats.provinceCount}, 城市: ${stats.cityCount}, 区县: ${stats.districtCount}, 统一编码映射: ${stats.districtCodesCount}, 完整区县信息: ${stats.fullDistrictCount}`);
+            this._log(`区域映射构建完成 - 统一编码映射: ${stats.districtCodesCount}, 完整区县信息: ${stats.fullDistrictCount}`);
         },
 
         /**
@@ -371,16 +336,10 @@ const WEATHER_API = {
 
                                 if (dName === cleanDistrict || district.name.includes(cleanDistrict) || cleanDistrict.includes(dName)) {
                                     this._log(`通过遍历找到区县: ${district.name}`);
+                                    // 仅返回必要的字段，cityName用于补全城市信息，其他字段未被使用
                                     return {
-                                        code: district.code,
-                                        provinceMojiCode: province.mojiCode || '',
-                                        mojiCode: district.mojiCode || '',
-                                        provinceNmcCode: province.nmcCode || '',
-                                        nmcCode: district.nmcCode || '',
-                                        cmaCode: district.cmaCode || '',
                                         cityName: city.name || '',
-                                        districtName: district.name || '',
-                                        fullName: `${province.name || ''}${city.name || ''}${district.name || ''}`
+                                        districtName: district.name || ''
                                     };
                                 }
                             }

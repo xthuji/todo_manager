@@ -138,11 +138,27 @@ window.WeatherModule.View = {
      * 更新天气网站链接
      * @param {string} weatherCode - 中国天气网代码
      */
-    updateLinks: function(weatherCode) {
-        let areaCodeInfo = window.WeatherModule.getDistrictCodes(weatherCode);
-        const mojiAreaCode = areaCodeInfo?.mojiCode || '';
-        const nmcAreaCode  = areaCodeInfo?.nmcCode || '';
-        const cmaAreaCode = areaCodeInfo?.cmaCode || '';
+    updateLinks: function(weatherData) {
+        // 从weatherData对象中获取编码信息
+        const weatherCode = weatherData.weatherCode;
+        
+        // 优先使用weatherData中已有的编码信息
+        let mojiAreaCode = weatherData.mojiAreaCode || '';
+        let nmcAreaCode = weatherData.nmcAreaCode || '';
+        let cmaAreaCode = weatherData.cmaAreaCode || '';
+        
+        // 如果weatherData中没有完整的编码信息，尝试从window.WeatherModule获取
+        if (!mojiAreaCode || !nmcAreaCode || !cmaAreaCode) {
+            try {
+                const areaCodeInfo = window.WeatherModule?.getDistrictCodes?.(weatherCode);
+                mojiAreaCode = mojiAreaCode || (areaCodeInfo?.mojiCode || '');
+                nmcAreaCode = nmcAreaCode || (areaCodeInfo?.nmcCode || '');
+                cmaAreaCode = cmaAreaCode || (areaCodeInfo?.cmaCode || '');
+            } catch (error) {
+                logStep(`错误: 获取地区编码信息时出错: ${error}`);
+            }
+        }
+        
         logStep(`更新天气网站链接: weatherCode=${weatherCode}, mojiAreaCode=${mojiAreaCode}, nmcAreaCode=${nmcAreaCode}, cmaAreaCode=${cmaAreaCode}`);
 
         const weatherComCnLink = document.getElementById('weather-com-cn-link');
@@ -1053,7 +1069,7 @@ window.WeatherModule.MainController = {
             const View = window.WeatherModule.View;
             const Charts = window.WeatherModule.Charts;
 
-            View.updateLinks(weatherData.weatherCode);
+            View.updateLinks(weatherData);
 
             const { todayWeather, calendarWeather, hourlyForecast, hourlyWeather, recentDaysWeather } = weatherData;
 
@@ -1181,8 +1197,22 @@ function loadWeatherData(weatherCode, retryCount = 0) {
             let weatherData = window.WeatherModule.DataService.normalize(data);
 
             if (weatherData) {
-                // 3.将仅地区编码信息添加到weatherData对象中
+                // 3.将地区编码信息添加到weatherData对象中
                 weatherData.weatherCode = weatherCode; // 确保weatherCode存在
+                // 获取完整的地区编码信息（墨迹天气、中央气象台、中国气象局）
+                try {
+                    const districtCodes = window.WeatherModule?.getDistrictCodes?.(weatherCode);
+                    if (districtCodes) {
+                        weatherData.mojiAreaCode = districtCodes.mojiCode;
+                        weatherData.nmcAreaCode = districtCodes.nmcCode;
+                        weatherData.cmaAreaCode = districtCodes.cmaCode;
+                        logStep(`已添加完整地区编码信息: mojiCode=${districtCodes.mojiCode}, nmcCode=${districtCodes.nmcCode}, cmaCode=${districtCodes.cmaCode}`);
+                    } else {
+                        logStep(`警告: 未找到地区编码信息 for weatherCode=${weatherCode}`);
+                    }
+                } catch (error) {
+                    logStep(`错误: 获取地区编码信息时出错: ${error}`);
+                }
                 // 4. 使用 MainController 进行渲染
                 window.WeatherModule.MainController.updateDisplay(weatherData);
             } else {
