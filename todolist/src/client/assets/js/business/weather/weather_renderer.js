@@ -1146,8 +1146,8 @@ window.WeatherModule.initFestivals = async function() {
  * @param {string} cmaAreaCode - 中国气象局区域代码
  * @param {number} [retryCount=0] - 重试次数
  */
-function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, retryCount = 0) {
-    logStep(`加载天气数据，代码: ${weatherCode}, 墨迹编码: ${mojiAreaCode}, 中央气象台编码: ${nmcAreaCode}, 中国气象局编码: ${cmaAreaCode}, 重试次数: ${retryCount}`);
+function loadWeatherData(weatherCode, retryCount = 0) {
+    logStep(`加载天气数据，代码: ${weatherCode}, 重试次数: ${retryCount}`);
 
     if (!weatherCode) {
         logStep('错误: 缺少必要的天气代码参数');
@@ -1159,15 +1159,6 @@ function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, re
     window.WeatherModule.View.showLoading(true);
 
     let url = `${WEATHER_API.WEATHER_INFO}?weatherCode=${encodeURIComponent(weatherCode)}`;
-    if (mojiAreaCode) {
-        url += `&mojiAreaCode=${encodeURIComponent(mojiAreaCode)}`;
-    }
-    if (nmcAreaCode) {
-        url += `&nmcAreaCode=${encodeURIComponent(nmcAreaCode)}`;
-    }
-    if (cmaAreaCode) {
-        url += `&cmaAreaCode=${encodeURIComponent(cmaAreaCode)}`;
-    }
     logStep(`发送天气数据请求: ${url}`);
 
     // 发送请求
@@ -1200,8 +1191,8 @@ function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, re
                 if (retryCount < 2) {
                     logStep(`尝试重新获取天气数据，当前重试次数: ${retryCount + 1}`);
                     setTimeout(() => {
-                        loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, retryCount + 1); // 递归调用全局函数
-                    }, 1000);
+                    loadWeatherData(weatherCode, retryCount + 1); // 递归调用全局函数
+                }, 1000);
                 } else {
                     window.WeatherModule.View.showError('获取天气数据失败，请稍后重试'); // 调用 View 模块
                 }
@@ -1218,7 +1209,7 @@ function loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, re
             if (retryCount < 2) {
                 logStep(`因错误尝试重新获取天气数据，当前重试次数: ${retryCount + 1}`);
                 setTimeout(() => {
-                    loadWeatherData(weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode, retryCount + 1); // 递归调用全局函数
+                    loadWeatherData(weatherCode, retryCount + 1); // 递归调用全局函数
                 }, 1000);
             } else {
                 window.WeatherModule.View.showError(errorMessage); // 调用 View 模块
