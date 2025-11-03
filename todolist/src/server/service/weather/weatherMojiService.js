@@ -12,13 +12,13 @@ function extractMojiWeatherData(html) {
     };
 
     // 1. 提取今日实时天气
-    const tempRange = $('.forecast .days:nth-child(2) > li:nth-child(3)').text().replaceAll('°', '').trim() || '';
+    const tempRange = $('.forecast .days:nth-child(2) > li:nth-child(3)')?.text()?.replaceAll('°', '').trim().split('/') || [];
     weatherData.liveWeather = {
         time: $('.wea_info .wea_weather .info_uptime').text().replace('今天', '').replace('更新', '').trim() || '', // 更新时间
         weather: $('.forecast .days:nth-child(2) > li:nth-child(2) b').text().trim() || '', // 天气状况
         temperature: $('.wea_info .wea_weather em').text().replace('°', '').trim() || '',  // 实时温度
-        tempMin: tempRange.split('/')[0].trim() || '', // 最低温
-        tempMax: tempRange.split('/')[1].trim() || '', // 最高温
+        tempMin: tempRange.length>0 ? tempRange[0]?.trim() || '' : '', // 最低温
+        tempMax: tempRange.length>1 ? tempRange[1]?.trim() || '' : '', // 最高温
         wind: $('.wea_info .wea_about em').text().trim() || '',        // 风向风力
         humidity: $('.wea_info .wea_about span').text().replace('湿度：', '').replace('湿度', '').trim() || '', // 湿度
         airQuality: $('.wea_info .wea_alert em').text().trim() || '', // 空气质量
@@ -64,7 +64,7 @@ async function fetchMojiWeather(mojiAreaCode){
         console.log('成功提取墨迹天气数据');
         return mojiWeatherData;
     } catch (error) {
-        console.error('获取墨迹天气数据失败:', error.message);
+        console.error('获取墨迹天气数据失败:', error);
         return { error: error.message || '获取墨迹天气数据失败' };
     }
 }

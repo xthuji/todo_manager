@@ -76,7 +76,7 @@ router.get('/weather-info', async (req, res) => {
     }
 
     try {
-        let weatherData = getWeatherData({weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode});
+        let weatherData = await getWeatherData({weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode});
         return res.status(200).json(weatherData);
     } catch (error) {
         console.error('获取天气数据失败:', error);

@@ -1,45 +1,44 @@
 const {WEATHER_HEADERS} = require("../../utils/constants");
 
 const fetch = require('node-fetch');
-const cheerio = require('cheerio');
 
+// 格式化NMC数据为统一格式
 function extractNmcWeatherData(nmcData) {
-    // 格式化NMC数据为统一格式
-    if (nmcData && nmcData.code === 0 && nmcData.data) {
-        const weatherData = {
-            liveWeather: {},    // 实况天气
-            dailyWeather: [],   // 近几天预报
-        };
-        if (nmcData.data.predict?.detail && Array.isArray(nmcData.data.predict.detail)) {
-            weatherData.dailyWeather = nmcData.data.predict.detail.map(item => ({
-                date: item.date || '',
-                weather: item.day?.weather?.info || '',
-                tempMin: item.night?.weather?.temperature || '',
-                tempMax: item.day?.weather?.temperature || '',
-                wind:  `${item.day?.wind?.direct || ''} ${item.day?.wind?.power || ''}`, // 风向风力
-            }));
-        }
-        weatherData.liveWeather = {
-            time: nmcData.data.publish_time.trim().split(' ')[1] || '', // 从publish_time获取时间，只保留HH:MM格式
-            weather: nmcData.data.real?.weather?.info || '',
-            temperature: nmcData.data.real?.weather?.temperature || '',
-            tempMax: weatherData.dailyWeather?.[0]?.tempMax || '',
-            tempMin: weatherData.dailyWeather?.[0]?.tempMin || '',
-            wind: `${nmcData.data.real?.wind?.direct || ''} ${nmcData.data.real?.wind?.power || ''}`, // 风向风力
-            humidity: nmcData.data.real?.weather?.humidity || '', // 湿度
-            airQuality: `${nmcData.data.air?.aqi} ${nmcData.data.air?.text || ''}`, // 空气质量
-            sunrise: nmcData.data.real?.sunriseSunset?.sunrise ||  '', // 日出
-            sunset: nmcData.data.real?.sunriseSunset?.sunset ||  '', // 日落
-        };
-        return weatherData;
+    if (!(nmcData && nmcData.code === 0 && nmcData.data)) {
+        return {};
     }
-    return null;
+    const weatherData = {
+        liveWeather: {},    // 实况天气
+        dailyWeather: [],   // 近几天预报
+    };
+    if (nmcData.data.predict?.detail && Array.isArray(nmcData.data.predict.detail)) {
+        weatherData.dailyWeather = nmcData.data.predict.detail.map(item => ({
+            date: item.date || '',
+            weather: item.day?.weather?.info || '',
+            tempMin: item.night?.weather?.temperature || '',
+            tempMax: item.day?.weather?.temperature || '',
+            wind: `${item.day?.wind?.direct || ''} ${item.day?.wind?.power || ''}`, // 风向风力
+        }));
+    }
+    weatherData.liveWeather = {
+        time: nmcData.data.real?.publish_time?.trim().split(' ')[1] || '', // 从publish_time获取时间，只保留HH:MM格式
+        weather: nmcData.data.real?.weather?.info || '',
+        temperature: nmcData.data.real?.weather?.temperature || '',
+        tempMax: weatherData.dailyWeather?.[0]?.tempMax || '',
+        tempMin: weatherData.dailyWeather?.[0]?.tempMin || '',
+        wind: `${nmcData.data.real?.wind?.direct || ''} ${nmcData.data.real?.wind?.power || ''}`, // 风向风力
+        humidity: nmcData.data.real?.weather?.humidity || '', // 湿度
+        airQuality: `${nmcData.data.air?.aqi} ${nmcData.data.air?.text || ''}`, // 空气质量
+        sunrise: nmcData.data.real?.sunriseSunset?.sunrise || '', // 日出
+        sunset: nmcData.data.real?.sunriseSunset?.sunset || '', // 日落
+    };
+    return weatherData;
 }
 
 // 获取中央气象台天气数据
 async function fetchNmcWeather(nmcAreaCode){
     if (!nmcAreaCode) {
-        return null;
+        return { error: '参数nmcAreaCode为空，无法获取中央气象台天气数据' };
     }
     try {
         // 仅使用指定的URL接口，使用当前时间戳
@@ -59,8 +58,8 @@ async function fetchNmcWeather(nmcAreaCode){
         console.log('成功提取中央气象台天气数据');
         return nmcWeatherData;
     } catch (error) {
-        console.error('获取中央气象台天气数据失败:', error.message);
-        return null;
+        console.error('获取中央气象台天气数据失败:', error);
+        return { error: error.message || '获取中央气象台天气数据失败' };
     }
 }
 

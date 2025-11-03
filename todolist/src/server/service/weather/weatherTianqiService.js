@@ -75,7 +75,7 @@ async function fetchTodayWeather(weatherCode){
         console.log('成功提取今日天气数据');
         return weatherData;
     } catch (error) {
-        console.error('获取今日天气数据失败:', error.message);
+        console.error('获取今日天气数据失败:', error);
         return { error: error.message || '获取天气数据失败' };
     }
 }
@@ -131,7 +131,7 @@ async function fetchTodayDetailWeather(weatherCode){
         console.log('成功提取今日天气补充数据');
         return weatherData;
     } catch (error) {
-        console.error('获取今日天气补充数据失败:', error.message);
+        console.error('获取今日天气补充数据失败:', error);
         return { error: error.message || '获取天气数据失败' };
     }
 }
@@ -196,7 +196,7 @@ async function fetchRecentDaysWeather(weatherCode){
         console.log('成功提取近几日天气数据');
         return weatherData;
     } catch (error) {
-        console.error('获取近几日天气数据失败:', error.message);
+        console.error('获取近几日天气数据失败:', error);
         return { error: error.message || '获取近几日天气数据失败' };
     }
 }
@@ -267,7 +267,7 @@ async function fetchCalendarAndHistoryWeather(weatherCode){
         console.log('成功提取天气历史数据');
         return weatherData;
     } catch (error) {
-        console.error('获取天气历史数据失败:', error.message);
+        console.error('获取天气历史数据失败:', error);
         return { error: error.message || '获取天气历史数据失败' };
     }
 }

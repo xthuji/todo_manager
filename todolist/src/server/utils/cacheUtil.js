@@ -41,7 +41,7 @@ function handleCache(cacheKey, data = null, options = {}) {
             const cachedData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
             // 检查缓存是否有效
             if (Date.now() - cachedData.timestamp < options.ttl) {
-                return cachedData.data;
+                return cachedData;
             }
         }
     } catch (error) {
