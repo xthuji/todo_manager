@@ -106,6 +106,20 @@ function buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherD
         todayWeather: todayWeather, recentDaysWeather: recentDaysWeather, calendarWeather: calendarWeather,
     };
     console.log('天气数据提取完成');
+    
+    if (PRINT_API_DATA) {
+        if (PRINT_DATA_LOG) {
+            console.log('墨迹天气数据:', JSON.stringify(mojiWeatherData));
+            console.log('今日天气数据:', JSON.stringify(todayWeatherData));
+            console.log('今日天气补充数据:', JSON.stringify(todayDetailWeatherData));
+            console.log('近几日天气数据:', JSON.stringify(recentDaysWeatherData));
+            console.log('天气历史数据:', JSON.stringify(calendarAndHistoryWeatherData));
+            console.log('CMA(中国气象局)天气数据:', JSON.stringify(cmaWeatherData));
+            console.log('NMC(中央气象台)天气数据:', JSON.stringify(nmcWeatherData));
+        }
+        weatherData.apiData = {mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData};
+    }
+    
     // 检查是否所有必要的API结果都有数据，只有在所有数据都有效时才缓存。如果没有提供mojiAreaCode，则跳过mojiWeatherData的检查
     const hasMoji = !weatherAreaCodeParams.mojiAreaCode || Object.keys(mojiWeatherData || {}).length;
     const hasToday = Object.keys(todayWeatherData || {}).length;
@@ -151,26 +165,12 @@ async function queryWeatherData(weatherAreaCodeParams) {
     // 5. CMA(中国气象局)天气数据获取Promise - 备用数据源
     promises.push(fetchCmaWeather(weatherAreaCodeParams.cmaAreaCode));
     // 6. NMC(中央气象台)天气数据获取Promise - 备用数据源
-    promises.push(fetchNmcWeather(weatherAreaCodeParams.nmcAreaCode));
+    promises.push(fetchNmcWeather(weatherAreaCodeParams.nmcApiCode));
 
     // 并行执行所有请求
     const [mojiWeatherData, todayWeatherData, todayDetailWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, cmaWeatherData, nmcWeatherData] = await Promise.all(promises);
 
-    let weatherData = buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, weatherAreaCodeParams);
-
-    if (PRINT_API_DATA) {
-        if (PRINT_DATA_LOG) {
-            console.log('墨迹天气数据:', JSON.stringify(mojiWeatherData));
-            console.log('今日天气数据:', JSON.stringify(todayWeatherData));
-            console.log('今日天气补充数据:', JSON.stringify(todayDetailWeatherData));
-            console.log('近几日天气数据:', JSON.stringify(recentDaysWeatherData));
-            console.log('天气历史数据:', JSON.stringify(calendarAndHistoryWeatherData));
-            console.log('CMA(中国气象局)天气数据:', JSON.stringify(cmaWeatherData));
-            console.log('NMC(中央气象台)天气数据:', JSON.stringify(nmcWeatherData));
-        }
-        weatherData.apiData = {mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData};
-    }
-    return weatherData;
+    return buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, weatherAreaCodeParams);
 }
 
 // https://www.nmc.cn/publish/forecast/AZJ/wdcXE.html

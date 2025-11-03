@@ -105,7 +105,8 @@ async function main() {
                     code: province.code,
                     children: cities.map(city => ({
                         name: cleanEncoding(city.city || '未知城市'),
-                        code: city.code
+                        code: city.code,
+                        nameCode: city.url.split('/').pop().replace('.html', ''),
                     }))
                 };
                 

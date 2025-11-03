@@ -8,7 +8,7 @@ const USE_MOCK = false;
 // 是否使用接口缓存数据
 const USE_CACHE = true;
 // 是否打印接口结果数据
-const PRINT_API_DATA = true;
+const PRINT_API_DATA = false;
 // 是否打印数据日志
 const PRINT_DATA_LOG = false;
 

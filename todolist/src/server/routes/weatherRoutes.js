@@ -61,9 +61,6 @@ router.get('/weather-info', async (req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     console.log('收到今日天气请求，查询参数:', req.query);
     const weatherCode = req.query.weatherCode;
-    // const mojiAreaCode = req.query.mojiAreaCode;
-    // const nmcAreaCode = req.query.nmcAreaCode;
-    // const cmaAreaCode = req.query.cmaAreaCode;
 
     let districtAreaCode = getDistrictAreaCodes(weatherCode);
     // 验证必要参数

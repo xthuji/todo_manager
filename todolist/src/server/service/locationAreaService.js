@@ -276,7 +276,8 @@ function getDistrictAreaCodes(areaCode) {
                         child.children.forEach(leaf => {
                             areaCodesMap[leaf.code] = {
                                 mojiAreaCode: `${item.mojiCode}/${leaf.mojiCode}`,
-                                nmcAreaCode: `${item.nmcCode}/${leaf.nmcCode}`,
+                                nmcApiCode: `${leaf.nmcCode}`,
+                                nmcAreaCode: `${item.nmcCode}/${leaf.nmcNameCode}`,
                                 cmaAreaCode: leaf.cmaCode,
                             };
                         });

@@ -77,9 +77,13 @@ function fuzzyMatch(targetName, item) {
 
 // 处理模糊匹配结果
 function processFuzzyMatches(targetName, fuzzyMatches, sourceName) {
-    if (fuzzyMatches.length === 1) {
-        return { code: fuzzyMatches[0].code, method: '模糊匹配' };
-    } else if (fuzzyMatches.length > 1) {
+            if (fuzzyMatches.length === 1) {
+                return { 
+                    code: fuzzyMatches[0].code, 
+                    nameCode: fuzzyMatches[0].nameCode || '', // 添加nameCode
+                    method: '模糊匹配' 
+                };
+            } else if (fuzzyMatches.length > 1) {
         // 对模糊匹配的结果进行排序
         fuzzyMatches.sort((a, b) => {
             // 完全匹配优先
@@ -209,6 +213,7 @@ async function mergeAllWeatherCodes() {
             if (withSuffix.result) {
                 return { 
                     code: withSuffix.result.code, 
+                    nameCode: withSuffix.result.nameCode || '', // 添加nameCode
                     method: `添加${withSuffix.suffix}后缀匹配` 
                 };
             }
@@ -246,7 +251,11 @@ async function mergeAllWeatherCodes() {
             );
             
             if (match) {
-                return { code: match.code, method: '精确匹配' };
+                return { 
+                    code: match.code, 
+                    nameCode: match.nameCode || '', // 添加nameCode
+                    method: '精确匹配' 
+                };
             }
             
             // 2. 尝试添加后缀匹配
@@ -362,11 +371,15 @@ async function mergeAllWeatherCodes() {
                         matchDetails.push({ source: 'Moji', name: item.name, level: 'district', code: mojiCode, method: mojiMethod, province: provinceName });
                     }
                     
-                    const { code: nmcCode, method: nmcMethod } = findNmcCode(item.name, provinceName);
+                    const { code: nmcCode, nameCode: nmcNameCode, method: nmcMethod } = findNmcCode(item.name, provinceName);
                     if (nmcCode) {
                         item.nmcCode = nmcCode;
                         districtNmcCodeFound++;
                         matchDetails.push({ source: 'NMC', name: item.name, level: 'district', code: nmcCode, method: nmcMethod, province: provinceName });
+                    }
+                    // 添加县级地区的nameCode到nmcNameCode字段
+                    if (nmcNameCode) {
+                        item.nmcNameCode = nmcNameCode;
                     }
                     
                     const { code: cmaCode, method: cmaMethod } = findCmaCode(item.name, provinceName);

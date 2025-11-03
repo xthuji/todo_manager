@@ -15,7 +15,7 @@ function extractMojiWeatherData(html) {
     const tempRange = $('.forecast .days:nth-child(2) > li:nth-child(3)')?.text()?.replaceAll('°', '').trim().split('/') || [];
     weatherData.liveWeather = {
         time: $('.wea_info .wea_weather .info_uptime').text().replace('今天', '').replace('更新', '').trim() || '', // 更新时间
-        weather: $('.forecast .days:nth-child(2) > li:nth-child(2) b').text().trim() || '', // 天气状况
+        weather: $('.wea_weather > b').text().trim() || '', // 天气状况
         temperature: $('.wea_info .wea_weather em').text().replace('°', '').trim() || '',  // 实时温度
         tempMin: tempRange.length>0 ? tempRange[0]?.trim() || '' : '', // 最低温
         tempMax: tempRange.length>1 ? tempRange[1]?.trim() || '' : '', // 最高温
@@ -26,18 +26,18 @@ function extractMojiWeatherData(html) {
     };
 
     // 2. 提取天气日历
-    const calendarEls = $('.calendar #calendar_grid ul li.item');
+    const calendarEls = $('#calendar_grid > ul > li');
     const yearMonthStr = `${new Date().getFullYear()}${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
     calendarEls.each((i, el) => {
-        if ($(el).find('em')?.text()?.trim() || '' === '') {
+        if (($(el).find('em')?.text()?.trim() || '') === '') {
             return;
         }
-        const tempRange = $(el).find('p:nth-child(3)').text().replaceAll('°', '').trim() || ''
+        const tempRange = $(el).find('p:nth-child(3)')?.text()?.replaceAll('°', '').trim().split('/') || []
         weatherData.calendarWeather.push({
             date: `${yearMonthStr}${$(el).find('em').text().trim().padStart(2, '0')}`, // 20251002 格式
             weather: $(el).find('b img').attr('alt')?.trim(),
-            tempMin: tempRange.split('/')[0].trim() || '', // 最低温
-            tempMax: tempRange.split('/')[1].trim() || '', // 最高温
+            tempMin: tempRange.length>0 ? tempRange[0]?.trim() || '' : '', // 最低温
+            tempMax: tempRange.length>1 ? tempRange[1]?.trim() || '' : '', // 最高温
             wind: $(el).find('p:nth-child(4)').text().trim()
         });
     });
