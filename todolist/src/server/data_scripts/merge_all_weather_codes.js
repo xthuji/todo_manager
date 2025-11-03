@@ -30,6 +30,13 @@ function removeBracketsContent(name) {
     return name.replace(/\([^)]*\)/g, '').trim();
 }
 
+// 辅助函数：清洗省份名称
+function cleanProvinceName(provinceName) {
+    // 移除省份常见后缀
+    const cleaned = provinceName.replace(/[省市区]$|自治区$|特别行政区$/, '');
+    return cleaned.trim();
+}
+
 // 辅助函数：尝试添加后缀进行匹配
 function tryWithSuffixes(name, callback) {
     const suffixes = ['', '区', '县', '市', '旗', '口', '镇', '盟', '特区', '特别行政区', '自治区', '自治县'];
@@ -65,7 +72,7 @@ function calculateSimilarity(str1, str2) {
     return similarity;
 }
 
-// 辅助函数：模糊匹配 - 提高准确性
+// 辅助函数：模糊匹配
 function fuzzyMatch(targetName, item) {
     const cleanTargetName = removeRegionSuffix(removeBracketsContent(targetName));
     const cleanItemName = removeRegionSuffix(item.name);
@@ -80,130 +87,14 @@ function fuzzyMatch(targetName, item) {
         return true;
     }
     
-    // 部分匹配 - 只允许较长名称包含较短名称
-    const minLength = Math.min(cleanTargetName.length, cleanItemName.length);
-    const maxLength = Math.max(cleanTargetName.length, cleanItemName.length);
-    
-    // 如果名称长度差异太大，不进行部分匹配
-    if (maxLength > minLength * 1.5) {
-        // 只在特定情况下允许部分匹配
-        if (cleanItemName.includes(cleanTargetName) && cleanTargetName.length >= 2) {
-            return true;
-        }
-        if (cleanTargetName.includes(cleanItemName) && cleanItemName.length >= 2) {
-            return true;
-        }
-    } else {
-        // 长度相近时的部分匹配
-        if (cleanItemName.includes(cleanTargetName) || 
-            cleanTargetName.includes(cleanItemName)) {
-            return true;
-        }
-    }
-    
-    // 字符相似度匹配 - 提高阈值到80%，确保更高准确性
+    // 字符相似度匹配
     const similarity = calculateSimilarity(targetName, item.name);
-    // 对于短名称，要求更高的相似度
     const requiredSimilarity = cleanTargetName.length <= 2 ? 0.9 : 0.8;
     if (similarity >= requiredSimilarity) {
         return true;
     }
     
     return false;
-}
-
-// 处理模糊匹配结果
-function processFuzzyMatches(targetName, fuzzyMatches, sourceName, province = '') {
-            // 优先选择与省份相关的匹配结果
-            let provinceMatches = [];
-            if (province && fuzzyMatches.length > 1) {
-                provinceMatches = fuzzyMatches.filter(match => 
-                    // 检查是否与省份名称相关
-                    match.parentName && 
-                    (match.parentName === province || 
-                     removeRegionSuffix(match.parentName) === removeRegionSuffix(province))
-                );
-            }
-            
-            // 确定最终要处理的匹配列表
-            const targetMatches = provinceMatches.length > 0 ? provinceMatches : fuzzyMatches;
-            
-            if (targetMatches.length === 1) {
-                return { 
-                    code: targetMatches[0].code, 
-                    nameCode: targetMatches[0].nameCode || '', // 添加nameCode
-                    method: '模糊匹配' 
-                };
-            } else if (targetMatches.length > 1) {
-        // 对模糊匹配的结果进行排序，优先选择相似度高的
-        targetMatches.sort((a, b) => {
-            // 1. 优先选择与省份名称相关的结果
-            if (province) {
-                const aInProvince = a.parentName && 
-                    (a.parentName === province || 
-                     removeRegionSuffix(a.parentName) === removeRegionSuffix(province));
-                const bInProvince = b.parentName && 
-                    (b.parentName === province || 
-                     removeRegionSuffix(b.parentName) === removeRegionSuffix(province));
-                
-                if (aInProvince !== bInProvince) {
-                    return aInProvince ? -1 : 1;
-                }
-            }
-            
-            // 2. 计算相似度
-            const similarityA = calculateSimilarity(targetName, a.name);
-            const similarityB = calculateSimilarity(targetName, b.name);
-            
-            // 按相似度排序
-            if (similarityA !== similarityB) {
-                return similarityB - similarityA;
-            }
-            // 完全匹配优先
-            if (fuzzyMatch(targetName, a) && !fuzzyMatch(targetName, b)) return -1;
-            if (!fuzzyMatch(targetName, a) && fuzzyMatch(targetName, b)) return 1;
-            
-            // 以 自治区/自治县/自治州/特区 结尾的优先
-            const aEnds = ['自治区', '自治县', '特区', '特别行政区'];
-            const bEnds = ['自治区', '自治县', '特区', '特别行政区'];
-            if (aEnds.some(end => a.name.endsWith(end)) && 
-                !bEnds.some(end => b.name.endsWith(end))) return -1;
-            
-            // 以 盟/旗/口/县/镇/堡/区 结尾的优先
-            const aEnds2 = ['盟', '旗', '口', '县', '镇', '堡', '区'];
-            const bEnds2 = ['盟', '旗', '口', '县', '镇', '堡', '区'];
-            if (aEnds2.some(end => a.name.endsWith(end)) && 
-                !bEnds2.some(end => b.name.endsWith(end))) return -1;
-    
-            // 以 景区/公园/度假区/旅游区 结尾的放最后
-            const aEnds3 = ['景区', '公园', '度假区', '旅游区'];
-            const bEnds3 = ['景区', '公园', '度假区', '旅游区'];
-            if (aEnds3.some(end => a.name.endsWith(end)) && 
-                !bEnds3.some(end => b.name.endsWith(end))) return 1;
-            
-            // 字符数量少的优先
-            return a.name.length - b.name.length;
-        });
-        
-        // 如果相似度不够高，不进行匹配
-        const bestSimilarity = calculateSimilarity(targetName, targetMatches[0].name);
-        const minRequiredSimilarity = targetName.length <= 2 ? 0.9 : 0.8;
-        
-        if (bestSimilarity < minRequiredSimilarity) {
-            console.log(`${sourceName} - ${targetName} 模糊匹配相似度不足(${bestSimilarity.toFixed(2)})，跳过匹配`);
-            return { code: null, nameCode: '', method: null };
-        }
-        
-        const logPrefix = provinceMatches.length > 0 ? `${sourceName}(省份优先)` : sourceName;
-        console.log(`${logPrefix} - ${targetName} 模糊匹配到多个结果: ${targetMatches.map(item => item.name).join(', ')}`);
-        return { 
-            code: targetMatches[0].code, 
-            nameCode: targetMatches[0].nameCode || '', // 确保返回nameCode
-            method: `模糊匹配${provinceMatches.length > 0 ? '(省份优先)' : ''}` 
-        };
-    }
-    
-    return { code: null, nameCode: '', method: null };
 }
 
 // 合并所有天气数据源
@@ -217,35 +108,103 @@ async function mergeAllWeatherCodes() {
         const nmcData = JSON.parse(fs.readFileSync(nmcWeatherAreaCodesPath, 'utf8'));
         const cmaData = JSON.parse(fs.readFileSync(cmaWeatherAreaCodesPath, 'utf8'));
         
-        console.log('文件读取完成，开始构建各数据源映射...');
+        console.log('文件读取完成，开始构建各数据源按省份分类的数据...');
         
-        // 数据收集和映射构建
-        const allMojiItems = [];
-        const allNmcItems = [];
-        const allCmaItems = [];
+        // 按省份分类的数据结构
+        const provinceData = {};
         
-        // 递归收集数据
-        function collectItems(items, allItems, parentName = '', provinceCode = null) {
-            items.forEach(item => {
-                allItems.push({
-                    ...item,
-                    parentName,
-                    provinceCode: provinceCode || item.code,
-                    fullPath: parentName ? `${parentName}-${item.name}` : item.name
+        // 从天气数据中提取省份信息并清洗
+        tianqiData.data.forEach(province => {
+            const cleanedProvinceName = cleanProvinceName(province.name);
+            provinceData[cleanedProvinceName] = {
+                provinceName: province.name,
+                cleanedName: cleanedProvinceName,
+                districts: []
+            };
+            
+            // 提取区县数据
+            if (province.children && Array.isArray(province.children)) {
+                province.children.forEach(city => {
+                    if (city.children && Array.isArray(city.children)) {
+                        city.children.forEach(district => {
+                            provinceData[cleanedProvinceName].districts.push(district.name);
+                        });
+                    }
                 });
-                
-                if (item.children && Array.isArray(item.children)) {
-                    collectItems(item.children, allItems, item.name, provinceCode || item.code);
-                }
+            }
+        });
+        
+        console.log(`省份数据构建完成，共${Object.keys(provinceData).length}个省份`);
+        
+        // 为各数据源按省份分类
+        function categorizeByProvince(data, sourceName) {
+            const categorized = {};
+            const uncategorized = [];
+            
+            // 遍历每个省份的数据
+            Object.keys(provinceData).forEach(cleanedProvinceName => {
+                categorized[cleanedProvinceName] = [];
             });
+            
+            // 递归收集并分类数据
+            function collectAndCategorize(items, parentName = '', provinceName = null, level = 0) {
+                items.forEach(item => {
+                    const itemData = {
+                        ...item,
+                        parentName,
+                        level,
+                        fullPath: parentName ? `${parentName}-${item.name}` : item.name
+                    };
+                    
+                    if (level === 0) {
+                        // 省份级别，尝试匹配到已清洗的省份名称
+                        const cleanedItemName = cleanProvinceName(item.name);
+                        let matched = false;
+                        
+                        for (const cleanedProvinceName in categorized) {
+                            if (cleanedProvinceName === cleanedItemName || 
+                                cleanedProvinceName.includes(cleanedItemName) || 
+                                cleanedItemName.includes(cleanedProvinceName)) {
+                                categorized[cleanedProvinceName].push(itemData);
+                                matched = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!matched) {
+                            uncategorized.push(itemData);
+                        }
+                    } else if (provinceName) {
+                        // 非省份级别，使用已知省份名称分类
+                        const cleanedProvinceName = cleanProvinceName(provinceName);
+                        if (categorized[cleanedProvinceName]) {
+                            categorized[cleanedProvinceName].push(itemData);
+                        } else {
+                            uncategorized.push(itemData);
+                        }
+                    } else {
+                        // 没有省份信息，暂时放入未分类
+                        uncategorized.push(itemData);
+                    }
+                    
+                    // 递归处理子项
+                    if (item.children && Array.isArray(item.children)) {
+                        const newProvinceName = level === 0 ? item.name : provinceName;
+                        collectAndCategorize(item.children, item.name, newProvinceName, level + 1);
+                    }
+                });
+            }
+            
+            collectAndCategorize(data.data);
+            
+            console.log(`${sourceName} - 分类完成: ${Object.keys(categorized).filter(p => categorized[p].length > 0).length}个省份有数据，${uncategorized.length}个未分类`);
+            return { categorized, uncategorized };
         }
         
-        // 收集各数据源数据
-        collectItems(mojiData.data, allMojiItems);
-        collectItems(nmcData.data, allNmcItems);
-        collectItems(cmaData.data, allCmaItems);
-        
-        console.log(`数据收集完成 - Moji: ${allMojiItems.length} 项, NMC: ${allNmcItems.length} 项, CMA: ${allCmaItems.length} 项`);
+        // 分类各数据源
+        const { categorized: mojiByProvince } = categorizeByProvince(mojiData, 'Moji');
+        const { categorized: nmcByProvince } = categorizeByProvince(nmcData, 'NMC');
+        const { categorized: cmaByProvince } = categorizeByProvince(cmaData, 'CMA');
         
         // 统计信息
         let totalProcessed = 0;
@@ -261,232 +220,114 @@ async function mergeAllWeatherCodes() {
         
         let matchDetails = [];
         
-        // 查找匹配的Moji代码
-        function findMojiCode(targetName, province = null) {
-            let filteredItems = allMojiItems;
+        // 按省份和地区精确匹配
+        function findCodeByProvinceAndName(targetName, provinceName, sourceDataByProvince, sourceName) {
+            const cleanedProvinceName = cleanProvinceName(provinceName);
             
-            // 当提供省份信息时，优先在该省份内查找匹配项
-            if (province) {
-                const provinceMoji = allMojiItems.find(item => 
-                    item.parentName === '' && 
-                    (item.name === province || removeRegionSuffix(item.name) === removeRegionSuffix(province))
-                );
-                
-                if (provinceMoji) {
-                    // 优先在该省份内查找
-                    filteredItems = allMojiItems.filter(item => 
-                        item.provinceCode === provinceMoji.code || 
-                        (item.parentName === provinceMoji.name && item.provinceCode === item.code)
-                    );
-                }
-                // 找不到省份时不直接返回，而是尝试在所有数据中查找
+            // 获取该省份下的所有数据
+            const provinceData = sourceDataByProvince[cleanedProvinceName] || [];
+            
+            if (provinceData.length === 0) {
+                return { code: null, nameCode: '', method: null };
             }
             
             // 1. 精确匹配
-            let match = filteredItems.find(item => 
-                item.name === targetName || 
-                removeRegionSuffix(item.name) === targetName ||
-                item.name === removeRegionSuffix(targetName)
-            );
-            
-            if (match) {
-        return { 
-            code: match.code, 
-            nameCode: match.nameCode || '', // 确保返回nameCode
-            method: '精确匹配' 
-        };
-    }
-            
-            // 2. 尝试添加后缀匹配
-            const withSuffix = tryWithSuffixes(targetName, (testName) => {
-                return filteredItems.find(item => 
-                    item.name === testName || 
-                    removeRegionSuffix(item.name) === testName
-                );
+            let match = provinceData.find(item => {
+                // 只匹配区县级别的数据（level >= 2 或 parentName 非空）
+                if (item.level < 2 && !item.parentName) return false;
+                
+                const cleanItemName = removeBracketsContent(item.name);
+                const cleanTargetName = removeBracketsContent(targetName);
+                
+                return item.name === targetName || 
+                       cleanItemName === cleanTargetName ||
+                       removeRegionSuffix(item.name) === targetName ||
+                       removeRegionSuffix(cleanItemName) === cleanTargetName;
             });
-            
-            if (withSuffix.result) {
-                return { 
-                    code: withSuffix.result.code, 
-                    nameCode: withSuffix.result.nameCode || '', // 添加nameCode
-                    method: `添加${withSuffix.suffix}后缀匹配` 
-                };
-            }
-            
-            // 3. 模糊匹配
-    const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
-    const result = processFuzzyMatches(targetName, fuzzyMatches, 'Moji', province);
-    
-    // 如果在省份内找不到匹配，但提供了省份信息，尝试在所有数据中查找
-    if (!result.code && province) {
-        const allItemsMatches = allMojiItems.filter(item => 
-            item.parentName !== '' && // 确保是区县级别
-            fuzzyMatch(targetName, item)
-        );
-        
-        if (allItemsMatches.length > 0) {
-            const allItemsResult = processFuzzyMatches(targetName, allItemsMatches, 'Moji(跨省份)');
-            return { ...allItemsResult, method: `${allItemsResult.method} (跨省份)` };
-        }
-    }
-    
-    return { ...result, nameCode: result.nameCode || '' };
-        }
-        
-        // 查找匹配的NMC代码
-        function findNmcCode(targetName, province = null) {
-            let filteredItems = allNmcItems;
-            
-            // 当提供省份信息时，优先在该省份内查找匹配项
-            if (province) {
-                const provinceNmc = allNmcItems.find(item => 
-                    item.parentName === '' && 
-                    (removeBracketsContent(item.name) === province || 
-                     removeRegionSuffix(removeBracketsContent(item.name)) === removeRegionSuffix(province))
-                );
-                
-                if (provinceNmc) {
-                    // 优先在该省份内查找
-                    filteredItems = allNmcItems.filter(item => 
-                        item.provinceCode === provinceNmc.code
-                    );
-                }
-                // 找不到省份时不直接返回，而是尝试在所有数据中查找
-            }
-            
-            const cleanTargetName = removeBracketsContent(targetName);
-            
-            // 1. 精确匹配
-            let match = filteredItems.find(item => 
-        item.name === targetName || 
-        item.name === cleanTargetName ||
-        removeRegionSuffix(item.name) === targetName ||
-        removeRegionSuffix(item.name) === cleanTargetName ||
-        removeBracketsContent(item.name) === cleanTargetName ||
-        item.name.toLowerCase().includes(cleanTargetName.toLowerCase()) ||
-        cleanTargetName.toLowerCase().includes(item.name.toLowerCase())
-    );
             
             if (match) {
                 return { 
                     code: match.code, 
-                    nameCode: match.nameCode || '', // 添加nameCode
+                    nameCode: match.nameCode || '', 
                     method: '精确匹配' 
                 };
             }
             
             // 2. 尝试添加后缀匹配
-            const withSuffix = tryWithSuffixes(cleanTargetName, (testName) => {
-                return filteredItems.find(item => 
-                    item.name === testName || 
-                    removeRegionSuffix(item.name) === testName
-                );
+            const withSuffix = tryWithSuffixes(targetName, (testName) => {
+                return provinceData.find(item => {
+                    if (item.level < 2 && !item.parentName) return false;
+                    return item.name === testName || 
+                           removeRegionSuffix(item.name) === testName;
+                });
             });
             
             if (withSuffix.result) {
-        return { 
-            code: withSuffix.result.code, 
-            nameCode: withSuffix.result.nameCode || '', // 确保返回nameCode
-            method: `添加${withSuffix.suffix}后缀匹配` 
-        };
-    }
-            
-            // 3. 模糊匹配
-    const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
-    const result = processFuzzyMatches(targetName, fuzzyMatches, 'NMC', province);
-    
-    // 如果在省份内找不到匹配，但提供了省份信息，尝试在所有数据中查找
-    if (!result.code && province) {
-        const allItemsMatches = allNmcItems.filter(item => 
-            item.parentName !== '' && // 确保是区县级别
-            fuzzyMatch(targetName, item)
-        );
-        
-        if (allItemsMatches.length > 0) {
-            const allItemsResult = processFuzzyMatches(targetName, allItemsMatches, 'NMC(跨省份)');
-            return { ...allItemsResult, method: `${allItemsResult.method} (跨省份)` };
-        }
-    }
-    
-    return { ...result, nameCode: result.nameCode || '' };
-        }
-        
-        // 查找匹配的CMA代码
-        function findCmaCode(targetName, province = null) {
-            let filteredItems = allCmaItems;
-            
-            // 当提供省份信息时，优先在该省份内查找匹配项
-            if (province) {
-                const provinceCma = allCmaItems.find(item => 
-                    item.parentName === '' && 
-                    (item.name === province || removeRegionSuffix(item.name) === removeRegionSuffix(province))
-                );
-                
-                if (provinceCma) {
-                    // 优先在该省份内查找
-                    filteredItems = allCmaItems.filter(item => 
-                        item.provinceCode === provinceCma.code ||
-                        item.parentName === provinceCma.name
-                    );
-                }
-                // 找不到省份时不直接返回，而是尝试在所有数据中查找
+                return { 
+                    code: withSuffix.result.code, 
+                    nameCode: withSuffix.result.nameCode || '', 
+                    method: `添加${withSuffix.suffix}后缀匹配` 
+                };
             }
             
-            const cleanTargetName = removeBracketsContent(targetName);
-            
-            // 1. 精确匹配
-            let match = filteredItems.find(item => 
-        item.name === targetName || 
-        item.name === cleanTargetName ||
-        removeRegionSuffix(item.name) === targetName ||
-        removeRegionSuffix(item.name) === cleanTargetName ||
-        removeBracketsContent(item.name) === cleanTargetName ||
-        item.name.toLowerCase().includes(cleanTargetName.toLowerCase()) ||
-        cleanTargetName.toLowerCase().includes(item.name.toLowerCase())
-    );
-            
-            if (match) {
-        return { 
-            code: match.code, 
-            nameCode: match.nameCode || '', // 添加nameCode
-            method: '精确匹配' 
-        };
-    }
-            
-            // 2. 尝试添加后缀匹配
-            const withSuffix = tryWithSuffixes(cleanTargetName, (testName) => {
-                return filteredItems.find(item => 
-                    item.name === testName || 
-                    removeRegionSuffix(item.name) === testName
-                );
+            // 3. 在该省份内进行模糊匹配
+            const fuzzyMatches = provinceData.filter(item => {
+                if (item.level < 2 && !item.parentName) return false;
+                return fuzzyMatch(targetName, item);
             });
             
-            if (withSuffix.result) {
-        return { 
-            code: withSuffix.result.code, 
-            nameCode: withSuffix.result.nameCode || '', // 添加nameCode
-            method: `添加${withSuffix.suffix}后缀匹配` 
-        };
-    }
+            if (fuzzyMatches.length === 1) {
+                return { 
+                    code: fuzzyMatches[0].code, 
+                    nameCode: fuzzyMatches[0].nameCode || '', 
+                    method: '省份内模糊匹配' 
+                };
+            } else if (fuzzyMatches.length > 1) {
+                // 对模糊匹配结果进行排序
+                fuzzyMatches.sort((a, b) => {
+                    const similarityA = calculateSimilarity(targetName, a.name);
+                    const similarityB = calculateSimilarity(targetName, b.name);
+                    return similarityB - similarityA;
+                });
+                
+                // 检查相似度阈值
+                const bestSimilarity = calculateSimilarity(targetName, fuzzyMatches[0].name);
+                const minRequiredSimilarity = targetName.length <= 2 ? 0.9 : 0.8;
+                
+                if (bestSimilarity >= minRequiredSimilarity) {
+                    console.log(`${sourceName} - 区县(${provinceName}) ${targetName} 模糊匹配到多个结果，选择相似度最高的: ${fuzzyMatches[0].name}`);
+                    return { 
+                        code: fuzzyMatches[0].code, 
+                        nameCode: fuzzyMatches[0].nameCode || '', 
+                        method: '省份内模糊匹配(相似度排序)' 
+                    };
+                }
+            }
             
-            // 3. 模糊匹配
-    const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
-    const result = processFuzzyMatches(targetName, fuzzyMatches, 'CMA', province);
-    
-    // 如果在省份内找不到匹配，但提供了省份信息，尝试在所有数据中查找
-    if (!result.code && province) {
-        const allItemsMatches = allCmaItems.filter(item => 
-            item.parentName !== '' && // 确保是区县级别
-            fuzzyMatch(targetName, item)
-        );
-        
-        if (allItemsMatches.length > 0) {
-            const allItemsResult = processFuzzyMatches(targetName, allItemsMatches, 'CMA(跨省份)');
-            return { ...allItemsResult, method: `${allItemsResult.method} (跨省份)` };
+            return { code: null, nameCode: '', method: null };
         }
-    }
-    
-    return { ...result, nameCode: result.nameCode || '' };
+        
+        // 查找省份级别的代码
+        function findProvinceCode(provinceName, sourceDataByProvince, sourceName) {
+            const cleanedProvinceName = cleanProvinceName(provinceName);
+            const provinceData = sourceDataByProvince[cleanedProvinceName] || [];
+            
+            // 查找省份级别的数据（level === 0 或 parentName === ''）
+            const match = provinceData.find(item => 
+                (item.level === 0 || !item.parentName) && 
+                (cleanProvinceName(item.name) === cleanedProvinceName ||
+                 removeBracketsContent(item.name).includes(cleanedProvinceName) ||
+                 cleanedProvinceName.includes(removeBracketsContent(item.name)))
+            );
+            
+            if (match) {
+                return { 
+                    code: match.code, 
+                    method: '精确匹配' 
+                };
+            }
+            
+            return { code: null, method: null };
         }
         
         // 递归处理数据结构
@@ -496,23 +337,24 @@ async function mergeAllWeatherCodes() {
                 
                 if (level === 0) { // 省份级别
                     provinceProcessed++;
+                    const cleanedProvinceName = cleanProvinceName(item.name);
                     
-                    // 查找并设置所有代码
-                    const { code: mojiCode, method: mojiMethod } = findMojiCode(item.name);
+                    // 查找并设置省份级别的代码
+                    const { code: mojiCode, method: mojiMethod } = findProvinceCode(item.name, mojiByProvince, 'Moji');
                     if (mojiCode) {
                         item.mojiCode = mojiCode;
                         provinceMojiCodeFound++;
                         matchDetails.push({ source: 'Moji', name: item.name, level: 'province', code: mojiCode, method: mojiMethod });
                     }
                     
-                    const { code: nmcCode, method: nmcMethod } = findNmcCode(item.name);
+                    const { code: nmcCode, method: nmcMethod } = findProvinceCode(item.name, nmcByProvince, 'NMC');
                     if (nmcCode) {
                         item.nmcCode = nmcCode;
                         provinceNmcCodeFound++;
                         matchDetails.push({ source: 'NMC', name: item.name, level: 'province', code: nmcCode, method: nmcMethod });
                     }
                     
-                    const { code: cmaCode, method: cmaMethod } = findCmaCode(item.name);
+                    const { code: cmaCode, method: cmaMethod } = findProvinceCode(item.name, cmaByProvince, 'CMA');
                     if (cmaCode) {
                         item.cmaCode = cmaCode;
                         provinceCmaCodeFound++;
@@ -523,61 +365,69 @@ async function mergeAllWeatherCodes() {
                 } else if (level === 2) { // 区县级别
                     districtProcessed++;
                     
-                    // 查找并设置所有代码，使用省份名称进行关联
-                    const { code: mojiCode, nameCode: mojiNameCode, method: mojiMethod } = findMojiCode(item.name, provinceName);
+                    if (!provinceName) {
+                        console.warn(`区县 ${item.name} 缺少省份信息，跳过匹配`);
+                        return;
+                    }
+                    
+                    // 严格按照省份+地区进行匹配
+                    const { code: mojiCode, nameCode: mojiNameCode, method: mojiMethod } = findCodeByProvinceAndName(
+                        item.name, provinceName, mojiByProvince, 'Moji'
+                    );
+                    
                     if (mojiCode) {
                         item.mojiCode = mojiCode;
                         if (mojiNameCode) {
                             item.mojiNameCode = mojiNameCode;
                         }
                         districtMojiCodeFound++;
-                        matchDetails.push({ source: 'Moji', name: item.name, level: 'district', code: mojiCode, method: mojiMethod, province: provinceName });
+                        matchDetails.push({ 
+                            source: 'Moji', 
+                            name: item.name, 
+                            level: 'district', 
+                            code: mojiCode, 
+                            method: mojiMethod, 
+                            province: provinceName 
+                        });
                     }
                     
-                    const { code: nmcCode, nameCode: nmcNameCode, method: nmcMethod } = findNmcCode(item.name, provinceName);
+                    // 查找NMC代码
+                    const { code: nmcCode, nameCode: nmcNameCode, method: nmcMethod } = findCodeByProvinceAndName(
+                        item.name, provinceName, nmcByProvince, 'NMC'
+                    );
                     
-                    // 检测并修正明显错误的匹配
-                    let correctedNmcCode = nmcCode;
-                    let correctedNmcNameCode = nmcNameCode;
-                    
-                    // 特殊处理：如果地区名称包含"西湖"，但匹配到的是"西盟"的编码
-                    if (item.name.includes('西湖')) {
-                        // 检查NMC匹配是否为西盟
-                        if (nmcNameCode === 'ximeng' || nmcCode === 'dDUzR') {
-                            console.log(`修正错误匹配: 区县(${provinceName}) ${item.name} - 移除错误的NMC编码`);
-                            correctedNmcCode = null;
-                            correctedNmcNameCode = '';
+                    if (nmcCode) {
+                        item.nmcCode = nmcCode;
+                        if (nmcNameCode) {
+                            item.nmcNameCode = nmcNameCode;
                         }
-                    }
-                    
-                    if (correctedNmcCode) {
-                        item.nmcCode = correctedNmcCode;
                         districtNmcCodeFound++;
-                        matchDetails.push({ source: 'NMC', name: item.name, level: 'district', code: correctedNmcCode, method: nmcMethod, province: provinceName });
-                    }
-                    // 添加县级地区的nameCode到nmcNameCode字段
-                    if (correctedNmcNameCode) {
-                        item.nmcNameCode = correctedNmcNameCode;
-                    }
-                    
-                    const { code: cmaCode, method: cmaMethod } = findCmaCode(item.name, provinceName);
-                    
-                    // 检测并修正明显错误的匹配
-                    let correctedCmaCode = cmaCode;
-                    
-                    // 特殊处理：如果地区名称包含"西湖"，但匹配到的是"西盟"的编码
-                    if (item.name.includes('西湖')) {
-                        // 检查CMA匹配是否为西盟
-                        if (cmaCode === '56948') {
-                            console.log(`修正错误匹配: 区县(${provinceName}) ${item.name} - 移除错误的CMA编码`);
-                            correctedCmaCode = null;
-                        }
+                        matchDetails.push({ 
+                            source: 'NMC', 
+                            name: item.name, 
+                            level: 'district', 
+                            code: nmcCode, 
+                            method: nmcMethod, 
+                            province: provinceName 
+                        });
                     }
                     
-                    if (correctedCmaCode) {
-                        item.cmaCode = correctedCmaCode;
+                    // 查找CMA代码
+                    const { code: cmaCode, method: cmaMethod } = findCodeByProvinceAndName(
+                        item.name, provinceName, cmaByProvince, 'CMA'
+                    );
+                    
+                    if (cmaCode) {
+                        item.cmaCode = cmaCode;
                         districtCmaCodeFound++;
-                        matchDetails.push({ source: 'CMA', name: item.name, level: 'district', code: correctedCmaCode, method: cmaMethod, province: provinceName });
+                        matchDetails.push({ 
+                            source: 'CMA', 
+                            name: item.name, 
+                            level: 'district', 
+                            code: cmaCode, 
+                            method: cmaMethod, 
+                            province: provinceName 
+                        });
                     }
                 }
                 
@@ -588,7 +438,7 @@ async function mergeAllWeatherCodes() {
             });
         }
         
-        console.log('开始处理数据结构，合并所有地区编码...');
+        console.log('开始处理数据结构，严格按照省份+地区进行匹配合并...');
         
         // 处理数据
         processData(tianqiData.data);
@@ -606,7 +456,7 @@ async function mergeAllWeatherCodes() {
         
         // 写入匹配详情日志
         const logContent = [
-            '=== 天气编码合并日志 ===',
+            '=== 天气编码合并日志（省份+地区严格匹配）===',
             `更新时间: ${new Date().toLocaleString()}`,
             `总共处理的地区数量: ${totalProcessed}`,
             `省份数量: ${provinceProcessed}`,
