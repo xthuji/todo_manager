@@ -136,29 +136,14 @@ window.WeatherModule.View = {
 
     /**
      * 更新天气网站链接
-     * @param {string} weatherCode - 中国天气网代码
+     * @param {string} weatherData - 天气数据
      */
     updateLinks: function(weatherData) {
         // 从weatherData对象中获取编码信息
-        const weatherCode = weatherData.weatherCode;
-        
-        // 优先使用weatherData中已有的编码信息
+        const weatherCode = weatherData.weatherCode || '';
         let mojiAreaCode = weatherData.mojiAreaCode || '';
         let nmcAreaCode = weatherData.nmcAreaCode || '';
         let cmaAreaCode = weatherData.cmaAreaCode || '';
-        
-        // 如果weatherData中没有完整的编码信息，尝试从window.WeatherModule获取
-        if (!mojiAreaCode || !nmcAreaCode || !cmaAreaCode) {
-            try {
-                const areaCodeInfo = window.WeatherModule?.getDistrictCodes?.(weatherCode);
-                mojiAreaCode = mojiAreaCode || (areaCodeInfo?.mojiCode || '');
-                nmcAreaCode = nmcAreaCode || (areaCodeInfo?.nmcCode || '');
-                cmaAreaCode = cmaAreaCode || (areaCodeInfo?.cmaCode || '');
-            } catch (error) {
-                logStep(`错误: 获取地区编码信息时出错: ${error}`);
-            }
-        }
-        
         logStep(`更新天气网站链接: weatherCode=${weatherCode}, mojiAreaCode=${mojiAreaCode}, nmcAreaCode=${nmcAreaCode}, cmaAreaCode=${cmaAreaCode}`);
 
         const weatherComCnLink = document.getElementById('weather-com-cn-link');
@@ -1201,6 +1186,7 @@ function loadWeatherData(weatherCode, retryCount = 0) {
                 weatherData.weatherCode = weatherCode; // 确保weatherCode存在
                 // 获取完整的地区编码信息（墨迹天气、中央气象台、中国气象局）
                 try {
+                    // @TODO 从这里很有可能无法正常获取地区编码信息，需要排查原因
                     const districtCodes = window.WeatherModule?.getDistrictCodes?.(weatherCode);
                     if (districtCodes) {
                         weatherData.mojiAreaCode = districtCodes.mojiCode;

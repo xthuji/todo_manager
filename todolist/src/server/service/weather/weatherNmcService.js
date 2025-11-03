@@ -13,7 +13,7 @@ function extractNmcWeatherData(nmcData) {
     };
     if (nmcData.data.predict?.detail && Array.isArray(nmcData.data.predict.detail)) {
         weatherData.dailyWeather = nmcData.data.predict.detail.map(item => ({
-            date: item.date || '',
+            date: item.date?.trim().replace('-','') || '',
             weather: item.day?.weather?.info || '',
             tempMin: item.night?.weather?.temperature || '',
             tempMax: item.day?.weather?.temperature || '',
@@ -44,7 +44,6 @@ async function fetchNmcWeather(nmcAreaCode){
         // 仅使用指定的URL接口，使用当前时间戳
         const nmcWeatherUrl = `https://www.nmc.cn/rest/weather?stationid=${nmcAreaCode}&_=${Date.now()}`;
         console.log(`开始获取中央气象台天气数据，正在访问: ${nmcWeatherUrl}`);
-
         const weatherResponse = await fetch(nmcWeatherUrl, { method: 'GET', headers: WEATHER_HEADERS, timeout: 5000 });
 
         if (!weatherResponse.ok) {
@@ -52,8 +51,6 @@ async function fetchNmcWeather(nmcAreaCode){
         }
 
         const nmcData = await weatherResponse.json();
-        console.log('成功获取中央气象台天气数据');
-
         const nmcWeatherData = extractNmcWeatherData(nmcData);
         console.log('成功提取中央气象台天气数据');
         return nmcWeatherData;

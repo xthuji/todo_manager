@@ -1,14 +1,16 @@
-
-// 是否mock接口数据
 const path = require("path");
-
-const USE_MOCK = false;
-// 是否使用接口缓存数据
-const USE_CACHE = true;
 
 const CACHE_DIR = path.join(__dirname, '../../../data/cache');
 const MOCK_DIR = path.join(__dirname, '../../../data/mock');
 
+// 是否mock接口数据
+const USE_MOCK = false;
+// 是否使用接口缓存数据
+const USE_CACHE = true;
+// 是否打印接口结果数据
+const PRINT_API_DATA = true;
+// 是否打印数据日志
+const PRINT_DATA_LOG = false;
 
 // 设置通用请求头
 const WEATHER_HEADERS = {
@@ -20,6 +22,8 @@ const WEATHER_HEADERS = {
 module.exports = {
     USE_MOCK,
     USE_CACHE,
+    PRINT_API_DATA,
+    PRINT_DATA_LOG,
     CACHE_DIR,
     MOCK_DIR,
     WEATHER_HEADERS

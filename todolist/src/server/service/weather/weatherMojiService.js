@@ -59,6 +59,7 @@ async function fetchMojiWeather(mojiAreaCode){
         if (!weatherResponse.ok) {
             throw new Error(`HTTP响应状态码: ${weatherResponse.status}`);
         }
+
         const weatherHtml = await weatherResponse.text();
         const mojiWeatherData = extractMojiWeatherData(weatherHtml);
         console.log('成功提取墨迹天气数据');

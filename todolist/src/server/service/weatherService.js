@@ -1,32 +1,31 @@
 // 天气数据代理服务示例
 // 由于浏览器的同源策略限制，前端无法直接获取不同域名的天气数据
 // 此文件提供了一个Node.js + Express服务器端代理的路由模块实现
-const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK} = require('../utils/constants.js');
+const fetch = require('node-fetch');
+const cheerio = require('cheerio');
+const fs = require('fs');
+const path = require('path');
+
+const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
 const {handleCache} = require('../utils/cacheUtil.js');
 const {fetchMojiWeather} = require("./weather/weatherMojiService");
 const {fetchTodayWeather, fetchRecentDaysWeather, fetchTodayDetailWeather, fetchCalendarAndHistoryWeather} = require("./weather/weatherTianqiService");
 const {fetchNmcWeather} = require("./weather/weatherNmcService");
 const {fetchCmaWeather} = require("./weather/weatherCmaService");
 
-const fetch = require('node-fetch');
-const cheerio = require('cheerio');
-const fs = require('fs');
-const path = require('path');
-
 let mockWeatherData;
 
 /**
  * 天气信息缓存处理函数，封装handleCache并提供默认配置
- * @param {string} weatherCode - 天气代码
- * @param {string|null} mojiAreaCode - 墨迹天气区域代码（可选）
+ * @param {Object} areaCodeInfo - 天气代码参数
  * @param {Object|null} weatherData - 要缓存的天气数据，如果为null则执行读取操作
  * @returns {Object|null} 读取模式下返回缓存的天气数据，写入模式下返回null
  */
-function cacheWeatherInfo(weatherCode, mojiAreaCode = null, weatherData = null) {
+function cacheWeatherInfo(areaCodeInfo = null, weatherData = null) {
     if (!USE_CACHE) {
         return null;
     }
-    const cacheKey = `${weatherCode}_${mojiAreaCode || 'default'}`.replaceAll('/', '_');
+    const cacheKey = `${(areaCodeInfo.weatherCode)}_${areaCodeInfo.mojiAreaCode || 'default'}`.replaceAll('/', '_');
     const defaultOptions = {
         cachePrefix: 'weather_',
         ttl: 120 * 60 * 1000, // 2小时缓存
@@ -119,7 +118,7 @@ function buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherD
 
     if (hasMoji && hasToday && hasTodayLiveWeather && hasTodayHourlyWeather && hasTodayLifeHelper && hasDetail && hasRecentDays && hasCalendar) {
         console.log('所有API结果数据完整，缓存天气数据');
-        cacheWeatherInfo(weatherAreaCodeParams.weatherCode, weatherAreaCodeParams.mojiAreaCode, weatherData);
+        cacheWeatherInfo(weatherAreaCodeParams, weatherData);
     } else {
         console.log('部分API结果数据不完整，不缓存天气数据');
         // 日志记录结果数据是否为空 mojiWeatherData, todayWeatherData, todayDetailWeatherData, calendarAndHistoryWeatherData
@@ -157,7 +156,21 @@ async function queryWeatherData(weatherAreaCodeParams) {
     // 并行执行所有请求
     const [mojiWeatherData, todayWeatherData, todayDetailWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, cmaWeatherData, nmcWeatherData] = await Promise.all(promises);
 
-    return buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, weatherAreaCodeParams);
+    let weatherData = buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, weatherAreaCodeParams);
+
+    if (PRINT_API_DATA) {
+        if (PRINT_DATA_LOG) {
+            console.log('墨迹天气数据:', JSON.stringify(mojiWeatherData));
+            console.log('今日天气数据:', JSON.stringify(todayWeatherData));
+            console.log('今日天气补充数据:', JSON.stringify(todayDetailWeatherData));
+            console.log('近几日天气数据:', JSON.stringify(recentDaysWeatherData));
+            console.log('天气历史数据:', JSON.stringify(calendarAndHistoryWeatherData));
+            console.log('CMA(中国气象局)天气数据:', JSON.stringify(cmaWeatherData));
+            console.log('NMC(中央气象台)天气数据:', JSON.stringify(nmcWeatherData));
+        }
+        weatherData.apiData = {mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData};
+    }
+    return weatherData;
 }
 
 // https://www.nmc.cn/publish/forecast/AZJ/wdcXE.html
@@ -169,21 +182,13 @@ async function getWeatherData(weatherAreaCodeParams){
         }
         return mockWeatherData;
     }
-    console.log('收到今日天气请求，查询参数:', JSON.stringify(weatherAreaCodeParams));
-    const weatherCode = weatherAreaCodeParams.weatherCode;
-    const mojiAreaCode = weatherAreaCodeParams.mojiAreaCode;
+    console.log('天气请求参数:', JSON.stringify(weatherAreaCodeParams));
 
-    // 验证必要参数
-    if (!weatherCode) {
-        throw new Error('缺少weatherCode参数');
-    }
-    
-    // 根据新的规则：weatherCode=区县的code，mojiAreaCode=省份的mojiCode/区县的mojiCode
     // 尝试从缓存获取数据
-    const cachedWeatherData = cacheWeatherInfo(weatherCode, mojiAreaCode);
+    const cachedWeatherData = cacheWeatherInfo(weatherAreaCodeParams);
     
     if (cachedWeatherData) {
-        console.log('使用缓存的天气数据', weatherCode, mojiAreaCode);
+        console.log('使用缓存的天气数据');
         return cachedWeatherData;
     }
 

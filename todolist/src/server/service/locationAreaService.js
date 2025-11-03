@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
-const {USE_MOCK, USE_CACHE, MOCK_DIR, CACHE_DIR} = require('../utils/constants.js');
+const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
 const {handleCache} = require('../utils/cacheUtil.js');
 
 
@@ -212,8 +212,15 @@ async function getLocation(clientIp) {
     const promises = [];
     promises.push(getLocation1(), getLocation2());
     const [addressData1, addressData2] = await Promise.all(promises);
-    const addressData = addressData2 || addressData1;
-    console.log(`定位数据: ${JSON.stringify(addressData)}. 结果1:${JSON.stringify(addressData1)}, 结果2:${JSON.stringify(addressData2)}`);
+    const addressData = {... (addressData2 || addressData1)};
+    console.log(`定位数据: ${JSON.stringify(addressData)}`);
+    if (PRINT_API_DATA) {
+        if (PRINT_DATA_LOG) {
+            console.log(`接口获取位置信息结果1: ${JSON.stringify(addressData1)}`);
+            console.log(`接口获取位置信息结果2: ${JSON.stringify(addressData2)}`);
+        }
+        addressData.apiData = {addressData1, addressData2};
+    }
 
     // 读取地区编码数据，用于查找完整的省市县信息
     const allAreaCodes = getAllAreaCodes();
@@ -225,11 +232,11 @@ async function getLocation(clientIp) {
             addressData.city = districtInfo.city || addressData.city;
             addressData.district = districtInfo.district || addressData.district;
             addressData.code = districtInfo.code;
-            addressData.provinceMojiCode = districtInfo.provinceMojiCode;
-            addressData.districtMojiCode = districtInfo.mojiCode;
-            addressData.provinceNmcCode = districtInfo.provinceNmcCode;
-            addressData.districtNmcCode = districtInfo.nmcCode;
-            addressData.districtCmaCode = districtInfo.cmaCode;
+            // addressData.provinceMojiCode = districtInfo.provinceMojiCode;
+            // addressData.districtMojiCode = districtInfo.mojiCode;
+            // addressData.provinceNmcCode = districtInfo.provinceNmcCode;
+            // addressData.districtNmcCode = districtInfo.nmcCode;
+            // addressData.districtCmaCode = districtInfo.cmaCode;
         }
     }
     console.log('返回完整的位置数据:', addressData.toString());
@@ -267,16 +274,20 @@ function getDistrictAreaCodes(areaCode) {
                     if (child.children && child.children.length > 0) {
                         // 递归处理子节点的子节点
                         child.children.forEach(leaf => {
-                            areaCodesMap[leaf.code] = leaf;
+                            areaCodesMap[leaf.code] = {
+                                mojiAreaCode: `${item.mojiCode}/${leaf.mojiCode}`,
+                                nmcAreaCode: `${item.nmcCode}/${leaf.nmcCode}`,
+                                cmaAreaCode: leaf.cmaCode,
+                            };
                         });
                     } else {
                         // 直接添加子节点到Map
-                        areaCodesMap[child.code] = child;
+                        areaCodesMap[child.code] = {mojiAreaCode: child.mojiCode, nmcAreaCode: child.nmcCode, cmaAreaCode: child.cmaCode,};
                     }
                 });
             } else {
                 // 直接添加叶子节点到Map
-                areaCodesMap[item.code] = item;
+                areaCodesMap[item.code] = {mojiAreaCode: item.mojiCode, nmcAreaCode: item.nmcCode, cmaAreaCode: item.cmaCode,};
             }
         });
     }

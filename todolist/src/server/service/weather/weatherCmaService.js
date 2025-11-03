@@ -4,7 +4,7 @@ const cheerio = require('cheerio');
 
 // 格式化CMA数据为统一格式
 function extractCmaWeatherData(cmaData) {
-    if (!(cmaData && cmaData.code === 200 && cmaData.data)) {
+    if (!(cmaData && cmaData.code === 0 && cmaData.data)) {
         return {};
     }
     return {
@@ -27,7 +27,6 @@ async function fetchCmaWeather(cmaAreaCode){
         // 仅使用指定的URL接口
         const cmaWeatherUrl = `https://weather.cma.cn/api/now/${cmaAreaCode}`;
         console.log(`开始获取中国气象局天气数据，正在访问: ${cmaWeatherUrl}`);
-
         const weatherResponse = await fetch(cmaWeatherUrl, { method: 'GET', headers: WEATHER_HEADERS, timeout: 5000 });
 
         if (!weatherResponse.ok) {
@@ -35,8 +34,6 @@ async function fetchCmaWeather(cmaAreaCode){
         }
 
         const cmaData = await weatherResponse.json();
-        console.log('成功获取中国气象局天气数据');
-
         const cmaWeatherData = extractCmaWeatherData(cmaData);
         console.log('成功提取中国气象局天气数据');
         return cmaWeatherData;

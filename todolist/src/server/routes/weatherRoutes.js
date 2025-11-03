@@ -66,25 +66,20 @@ router.get('/weather-info', async (req, res) => {
     // const cmaAreaCode = req.query.cmaAreaCode;
 
     let districtAreaCode = getDistrictAreaCodes(weatherCode);
-    const mojiAreaCode = districtAreaCode.mojiCode;
-    const nmcAreaCode = districtAreaCode.nmcCode;
-    const cmaAreaCode = districtAreaCode.cmaCode;
-
     // 验证必要参数
     if (!weatherCode) {
         return res.status(400).json({ error: '缺少weatherCode参数' });
     }
 
     try {
-        let weatherData = await getWeatherData({weatherCode, mojiAreaCode, nmcAreaCode, cmaAreaCode});
+        let weatherAreaCodeParams = {weatherCode, ... districtAreaCode};
+        let weatherData = await getWeatherData(weatherAreaCodeParams);
         return res.status(200).json(weatherData);
     } catch (error) {
         console.error('获取天气数据失败:', error);
         return res.status(500).json({
             error: '获取天气数据失败',
             message: error.message,
-            mojiAreaCode: mojiAreaCode,
-            weatherCode: weatherCode
         });
     }
 });

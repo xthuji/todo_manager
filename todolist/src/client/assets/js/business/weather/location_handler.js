@@ -118,27 +118,11 @@ const WEATHER_API = {
             };
 
             // 计算完整的墨迹天气编码
-            let fullMojiCode = '';
-            if (district.mojiCode) {
-                if (province.mojiCode && typeof province.mojiCode === 'string' && typeof district.mojiCode === 'string') {
-                    fullMojiCode = `${province.mojiCode}/${district.mojiCode}`;
-                } else {
-                    fullMojiCode = String(district.mojiCode);
-                }
-            }
-
+            let fullMojiCode = district.mojiCode ? `${province.mojiCode}/${district.mojiCode}` : province.mojiCode;
             // 计算完整的中央气象台编码
-            let fullNmcCode = '';
-            if (district.nmcCode) {
-                if (province.nmcCode && typeof province.nmcCode === 'string' && typeof district.nmcCode === 'string') {
-                    fullNmcCode = `${province.nmcCode}/${district.nmcCode}`;
-                } else {
-                    fullNmcCode = String(district.nmcCode);
-                }
-            }
-
+            let fullNmcCode = district.nmcCode ? `${province.nmcCode}/${district.nmcCode}` : province.nmcCode;
             // 计算中国气象局编码
-            const cmaCode = district.cmaCode ? String(district.cmaCode) : '';
+            const cmaCode = district.cmaCode ? `${district.cmaCode}` : '';
 
             // 构建统一的地区编码映射表
             this.dataCache.districtCodesMap[district.code] = {mojiCode: fullMojiCode, nmcCode: fullNmcCode, cmaCode: cmaCode};
@@ -293,7 +277,7 @@ const WEATHER_API = {
          * @returns {object} 包含mojiCode、nmcCode、cmaCode的对象
          */
         getDistrictCodes: function (districtCode) {
-            return this.dataCache?.districtCodesMap[districtCode] || {
+            return this.dataCache.districtCodesMap[districtCode] || {
                 mojiCode: '',
                 nmcCode: '',
                 cmaCode: ''
@@ -753,12 +737,6 @@ const WEATHER_API = {
 
             // 初始定位，强制加载一次区域数据 (或使用IP API返回的数据)
             const locationData = await this.dataManager.getIpLocation(true);
-
-            // 如果IP API直接返回了weatherCode，优先加载一次天气
-            if (locationData.weatherCode) {
-                this._log('IP定位已获取weatherCode，优先加载天气数据');
-                loadWeatherData(locationData.weatherCode);
-            }
 
             // 开始匹配下拉框
             await this.matchLocation(locationData, true);
