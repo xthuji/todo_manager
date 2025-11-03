@@ -45,7 +45,27 @@ function tryWithSuffixes(name, callback) {
     return { result: null, suffix: null };
 }
 
-// 辅助函数：模糊匹配
+// 计算字符串相似度
+function calculateSimilarity(str1, str2) {
+    const s1 = removeRegionSuffix(removeBracketsContent(str1));
+    const s2 = removeRegionSuffix(removeBracketsContent(str2));
+    
+    // 完全匹配
+    if (s1 === s2) return 1;
+    
+    // 部分包含
+    if (s1.includes(s2) || s2.includes(s1)) return 0.9;
+    
+    // 计算交集字符比例
+    const set1 = new Set(s1);
+    const set2 = new Set(s2);
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const similarity = intersection.size / Math.max(set1.size, set2.size);
+    
+    return similarity;
+}
+
+// 辅助函数：模糊匹配 - 提高准确性
 function fuzzyMatch(targetName, item) {
     const cleanTargetName = removeRegionSuffix(removeBracketsContent(targetName));
     const cleanItemName = removeRegionSuffix(item.name);
@@ -60,15 +80,32 @@ function fuzzyMatch(targetName, item) {
         return true;
     }
     
-    // 部分匹配
-    if (cleanItemName.includes(cleanTargetName) || 
-        cleanTargetName.includes(cleanItemName)) {
-        return true;
+    // 部分匹配 - 只允许较长名称包含较短名称
+    const minLength = Math.min(cleanTargetName.length, cleanItemName.length);
+    const maxLength = Math.max(cleanTargetName.length, cleanItemName.length);
+    
+    // 如果名称长度差异太大，不进行部分匹配
+    if (maxLength > minLength * 1.5) {
+        // 只在特定情况下允许部分匹配
+        if (cleanItemName.includes(cleanTargetName) && cleanTargetName.length >= 2) {
+            return true;
+        }
+        if (cleanTargetName.includes(cleanItemName) && cleanItemName.length >= 2) {
+            return true;
+        }
+    } else {
+        // 长度相近时的部分匹配
+        if (cleanItemName.includes(cleanTargetName) || 
+            cleanTargetName.includes(cleanItemName)) {
+            return true;
+        }
     }
     
-    // 所有字符都被包含
-    if (cleanTargetName.split('').every(char => cleanItemName.includes(char)) || 
-        cleanItemName.split('').every(char => cleanTargetName.includes(char))) {
+    // 字符相似度匹配 - 提高阈值到80%，确保更高准确性
+    const similarity = calculateSimilarity(targetName, item.name);
+    // 对于短名称，要求更高的相似度
+    const requiredSimilarity = cleanTargetName.length <= 2 ? 0.9 : 0.8;
+    if (similarity >= requiredSimilarity) {
         return true;
     }
     
@@ -76,16 +113,52 @@ function fuzzyMatch(targetName, item) {
 }
 
 // 处理模糊匹配结果
-function processFuzzyMatches(targetName, fuzzyMatches, sourceName) {
-            if (fuzzyMatches.length === 1) {
+function processFuzzyMatches(targetName, fuzzyMatches, sourceName, province = '') {
+            // 优先选择与省份相关的匹配结果
+            let provinceMatches = [];
+            if (province && fuzzyMatches.length > 1) {
+                provinceMatches = fuzzyMatches.filter(match => 
+                    // 检查是否与省份名称相关
+                    match.parentName && 
+                    (match.parentName === province || 
+                     removeRegionSuffix(match.parentName) === removeRegionSuffix(province))
+                );
+            }
+            
+            // 确定最终要处理的匹配列表
+            const targetMatches = provinceMatches.length > 0 ? provinceMatches : fuzzyMatches;
+            
+            if (targetMatches.length === 1) {
                 return { 
-                    code: fuzzyMatches[0].code, 
-                    nameCode: fuzzyMatches[0].nameCode || '', // 添加nameCode
+                    code: targetMatches[0].code, 
+                    nameCode: targetMatches[0].nameCode || '', // 添加nameCode
                     method: '模糊匹配' 
                 };
-            } else if (fuzzyMatches.length > 1) {
-        // 对模糊匹配的结果进行排序
-        fuzzyMatches.sort((a, b) => {
+            } else if (targetMatches.length > 1) {
+        // 对模糊匹配的结果进行排序，优先选择相似度高的
+        targetMatches.sort((a, b) => {
+            // 1. 优先选择与省份名称相关的结果
+            if (province) {
+                const aInProvince = a.parentName && 
+                    (a.parentName === province || 
+                     removeRegionSuffix(a.parentName) === removeRegionSuffix(province));
+                const bInProvince = b.parentName && 
+                    (b.parentName === province || 
+                     removeRegionSuffix(b.parentName) === removeRegionSuffix(province));
+                
+                if (aInProvince !== bInProvince) {
+                    return aInProvince ? -1 : 1;
+                }
+            }
+            
+            // 2. 计算相似度
+            const similarityA = calculateSimilarity(targetName, a.name);
+            const similarityB = calculateSimilarity(targetName, b.name);
+            
+            // 按相似度排序
+            if (similarityA !== similarityB) {
+                return similarityB - similarityA;
+            }
             // 完全匹配优先
             if (fuzzyMatch(targetName, a) && !fuzzyMatch(targetName, b)) return -1;
             if (!fuzzyMatch(targetName, a) && fuzzyMatch(targetName, b)) return 1;
@@ -112,11 +185,25 @@ function processFuzzyMatches(targetName, fuzzyMatches, sourceName) {
             return a.name.length - b.name.length;
         });
         
-        console.log(`${sourceName} - ${targetName} 模糊匹配到多个结果: ${fuzzyMatches.map(item => item.name).join(', ')}`);
-        return { code: fuzzyMatches[0].code, method: '模糊匹配' };
+        // 如果相似度不够高，不进行匹配
+        const bestSimilarity = calculateSimilarity(targetName, targetMatches[0].name);
+        const minRequiredSimilarity = targetName.length <= 2 ? 0.9 : 0.8;
+        
+        if (bestSimilarity < minRequiredSimilarity) {
+            console.log(`${sourceName} - ${targetName} 模糊匹配相似度不足(${bestSimilarity.toFixed(2)})，跳过匹配`);
+            return { code: null, nameCode: '', method: null };
+        }
+        
+        const logPrefix = provinceMatches.length > 0 ? `${sourceName}(省份优先)` : sourceName;
+        console.log(`${logPrefix} - ${targetName} 模糊匹配到多个结果: ${targetMatches.map(item => item.name).join(', ')}`);
+        return { 
+            code: targetMatches[0].code, 
+            nameCode: targetMatches[0].nameCode || '', // 确保返回nameCode
+            method: `模糊匹配${provinceMatches.length > 0 ? '(省份优先)' : ''}` 
+        };
     }
     
-    return { code: null, method: null };
+    return { code: null, nameCode: '', method: null };
 }
 
 // 合并所有天气数据源
@@ -177,6 +264,8 @@ async function mergeAllWeatherCodes() {
         // 查找匹配的Moji代码
         function findMojiCode(targetName, province = null) {
             let filteredItems = allMojiItems;
+            
+            // 当提供省份信息时，优先在该省份内查找匹配项
             if (province) {
                 const provinceMoji = allMojiItems.find(item => 
                     item.parentName === '' && 
@@ -184,11 +273,13 @@ async function mergeAllWeatherCodes() {
                 );
                 
                 if (provinceMoji) {
+                    // 优先在该省份内查找
                     filteredItems = allMojiItems.filter(item => 
                         item.provinceCode === provinceMoji.code || 
                         (item.parentName === provinceMoji.name && item.provinceCode === item.code)
                     );
                 }
+                // 找不到省份时不直接返回，而是尝试在所有数据中查找
             }
             
             // 1. 精确匹配
@@ -199,8 +290,12 @@ async function mergeAllWeatherCodes() {
             );
             
             if (match) {
-                return { code: match.code, method: '精确匹配' };
-            }
+        return { 
+            code: match.code, 
+            nameCode: match.nameCode || '', // 确保返回nameCode
+            method: '精确匹配' 
+        };
+    }
             
             // 2. 尝试添加后缀匹配
             const withSuffix = tryWithSuffixes(targetName, (testName) => {
@@ -219,13 +314,30 @@ async function mergeAllWeatherCodes() {
             }
             
             // 3. 模糊匹配
-            const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
-            return processFuzzyMatches(targetName, fuzzyMatches, 'Moji');
+    const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
+    const result = processFuzzyMatches(targetName, fuzzyMatches, 'Moji', province);
+    
+    // 如果在省份内找不到匹配，但提供了省份信息，尝试在所有数据中查找
+    if (!result.code && province) {
+        const allItemsMatches = allMojiItems.filter(item => 
+            item.parentName !== '' && // 确保是区县级别
+            fuzzyMatch(targetName, item)
+        );
+        
+        if (allItemsMatches.length > 0) {
+            const allItemsResult = processFuzzyMatches(targetName, allItemsMatches, 'Moji(跨省份)');
+            return { ...allItemsResult, method: `${allItemsResult.method} (跨省份)` };
+        }
+    }
+    
+    return { ...result, nameCode: result.nameCode || '' };
         }
         
         // 查找匹配的NMC代码
         function findNmcCode(targetName, province = null) {
             let filteredItems = allNmcItems;
+            
+            // 当提供省份信息时，优先在该省份内查找匹配项
             if (province) {
                 const provinceNmc = allNmcItems.find(item => 
                     item.parentName === '' && 
@@ -234,21 +346,26 @@ async function mergeAllWeatherCodes() {
                 );
                 
                 if (provinceNmc) {
+                    // 优先在该省份内查找
                     filteredItems = allNmcItems.filter(item => 
                         item.provinceCode === provinceNmc.code
                     );
                 }
+                // 找不到省份时不直接返回，而是尝试在所有数据中查找
             }
             
             const cleanTargetName = removeBracketsContent(targetName);
             
             // 1. 精确匹配
             let match = filteredItems.find(item => 
-                item.name === targetName || 
-                item.name === cleanTargetName ||
-                removeRegionSuffix(item.name) === targetName ||
-                removeRegionSuffix(item.name) === cleanTargetName
-            );
+        item.name === targetName || 
+        item.name === cleanTargetName ||
+        removeRegionSuffix(item.name) === targetName ||
+        removeRegionSuffix(item.name) === cleanTargetName ||
+        removeBracketsContent(item.name) === cleanTargetName ||
+        item.name.toLowerCase().includes(cleanTargetName.toLowerCase()) ||
+        cleanTargetName.toLowerCase().includes(item.name.toLowerCase())
+    );
             
             if (match) {
                 return { 
@@ -267,20 +384,38 @@ async function mergeAllWeatherCodes() {
             });
             
             if (withSuffix.result) {
-                return { 
-                    code: withSuffix.result.code, 
-                    method: `添加${withSuffix.suffix}后缀匹配` 
-                };
-            }
+        return { 
+            code: withSuffix.result.code, 
+            nameCode: withSuffix.result.nameCode || '', // 确保返回nameCode
+            method: `添加${withSuffix.suffix}后缀匹配` 
+        };
+    }
             
             // 3. 模糊匹配
-            const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
-            return processFuzzyMatches(targetName, fuzzyMatches, 'NMC');
+    const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
+    const result = processFuzzyMatches(targetName, fuzzyMatches, 'NMC', province);
+    
+    // 如果在省份内找不到匹配，但提供了省份信息，尝试在所有数据中查找
+    if (!result.code && province) {
+        const allItemsMatches = allNmcItems.filter(item => 
+            item.parentName !== '' && // 确保是区县级别
+            fuzzyMatch(targetName, item)
+        );
+        
+        if (allItemsMatches.length > 0) {
+            const allItemsResult = processFuzzyMatches(targetName, allItemsMatches, 'NMC(跨省份)');
+            return { ...allItemsResult, method: `${allItemsResult.method} (跨省份)` };
+        }
+    }
+    
+    return { ...result, nameCode: result.nameCode || '' };
         }
         
         // 查找匹配的CMA代码
         function findCmaCode(targetName, province = null) {
             let filteredItems = allCmaItems;
+            
+            // 当提供省份信息时，优先在该省份内查找匹配项
             if (province) {
                 const provinceCma = allCmaItems.find(item => 
                     item.parentName === '' && 
@@ -288,26 +423,35 @@ async function mergeAllWeatherCodes() {
                 );
                 
                 if (provinceCma) {
+                    // 优先在该省份内查找
                     filteredItems = allCmaItems.filter(item => 
                         item.provinceCode === provinceCma.code ||
                         item.parentName === provinceCma.name
                     );
                 }
+                // 找不到省份时不直接返回，而是尝试在所有数据中查找
             }
             
             const cleanTargetName = removeBracketsContent(targetName);
             
             // 1. 精确匹配
             let match = filteredItems.find(item => 
-                item.name === targetName || 
-                item.name === cleanTargetName ||
-                removeRegionSuffix(item.name) === targetName ||
-                removeRegionSuffix(item.name) === cleanTargetName
-            );
+        item.name === targetName || 
+        item.name === cleanTargetName ||
+        removeRegionSuffix(item.name) === targetName ||
+        removeRegionSuffix(item.name) === cleanTargetName ||
+        removeBracketsContent(item.name) === cleanTargetName ||
+        item.name.toLowerCase().includes(cleanTargetName.toLowerCase()) ||
+        cleanTargetName.toLowerCase().includes(item.name.toLowerCase())
+    );
             
             if (match) {
-                return { code: match.code, method: '精确匹配' };
-            }
+        return { 
+            code: match.code, 
+            nameCode: match.nameCode || '', // 添加nameCode
+            method: '精确匹配' 
+        };
+    }
             
             // 2. 尝试添加后缀匹配
             const withSuffix = tryWithSuffixes(cleanTargetName, (testName) => {
@@ -318,15 +462,31 @@ async function mergeAllWeatherCodes() {
             });
             
             if (withSuffix.result) {
-                return { 
-                    code: withSuffix.result.code, 
-                    method: `添加${withSuffix.suffix}后缀匹配` 
-                };
-            }
+        return { 
+            code: withSuffix.result.code, 
+            nameCode: withSuffix.result.nameCode || '', // 添加nameCode
+            method: `添加${withSuffix.suffix}后缀匹配` 
+        };
+    }
             
             // 3. 模糊匹配
-            const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
-            return processFuzzyMatches(targetName, fuzzyMatches, 'CMA');
+    const fuzzyMatches = filteredItems.filter(item => fuzzyMatch(targetName, item));
+    const result = processFuzzyMatches(targetName, fuzzyMatches, 'CMA', province);
+    
+    // 如果在省份内找不到匹配，但提供了省份信息，尝试在所有数据中查找
+    if (!result.code && province) {
+        const allItemsMatches = allCmaItems.filter(item => 
+            item.parentName !== '' && // 确保是区县级别
+            fuzzyMatch(targetName, item)
+        );
+        
+        if (allItemsMatches.length > 0) {
+            const allItemsResult = processFuzzyMatches(targetName, allItemsMatches, 'CMA(跨省份)');
+            return { ...allItemsResult, method: `${allItemsResult.method} (跨省份)` };
+        }
+    }
+    
+    return { ...result, nameCode: result.nameCode || '' };
         }
         
         // 递归处理数据结构
@@ -364,29 +524,60 @@ async function mergeAllWeatherCodes() {
                     districtProcessed++;
                     
                     // 查找并设置所有代码，使用省份名称进行关联
-                    const { code: mojiCode, method: mojiMethod } = findMojiCode(item.name, provinceName);
+                    const { code: mojiCode, nameCode: mojiNameCode, method: mojiMethod } = findMojiCode(item.name, provinceName);
                     if (mojiCode) {
                         item.mojiCode = mojiCode;
+                        if (mojiNameCode) {
+                            item.mojiNameCode = mojiNameCode;
+                        }
                         districtMojiCodeFound++;
                         matchDetails.push({ source: 'Moji', name: item.name, level: 'district', code: mojiCode, method: mojiMethod, province: provinceName });
                     }
                     
                     const { code: nmcCode, nameCode: nmcNameCode, method: nmcMethod } = findNmcCode(item.name, provinceName);
-                    if (nmcCode) {
-                        item.nmcCode = nmcCode;
+                    
+                    // 检测并修正明显错误的匹配
+                    let correctedNmcCode = nmcCode;
+                    let correctedNmcNameCode = nmcNameCode;
+                    
+                    // 特殊处理：如果地区名称包含"西湖"，但匹配到的是"西盟"的编码
+                    if (item.name.includes('西湖')) {
+                        // 检查NMC匹配是否为西盟
+                        if (nmcNameCode === 'ximeng' || nmcCode === 'dDUzR') {
+                            console.log(`修正错误匹配: 区县(${provinceName}) ${item.name} - 移除错误的NMC编码`);
+                            correctedNmcCode = null;
+                            correctedNmcNameCode = '';
+                        }
+                    }
+                    
+                    if (correctedNmcCode) {
+                        item.nmcCode = correctedNmcCode;
                         districtNmcCodeFound++;
-                        matchDetails.push({ source: 'NMC', name: item.name, level: 'district', code: nmcCode, method: nmcMethod, province: provinceName });
+                        matchDetails.push({ source: 'NMC', name: item.name, level: 'district', code: correctedNmcCode, method: nmcMethod, province: provinceName });
                     }
                     // 添加县级地区的nameCode到nmcNameCode字段
-                    if (nmcNameCode) {
-                        item.nmcNameCode = nmcNameCode;
+                    if (correctedNmcNameCode) {
+                        item.nmcNameCode = correctedNmcNameCode;
                     }
                     
                     const { code: cmaCode, method: cmaMethod } = findCmaCode(item.name, provinceName);
-                    if (cmaCode) {
-                        item.cmaCode = cmaCode;
+                    
+                    // 检测并修正明显错误的匹配
+                    let correctedCmaCode = cmaCode;
+                    
+                    // 特殊处理：如果地区名称包含"西湖"，但匹配到的是"西盟"的编码
+                    if (item.name.includes('西湖')) {
+                        // 检查CMA匹配是否为西盟
+                        if (cmaCode === '56948') {
+                            console.log(`修正错误匹配: 区县(${provinceName}) ${item.name} - 移除错误的CMA编码`);
+                            correctedCmaCode = null;
+                        }
+                    }
+                    
+                    if (correctedCmaCode) {
+                        item.cmaCode = correctedCmaCode;
                         districtCmaCodeFound++;
-                        matchDetails.push({ source: 'CMA', name: item.name, level: 'district', code: cmaCode, method: cmaMethod, province: provinceName });
+                        matchDetails.push({ source: 'CMA', name: item.name, level: 'district', code: correctedCmaCode, method: cmaMethod, province: provinceName });
                     }
                 }
                 

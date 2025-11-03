@@ -275,9 +275,9 @@ function getDistrictAreaCodes(areaCode) {
                         // 递归处理子节点的子节点
                         child.children.forEach(leaf => {
                             areaCodesMap[leaf.code] = {
-                                mojiAreaCode: `${item.mojiCode}/${leaf.mojiCode}`,
-                                nmcApiCode: `${leaf.nmcCode}`,
-                                nmcAreaCode: `${item.nmcCode}/${leaf.nmcNameCode}`,
+                                mojiAreaCode: leaf.mojiCode ? `${item.mojiCode}/${leaf.mojiCode}` : null,
+                                nmcApiCode: leaf.nmcCode,
+                                nmcAreaCode: leaf.nmcNameCode ? `${item.nmcCode}/${leaf.nmcNameCode}` : null,
                                 cmaAreaCode: leaf.cmaCode,
                             };
                         });

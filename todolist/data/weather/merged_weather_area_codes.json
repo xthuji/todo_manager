@@ -1,5 +1,5 @@
 {
-  "timestamp": 1762158714546,
+  "timestamp": 1762167398016,
   "data": [
     {
       "name": "北京",
@@ -221,10 +221,7 @@
             {
               "name": "徐汇",
               "code": "101021200",
-              "mojiCode": "xuhui-district",
-              "nmcCode": "bwUMl",
-              "nmcNameCode": "xujiahui",
-              "cmaCode": "58367"
+              "mojiCode": "xuhui-district"
             }
           ]
         }
@@ -313,7 +310,10 @@
             {
               "name": "滨海新区",
               "code": "101031100",
-              "mojiCode": "binhai-new-district"
+              "mojiCode": "binhai-new-district",
+              "nmcCode": "BpKzd",
+              "nmcNameCode": "xinxian",
+              "cmaCode": "57396"
             },
             {
               "name": "蓟县",
@@ -672,9 +672,9 @@
               "name": "巴彦",
               "code": "101050107",
               "mojiCode": "bayan-county",
-              "nmcCode": "pWcDo",
-              "nmcNameCode": "bayan",
-              "cmaCode": "50867"
+              "nmcCode": "TBQLP",
+              "nmcNameCode": "bayannaoer",
+              "cmaCode": "52495"
             },
             {
               "name": "通河",
@@ -791,9 +791,8 @@
               "name": "龙江",
               "code": "101050203",
               "mojiCode": "longjiang-county",
-              "nmcCode": "nIDJi",
-              "nmcNameCode": "longjiang",
-              "cmaCode": "50739"
+              "nmcCode": "AHL",
+              "cmaCode": "AHL"
             },
             {
               "name": "甘南",
@@ -1075,8 +1074,8 @@
               "name": "绥化",
               "code": "101050501",
               "mojiCode": "suihua",
-              "nmcCode": "ccdEO",
-              "nmcNameCode": "suihua"
+              "nmcCode": "gSmNE",
+              "nmcNameCode": "beilin"
             },
             {
               "name": "肇东",
@@ -1198,9 +1197,9 @@
               "name": "五大连池",
               "code": "101050605",
               "mojiCode": "wudalianchi",
-              "nmcCode": "hkmNX",
-              "nmcNameCode": "wudalianchi",
-              "cmaCode": "50655"
+              "nmcCode": "nGPyb",
+              "nmcNameCode": "dalian",
+              "cmaCode": "54662"
             },
             {
               "name": "北安",
@@ -1227,9 +1226,9 @@
               "name": "大兴安岭",
               "code": "101050701",
               "mojiCode": "xing'an-district",
-              "nmcCode": "HIKCZ",
-              "nmcNameCode": "daxinganling",
-              "cmaCode": "53664"
+              "nmcCode": "iEilj",
+              "nmcNameCode": "daxing",
+              "cmaCode": "54594"
             },
             {
               "name": "塔河",
@@ -1334,6 +1333,7 @@
             {
               "name": "西林",
               "code": "101050808",
+              "mojiCode": "linxi-county",
               "nmcCode": "lrJzf",
               "nmcNameCode": "xilin",
               "cmaCode": "59004"
@@ -1345,7 +1345,9 @@
             {
               "name": "新青",
               "code": "101050810",
+              "mojiCode": "qing-county",
               "nmcCode": "tspDy",
+              "nmcNameCode": "qingxian",
               "cmaCode": "54615"
             },
             {
@@ -1355,6 +1357,7 @@
             {
               "name": "金山屯",
               "code": "101050812",
+              "mojiCode": "jinshan-district",
               "nmcCode": "XJLoP",
               "nmcNameCode": "jinshan",
               "cmaCode": "58460"
@@ -1618,7 +1621,8 @@
               "name": "南山",
               "code": "101051206",
               "mojiCode": "nanshan-district",
-              "nmcCode": "wIetl",
+              "nmcCode": "uuiXc",
+              "nmcNameCode": "shannan",
               "cmaCode": "57574"
             },
             {
@@ -1717,8 +1721,8 @@
         }
       ],
       "mojiCode": "heilongjiang",
-      "nmcCode": "nIDJi",
-      "cmaCode": "50739"
+      "nmcCode": "AHL",
+      "cmaCode": "AHL"
     },
     {
       "name": "吉林",
@@ -1820,8 +1824,8 @@
               "name": "吉林",
               "code": "101060201",
               "mojiCode": "jilin",
-              "nmcCode": "AFVkU",
-              "cmaCode": "53859"
+              "nmcCode": "AJL",
+              "cmaCode": "AJL"
             },
             {
               "name": "舒兰",
@@ -2072,9 +2076,9 @@
               "name": "通化县",
               "code": "101060506",
               "mojiCode": "tonghua-county",
-              "nmcCode": "bVSUm",
-              "nmcNameCode": "tonghuaxian",
-              "cmaCode": "54362"
+              "nmcCode": "LaBrf",
+              "nmcNameCode": "tonghua",
+              "cmaCode": "54363"
             },
             {
               "name": "东昌",
@@ -2085,8 +2089,9 @@
               "name": "二道江",
               "code": "101060508",
               "mojiCode": "erdaojiang-district",
-              "nmcCode": "anbCP",
-              "cmaCode": "57965"
+              "nmcCode": "jeQFa",
+              "nmcNameCode": "erdao",
+              "cmaCode": "54285"
             }
           ]
         },
@@ -2168,9 +2173,9 @@
               "name": "龙山",
               "code": "101060704",
               "mojiCode": "longshan-district",
-              "nmcCode": "czHhG",
-              "nmcNameCode": "longshan",
-              "cmaCode": "57544"
+              "nmcCode": "dKioY",
+              "nmcNameCode": "qinglongshan",
+              "cmaCode": "54132"
             },
             {
               "name": "西安",
@@ -2229,8 +2234,9 @@
               "name": "宁江",
               "code": "101060806",
               "mojiCode": "ningjiang-district",
-              "nmcCode": "lAmjf",
-              "cmaCode": "53937"
+              "nmcCode": "Dfezs",
+              "nmcNameCode": "jiangning",
+              "cmaCode": "58333"
             }
           ]
         },
@@ -2299,8 +2305,8 @@
         }
       ],
       "mojiCode": "jilin",
-      "nmcCode": "AFVkU",
-      "cmaCode": "53859"
+      "nmcCode": "AJL",
+      "cmaCode": "AJL"
     },
     {
       "name": "辽宁",
@@ -2486,8 +2492,9 @@
               "name": "沙河口",
               "code": "101070210",
               "mojiCode": "shahekou-district",
-              "nmcCode": "FqHOP",
-              "cmaCode": "58826"
+              "nmcCode": "DPtSW",
+              "nmcNameCode": "shahe",
+              "cmaCode": "53781"
             },
             {
               "name": "甘井子",
@@ -2621,10 +2628,10 @@
             {
               "name": "本溪县",
               "code": "101070502",
-              "mojiCode": "benxi-water-cave",
-              "nmcCode": "NJVFd",
-              "nmcNameCode": "benxixian",
-              "cmaCode": "54349"
+              "mojiCode": "benxi",
+              "nmcCode": "fZXDt",
+              "nmcNameCode": "benxi",
+              "cmaCode": "54346"
             },
             {
               "name": "平山",
@@ -2819,8 +2826,9 @@
               "name": "西市",
               "code": "101070805",
               "mojiCode": "xishi-district",
-              "nmcCode": "AXZ",
-              "cmaCode": "AXZ"
+              "nmcCode": "dDUzR",
+              "nmcNameCode": "ximeng",
+              "cmaCode": "54527"
             },
             {
               "name": "鲅鱼圈",
@@ -2863,6 +2871,7 @@
               "code": "101070904",
               "mojiCode": "xinqiu-district",
               "nmcCode": "uEdAG",
+              "nmcNameCode": "qiuxian",
               "cmaCode": "54820"
             },
             {
@@ -2900,9 +2909,9 @@
               "name": "辽阳县",
               "code": "101071002",
               "mojiCode": "liaoyang-county",
-              "nmcCode": "UGdju",
-              "nmcNameCode": "liaoyangxian",
-              "cmaCode": "54345"
+              "nmcCode": "kgqfX",
+              "nmcNameCode": "liaoyang",
+              "cmaCode": "54347"
             },
             {
               "name": "灯塔",
@@ -3029,7 +3038,6 @@
             {
               "name": "喀左",
               "code": "101071204",
-              "mojiCode": "harqin-left-wing-mongolian-autonomous-county",
               "nmcCode": "syxYZ",
               "nmcNameCode": "kazuo",
               "cmaCode": "54328"
@@ -3092,8 +3100,9 @@
               "name": "兴隆台",
               "code": "101071305",
               "mojiCode": "xinglongtai-district",
-              "nmcCode": "RBGVZ",
-              "cmaCode": "53664"
+              "nmcCode": "qWokG",
+              "nmcNameCode": "xinglong",
+              "cmaCode": "54425"
             }
           ]
         },
@@ -3159,8 +3168,8 @@
         }
       ],
       "mojiCode": "liaoning",
-      "nmcCode": "lAmjf",
-      "cmaCode": "53937"
+      "nmcCode": "ALN",
+      "cmaCode": "ALN"
     },
     {
       "name": "内蒙古",
@@ -3178,17 +3187,14 @@
             },
             {
               "name": "土左旗",
-              "code": "101080102",
-              "mojiCode": "tumed-left-banner",
-              "nmcCode": "XSgaX",
-              "nmcNameCode": "tumotezuoqi",
-              "cmaCode": "53464"
+              "code": "101080102"
             },
             {
               "name": "托县",
               "code": "101080103",
               "mojiCode": "tuoketuo-county",
               "nmcCode": "PKpIA",
+              "nmcNameCode": "tuoketuo",
               "cmaCode": "53529"
             },
             {
@@ -3225,7 +3231,10 @@
             {
               "name": "新城",
               "code": "101080108",
-              "mojiCode": "xincheng-district"
+              "mojiCode": "xincheng-district",
+              "nmcCode": "BpKzd",
+              "nmcNameCode": "xinxian",
+              "cmaCode": "57396"
             },
             {
               "name": "回民",
@@ -3268,11 +3277,7 @@
             },
             {
               "name": "土右旗",
-              "code": "101080204",
-              "mojiCode": "tumed-right-banner",
-              "nmcCode": "vzhvA",
-              "nmcNameCode": "tumoteyouqi",
-              "cmaCode": "53455"
+              "code": "101080204"
             },
             {
               "name": "固阳",
@@ -3285,10 +3290,10 @@
             {
               "name": "达茂旗",
               "code": "101080206",
-              "mojiCode": "darhan-muminggan-united-banner",
-              "nmcCode": "kcVBl",
-              "nmcNameCode": "daerhanmaominganlianheqi",
-              "cmaCode": "53352"
+              "mojiCode": "mao-county",
+              "nmcCode": "TgyZk",
+              "nmcNameCode": "maoxian",
+              "cmaCode": "56180"
             },
             {
               "name": "希拉穆仁",
@@ -3311,10 +3316,10 @@
             {
               "name": "青山",
               "code": "101080210",
-              "mojiCode": "qinglongshan-town",
-              "nmcCode": "dKioY",
-              "nmcNameCode": "qinglongshan",
-              "cmaCode": "54132"
+              "mojiCode": "qingshan-district",
+              "nmcCode": "tspDy",
+              "nmcNameCode": "qingxian",
+              "cmaCode": "54615"
             },
             {
               "name": "石拐",
@@ -3347,7 +3352,10 @@
             {
               "name": "海南",
               "code": "101080303",
-              "mojiCode": "hainan-district"
+              "mojiCode": "hainan-district",
+              "nmcCode": "MEcHR",
+              "nmcNameCode": "nanhai",
+              "cmaCode": "59288"
             },
             {
               "name": "乌达",
@@ -3396,7 +3404,8 @@
               "code": "101080405",
               "mojiCode": "wulanchabu",
               "nmcCode": "MwkIG",
-              "nmcNameCode": "wulanchabu"
+              "nmcNameCode": "wulanchabu",
+              "cmaCode": "52833"
             },
             {
               "name": "兴和",
@@ -3416,16 +3425,11 @@
             },
             {
               "name": "察右前旗",
-              "code": "101080408",
-              "mojiCode": "chahar-right-front-banner",
-              "nmcCode": "KLonh",
-              "nmcNameCode": "chahaeryouyiqianqi",
-              "cmaCode": "53481"
+              "code": "101080408"
             },
             {
               "name": "察右中旗",
               "code": "101080409",
-              "mojiCode": "chahar-right-middle-banner",
               "nmcCode": "bmgqt",
               "nmcNameCode": "chayouzhongqi",
               "cmaCode": "53378"
@@ -3433,7 +3437,6 @@
             {
               "name": "察右后旗",
               "code": "101080410",
-              "mojiCode": "chahar-right-back-banner",
               "nmcCode": "kCGgC",
               "nmcNameCode": "chayouhouqi",
               "cmaCode": "53384"
@@ -3478,7 +3481,6 @@
             {
               "name": "科左中旗",
               "code": "101080503",
-              "mojiCode": "horqin-left-middle-banner",
               "nmcCode": "ZBZEe",
               "nmcNameCode": "kezuozhongqi",
               "cmaCode": "54047"
@@ -3486,7 +3488,6 @@
             {
               "name": "科左后旗",
               "code": "101080504",
-              "mojiCode": "horqin-left-back-banner",
               "nmcCode": "dYsXY",
               "nmcNameCode": "kezuohouqi",
               "cmaCode": "54231"
@@ -3536,7 +3537,8 @@
               "code": "101080510",
               "mojiCode": "horqin-district",
               "nmcCode": "FQZtL",
-              "cmaCode": "54122"
+              "nmcNameCode": "alukeerqinqi",
+              "cmaCode": "50937"
             },
             {
               "name": "巴雅尔吐胡硕",
@@ -3663,7 +3665,10 @@
             {
               "name": "元宝山",
               "code": "101080616",
-              "mojiCode": "yuanbaoshan-district"
+              "mojiCode": "yuanbaoshan-district",
+              "nmcCode": "QtPRO",
+              "nmcNameCode": "baoshan",
+              "cmaCode": "58362"
             },
             {
               "name": "松山",
@@ -3711,11 +3716,7 @@
             },
             {
               "name": "鄂前旗",
-              "code": "101080705",
-              "mojiCode": "otog-front-banner",
-              "nmcCode": "fyQnv",
-              "nmcNameCode": "etuokeqianqi",
-              "cmaCode": "53730"
+              "code": "101080705"
             },
             {
               "name": "河南",
@@ -3727,7 +3728,11 @@
             },
             {
               "name": "伊和乌素",
-              "code": "101080707"
+              "code": "101080707",
+              "mojiCode": "he-county",
+              "nmcCode": "vulFs",
+              "nmcNameCode": "hexian",
+              "cmaCode": "58331"
             },
             {
               "name": "鄂托克",
@@ -3735,7 +3740,7 @@
               "mojiCode": "otog-banner",
               "nmcCode": "EoybG",
               "nmcNameCode": "etuokeqi",
-              "cmaCode": "53529"
+              "cmaCode": "53730"
             },
             {
               "name": "杭锦旗",
@@ -3816,11 +3821,7 @@
             },
             {
               "name": "乌前旗",
-              "code": "101080804",
-              "mojiCode": "urat-front-banner",
-              "nmcCode": "qxqVQ",
-              "nmcNameCode": "wulateqianqi",
-              "cmaCode": "53433"
+              "code": "101080804"
             },
             {
               "name": "大佘太",
@@ -3832,19 +3833,11 @@
             },
             {
               "name": "乌中旗",
-              "code": "101080806",
-              "mojiCode": "urat-middle-banner",
-              "nmcCode": "BdifC",
-              "nmcNameCode": "wulatezhongqi",
-              "cmaCode": "53336"
+              "code": "101080806"
             },
             {
               "name": "乌后旗",
-              "code": "101080807",
-              "mojiCode": "urat-rear-banner",
-              "nmcCode": "EbPeZ",
-              "nmcNameCode": "wulatehouqi",
-              "cmaCode": "53324"
+              "code": "101080807"
             },
             {
               "name": "海力素",
@@ -3875,7 +3868,8 @@
               "code": "101080811",
               "mojiCode": "bayannur",
               "nmcCode": "TBQLP",
-              "nmcNameCode": "bayannaoer"
+              "nmcNameCode": "bayannaoer",
+              "cmaCode": "50867"
             }
           ]
         },
@@ -3915,19 +3909,11 @@
             },
             {
               "name": "苏左旗",
-              "code": "101080906",
-              "mojiCode": "sonid-left-banner",
-              "nmcCode": "vHEXp",
-              "nmcNameCode": "sunitezuoqi",
-              "cmaCode": "53195"
+              "code": "101080906"
             },
             {
               "name": "苏右旗",
-              "code": "101080907",
-              "mojiCode": "sonid-right-banner",
-              "nmcCode": "TkuWv",
-              "nmcNameCode": "suniteyouqi",
-              "cmaCode": "53272"
+              "code": "101080907"
             },
             {
               "name": "朱日和",
@@ -4073,18 +4059,18 @@
             {
               "name": "新左旗",
               "code": "101081008",
-              "mojiCode": "new-barag-left-banner",
-              "nmcCode": "HEXvi",
-              "nmcNameCode": "xinbaerhuzuoqi",
-              "cmaCode": "50618"
+              "mojiCode": "xin-county",
+              "nmcCode": "BpKzd",
+              "nmcNameCode": "xinxian",
+              "cmaCode": "57396"
             },
             {
               "name": "新右旗",
               "code": "101081009",
-              "mojiCode": "new-barag-right-banner",
-              "nmcCode": "GVqqU",
-              "nmcNameCode": "xinbaerhuyouqi",
-              "cmaCode": "50603"
+              "mojiCode": "xin-county",
+              "nmcCode": "BpKzd",
+              "nmcNameCode": "xinxian",
+              "cmaCode": "57396"
             },
             {
               "name": "满洲里",
@@ -4169,11 +4155,7 @@
             },
             {
               "name": "科右中旗",
-              "code": "101081103",
-              "mojiCode": "horqin-right-middle-banner",
-              "nmcCode": "ruoKn",
-              "nmcNameCode": "keerqinyouyizhongqi",
-              "cmaCode": "50937"
+              "code": "101081103"
             },
             {
               "name": "胡尔勒",
@@ -4212,12 +4194,12 @@
               "code": "101081108",
               "mojiCode": "hinggan-league",
               "nmcCode": "wfaiF",
-              "nmcNameCode": "xinganmeng"
+              "nmcNameCode": "xinganmeng",
+              "cmaCode": "57955"
             },
             {
               "name": "科右前旗",
-              "code": "101081109",
-              "mojiCode": "horqin-right-front-banner"
+              "code": "101081109"
             },
             {
               "name": "高力板",
@@ -4234,19 +4216,11 @@
           "children": [
             {
               "name": "阿左旗",
-              "code": "101081201",
-              "mojiCode": "alxa-left-banner",
-              "nmcCode": "ijwRt",
-              "nmcNameCode": "alashanzuoqi",
-              "cmaCode": "53602"
+              "code": "101081201"
             },
             {
               "name": "阿右旗",
-              "code": "101081202",
-              "mojiCode": "alxa-right-banner",
-              "nmcCode": "SfktK",
-              "nmcNameCode": "alashanyouqi",
-              "cmaCode": "52576"
+              "code": "101081202"
             },
             {
               "name": "额济纳",
@@ -4266,11 +4240,16 @@
             },
             {
               "name": "吉兰太",
-              "code": "101081205"
+              "code": "101081205",
+              "mojiCode": "ji-county",
+              "nmcCode": "AFVkU",
+              "nmcNameCode": "jixian",
+              "cmaCode": "53859"
             },
             {
               "name": "巴彦诺日公",
               "code": "101081209",
+              "mojiCode": "bayan-county",
               "nmcCode": "wutxB",
               "nmcNameCode": "bayannuorigong",
               "cmaCode": "52495"
@@ -4822,9 +4801,9 @@
               "name": "承德县",
               "code": "101090403",
               "mojiCode": "chengde-county",
-              "nmcCode": "WYnNt",
-              "nmcNameCode": "chengdexian",
-              "cmaCode": "54430"
+              "nmcCode": "oWYwK",
+              "nmcNameCode": "chengde",
+              "cmaCode": "54423"
             },
             {
               "name": "兴隆",
@@ -4926,6 +4905,7 @@
               "code": "101090504",
               "mojiCode": "luanping-county",
               "nmcCode": "RlsNU",
+              "nmcNameCode": "luannan",
               "cmaCode": "54437"
             },
             {
@@ -5205,8 +5185,8 @@
               "name": "黄骅",
               "code": "101090713",
               "mojiCode": "huanghua",
-              "nmcCode": "IPsor",
-              "nmcNameCode": "huangzuo",
+              "nmcCode": "hIkaB",
+              "nmcNameCode": "bohaixinquhuangzuo",
               "cmaCode": "54624"
             },
             {
@@ -5230,6 +5210,7 @@
               "code": "101090716",
               "mojiCode": "cang-county",
               "nmcCode": "mHkdW",
+              "nmcNameCode": "cangzhou",
               "cmaCode": "54616"
             },
             {
@@ -5478,6 +5459,7 @@
               "code": "101090918",
               "mojiCode": "renze-district",
               "nmcCode": "nBdMW",
+              "nmcNameCode": "renqiu",
               "cmaCode": "54610"
             },
             {
@@ -5600,6 +5582,7 @@
             {
               "name": "魏县",
               "code": "101091014",
+              "mojiCode": "weidu-district",
               "nmcCode": "JdkhE",
               "nmcNameCode": "weixian2",
               "cmaCode": "53896"
@@ -5707,8 +5690,9 @@
               "name": "雄安新区",
               "code": "101091201",
               "mojiCode": "xiong-an",
-              "nmcCode": "FTACx",
-              "cmaCode": "54636"
+              "nmcCode": "UujiJ",
+              "nmcNameCode": "anxin",
+              "cmaCode": "54605"
             },
             {
               "name": "容城",
@@ -5909,6 +5893,7 @@
               "code": "101100211",
               "mojiCode": "xinrong-district",
               "nmcCode": "BpKzd",
+              "nmcNameCode": "xinxian",
               "cmaCode": "57396"
             }
           ]
@@ -6546,6 +6531,7 @@
               "code": "101101003",
               "mojiCode": "wutaixian-county",
               "nmcCode": "AMKDZ",
+              "nmcNameCode": "wutai",
               "cmaCode": "53681"
             },
             {
@@ -6772,8 +6758,8 @@
         }
       ],
       "mojiCode": "shanxi",
-      "nmcCode": "dDUzR",
-      "cmaCode": "56948"
+      "nmcCode": "ASX",
+      "cmaCode": "ASX"
     },
     {
       "name": "陕西",
@@ -6784,6 +6770,7 @@
             {
               "name": "西安",
               "code": "101110101",
+              "mojiCode": "xian-district",
               "nmcCode": "RfjCI",
               "nmcNameCode": "xian",
               "cmaCode": "V8870"
@@ -6791,6 +6778,7 @@
             {
               "name": "长安",
               "code": "101110102",
+              "mojiCode": "changan-district",
               "nmcCode": "NnPsM",
               "nmcNameCode": "changan",
               "cmaCode": "57039"
@@ -6827,6 +6815,7 @@
             {
               "name": "高陵",
               "code": "101110107",
+              "mojiCode": "gao-county",
               "nmcCode": "FJzCX",
               "nmcNameCode": "gaoling",
               "cmaCode": "57040"
@@ -6834,13 +6823,15 @@
             {
               "name": "新城",
               "code": "101110108",
+              "mojiCode": "xin-county",
               "nmcCode": "BpKzd",
               "nmcNameCode": "xinxian",
               "cmaCode": "57396"
             },
             {
               "name": "碑林",
-              "code": "101110109"
+              "code": "101110109",
+              "mojiCode": "wuxi-park"
             },
             {
               "name": "莲湖",
@@ -6883,6 +6874,7 @@
             {
               "name": "礼泉",
               "code": "101110202",
+              "mojiCode": "li-county",
               "nmcCode": "xZaaP",
               "nmcNameCode": "liquan",
               "cmaCode": "57029"
@@ -6890,6 +6882,7 @@
             {
               "name": "永寿",
               "code": "101110203",
+              "mojiCode": "shou-county",
               "nmcCode": "MqOdV",
               "nmcNameCode": "yongshou",
               "cmaCode": "57030"
@@ -6904,6 +6897,7 @@
             {
               "name": "泾阳",
               "code": "101110205",
+              "mojiCode": "jing-county",
               "nmcCode": "UuKku",
               "nmcNameCode": "zuoyang",
               "cmaCode": "57033"
@@ -6911,6 +6905,7 @@
             {
               "name": "武功",
               "code": "101110206",
+              "mojiCode": "wugong-mountain-national-scenic-area",
               "nmcCode": "dOgXs",
               "nmcNameCode": "wugong",
               "cmaCode": "57034"
@@ -6918,6 +6913,7 @@
             {
               "name": "乾县",
               "code": "101110207",
+              "mojiCode": "qian'an-county",
               "nmcCode": "CqlHa",
               "nmcNameCode": "qianxian",
               "cmaCode": "57035"
@@ -7006,6 +7002,7 @@
             {
               "name": "富县",
               "code": "101110305",
+              "mojiCode": "fuchuan-yao-autonomous-county",
               "nmcCode": "QfWPS",
               "nmcNameCode": "fuxian",
               "cmaCode": "53931"
@@ -7027,6 +7024,7 @@
             {
               "name": "甘泉",
               "code": "101110308",
+              "mojiCode": "ganquan-lack-tourism-resort",
               "nmcCode": "PWPqX",
               "nmcNameCode": "ganquan",
               "cmaCode": "53848"
@@ -7048,6 +7046,7 @@
             {
               "name": "黄龙",
               "code": "101110311",
+              "mojiCode": "huanglong-cave-scenic-area",
               "nmcCode": "uHJpt",
               "nmcNameCode": "huanglong",
               "cmaCode": "53946"
@@ -7085,6 +7084,7 @@
             {
               "name": "神木",
               "code": "101110403",
+              "mojiCode": "shenmu-park",
               "nmcCode": "wgIob",
               "nmcNameCode": "shenmu",
               "cmaCode": "53651"
@@ -7092,6 +7092,7 @@
             {
               "name": "佳县",
               "code": "101110404",
+              "mojiCode": "jiao-district",
               "nmcCode": "kNHLa",
               "nmcNameCode": "jiaxian",
               "cmaCode": "53658"
@@ -7113,6 +7114,7 @@
             {
               "name": "横山",
               "code": "101110407",
+              "mojiCode": "hengshan-national-forest-park",
               "nmcCode": "nkmKX",
               "nmcNameCode": "shanxihengshan",
               "cmaCode": "53740"
@@ -7127,6 +7129,7 @@
             {
               "name": "子洲",
               "code": "101110409",
+              "mojiCode": "juzi-island-park",
               "nmcCode": "kMChi",
               "nmcNameCode": "zizhou",
               "cmaCode": "53751"
@@ -7164,6 +7167,7 @@
             {
               "name": "渭南",
               "code": "101110501",
+              "mojiCode": "nan-county",
               "nmcCode": "fXkRh",
               "nmcNameCode": "weinan",
               "cmaCode": "V3006"
@@ -7185,6 +7189,7 @@
             {
               "name": "白水",
               "code": "101110505",
+              "mojiCode": "baishui-ocean-scenic-spot",
               "nmcCode": "lrIpm",
               "nmcNameCode": "baishui",
               "cmaCode": "53941"
@@ -7261,6 +7266,7 @@
             {
               "name": "洛南",
               "code": "101110602",
+              "mojiCode": "nan-county",
               "nmcCode": "hmDhb",
               "nmcNameCode": "luonan",
               "cmaCode": "57057"
@@ -7296,6 +7302,7 @@
             {
               "name": "商南",
               "code": "101110607",
+              "mojiCode": "nan-county",
               "nmcCode": "EbthY",
               "nmcNameCode": "shangnan",
               "cmaCode": "57154"
@@ -7303,6 +7310,7 @@
             {
               "name": "山阳",
               "code": "101110608",
+              "mojiCode": "shanyang-district",
               "nmcCode": "EGeZr",
               "nmcNameCode": "shanyang",
               "cmaCode": "57155"
@@ -7315,6 +7323,7 @@
             {
               "name": "安康",
               "code": "101110701",
+              "mojiCode": "kang-county",
               "nmcCode": "RprEI",
               "nmcNameCode": "ankang",
               "cmaCode": "57245"
@@ -7365,6 +7374,7 @@
             {
               "name": "白河",
               "code": "101110708",
+              "mojiCode": "erdao-baihe-town",
               "nmcCode": "eIovq",
               "nmcNameCode": "baihe",
               "cmaCode": "57254"
@@ -7379,6 +7389,7 @@
             {
               "name": "宁陕",
               "code": "101110710",
+              "mojiCode": "ning-county",
               "nmcCode": "XbvFE",
               "nmcNameCode": "ningshan",
               "cmaCode": "57137"
@@ -7423,6 +7434,7 @@
             {
               "name": "洋县",
               "code": "101110805",
+              "mojiCode": "shayang-county",
               "nmcCode": "lDiMR",
               "nmcNameCode": "yangxian",
               "cmaCode": "57126"
@@ -7437,6 +7449,7 @@
             {
               "name": "西乡",
               "code": "101110807",
+              "mojiCode": "xixiangtang-district",
               "nmcCode": "tWrIf",
               "nmcNameCode": "xixiang",
               "cmaCode": "57129"
@@ -7451,6 +7464,7 @@
             {
               "name": "宁强",
               "code": "101110809",
+              "mojiCode": "ning-county",
               "nmcCode": "bjqkU",
               "nmcNameCode": "ningqiang",
               "cmaCode": "57211"
@@ -7458,6 +7472,7 @@
             {
               "name": "南郑",
               "code": "101110810",
+              "mojiCode": "nan-county",
               "nmcCode": "FNBBc",
               "nmcNameCode": "nanzheng",
               "cmaCode": "57213"
@@ -7527,6 +7542,7 @@
             {
               "name": "眉县",
               "code": "101110908",
+              "mojiCode": "meishan",
               "nmcCode": "sczdz",
               "nmcNameCode": "meixian",
               "cmaCode": "57027"
@@ -7541,6 +7557,7 @@
             {
               "name": "凤县",
               "code": "101110910",
+              "mojiCode": "longfeng-district",
               "nmcCode": "KZHTq",
               "nmcNameCode": "fengxian",
               "cmaCode": "57113"
@@ -7548,6 +7565,7 @@
             {
               "name": "陇县",
               "code": "101110911",
+              "mojiCode": "yilong-county",
               "nmcCode": "fpJEY",
               "nmcNameCode": "longxian",
               "cmaCode": "57003"
@@ -7617,8 +7635,8 @@
         }
       ],
       "mojiCode": "shanxi",
-      "nmcCode": "dDUzR",
-      "cmaCode": "56948"
+      "nmcCode": "ASN",
+      "cmaCode": "ASN"
     },
     {
       "name": "山东",
@@ -7894,6 +7912,7 @@
               "code": "101120404",
               "mojiCode": "lanling-county",
               "nmcCode": "RAzQc",
+              "nmcNameCode": "zuolingxian",
               "cmaCode": "57655"
             },
             {
@@ -8589,9 +8608,9 @@
               "name": "河口",
               "code": "101121202",
               "mojiCode": "estuary-district",
-              "nmcCode": "woPhx",
-              "nmcNameCode": "hekou",
-              "cmaCode": "54732"
+              "nmcCode": "aEizR",
+              "nmcNameCode": "meihekou",
+              "cmaCode": "54266"
             },
             {
               "name": "垦利",
@@ -8773,6 +8792,7 @@
             {
               "name": "岚山",
               "code": "101121505",
+              "mojiCode": "lan-county",
               "nmcCode": "Prpqh",
               "nmcNameCode": "zuoxian1",
               "cmaCode": "53665"
@@ -8877,8 +8897,8 @@
         }
       ],
       "mojiCode": "shandong",
-      "nmcCode": "uDfFU",
-      "cmaCode": "59321"
+      "nmcCode": "ASD",
+      "cmaCode": "ASD"
     },
     {
       "name": "新疆",
@@ -8927,8 +8947,9 @@
               "name": "新市",
               "code": "101130106",
               "mojiCode": "toksu-(toqsu)-county",
-              "nmcCode": "AXJ",
-              "cmaCode": "AXJ"
+              "nmcCode": "BpKzd",
+              "nmcNameCode": "xinxian",
+              "cmaCode": "57396"
             },
             {
               "name": "水磨沟",
@@ -8961,6 +8982,7 @@
               "code": "101130113",
               "mojiCode": "urumqi-county",
               "nmcCode": "lIPam",
+              "nmcNameCode": "wulumuqi",
               "cmaCode": "51463"
             },
             {
@@ -9473,9 +9495,9 @@
               "name": "伊宁县",
               "code": "101131004",
               "mojiCode": "gulja-county",
-              "nmcCode": "ZuktQ",
-              "nmcNameCode": "yiningxian",
-              "cmaCode": "51434"
+              "nmcCode": "lAmjf",
+              "nmcNameCode": "ningxian",
+              "cmaCode": "53937"
             },
             {
               "name": "巩留",
@@ -9796,7 +9818,6 @@
             {
               "name": "克州",
               "code": "101131505",
-              "mojiCode": "ili-kazakh-autonomous-prefecture",
               "nmcCode": "QCRTj",
               "nmcNameCode": "kezhou"
             }
@@ -10178,7 +10199,8 @@
               "code": "101140301",
               "mojiCode": "shannan",
               "nmcCode": "uuiXc",
-              "nmcNameCode": "shannan"
+              "nmcNameCode": "shannan",
+              "cmaCode": "57574"
             },
             {
               "name": "贡嘎",
@@ -10420,9 +10442,9 @@
               "name": "江达",
               "code": "101140509",
               "mojiCode": "jomda-county",
-              "nmcCode": "oaFIV",
-              "nmcNameCode": "jiangda",
-              "cmaCode": "56136"
+              "nmcCode": "nQpHn",
+              "nmcNameCode": "gongbujiangda",
+              "cmaCode": "56301"
             },
             {
               "name": "察雅",
@@ -10807,9 +10829,8 @@
               "name": "海南",
               "code": "101150402",
               "mojiCode": "hainan-tibetan-autonomous-prefecture",
-              "nmcCode": "bwKfK",
-              "nmcNameCode": "hainan",
-              "cmaCode": "57574"
+              "nmcCode": "AHI",
+              "cmaCode": "AHI"
             },
             {
               "name": "贵德",
@@ -10989,9 +11010,9 @@
               "name": "乌兰",
               "code": "101150709",
               "mojiCode": "ulan-county",
-              "nmcCode": "SlLAA",
-              "nmcNameCode": "wulan",
-              "cmaCode": "52833"
+              "nmcCode": "MwkIG",
+              "nmcNameCode": "wulanchabu",
+              "cmaCode": "50838"
             },
             {
               "name": "茫崖",
@@ -11079,8 +11100,8 @@
         }
       ],
       "mojiCode": "qinghai",
-      "nmcCode": "tspDy",
-      "cmaCode": "54615"
+      "nmcCode": "AQH",
+      "cmaCode": "AQH"
     },
     {
       "name": "甘肃",
@@ -11581,9 +11602,9 @@
               "name": "清水",
               "code": "101160903",
               "mojiCode": "qingshui-county",
-              "nmcCode": "RXjrm",
-              "nmcNameCode": "qingshui",
-              "cmaCode": "57011"
+              "nmcCode": "kdzjw",
+              "nmcNameCode": "qingshuihe",
+              "cmaCode": "53562"
             },
             {
               "name": "秦安",
@@ -11958,6 +11979,7 @@
               "code": "101170106",
               "mojiCode": "xixia-district",
               "nmcCode": "LetlZ",
+              "nmcNameCode": "xiaxian",
               "cmaCode": "57060"
             },
             {
@@ -12293,6 +12315,7 @@
               "code": "101180206",
               "mojiCode": "wenfeng-district",
               "nmcCode": "bPRTE",
+              "nmcNameCode": "wenxian",
               "cmaCode": "56192"
             },
             {
@@ -12387,6 +12410,7 @@
               "code": "101180309",
               "mojiCode": "hongqi-district",
               "nmcCode": "OYqFU",
+              "nmcNameCode": "hongan",
               "cmaCode": "57398"
             },
             {
@@ -12763,6 +12787,7 @@
             {
               "name": "杞县",
               "code": "101180802",
+              "mojiCode": "wolfberry-island",
               "nmcCode": "tCUkl",
               "nmcNameCode": "zuoxian2",
               "cmaCode": "57096"
@@ -13214,8 +13239,8 @@
               "name": "周口",
               "code": "101181401",
               "mojiCode": "zhoukou",
-              "nmcCode": "URskB",
-              "nmcNameCode": "zhoukou"
+              "nmcCode": "lZXKF",
+              "nmcNameCode": "chuanhuiqu"
             },
             {
               "name": "扶沟",
@@ -13440,9 +13465,9 @@
               "name": "三门峡",
               "code": "101181701",
               "mojiCode": "sanmenxia",
-              "nmcCode": "TjcXC",
-              "nmcNameCode": "sanmenxia",
-              "cmaCode": "57051"
+              "nmcCode": "hsEmE",
+              "nmcNameCode": "sanmen",
+              "cmaCode": "58568"
             },
             {
               "name": "灵宝",
@@ -14118,10 +14143,7 @@
             {
               "name": "清江浦",
               "code": "101190907",
-              "mojiCode": "qingjiangpu-district",
-              "nmcCode": "jNOUm",
-              "nmcNameCode": "pujiang",
-              "cmaCode": "58546"
+              "mojiCode": "qingjiangpu-district"
             },
             {
               "name": "淮安区",
@@ -14185,8 +14207,9 @@
               "name": "连云",
               "code": "101191007",
               "mojiCode": "lianyun-district",
-              "nmcCode": "DIrSp",
-              "cmaCode": "56854"
+              "nmcCode": "HPnPL",
+              "nmcNameCode": "lianyungang",
+              "cmaCode": "58044"
             }
           ]
         },
@@ -14404,10 +14427,7 @@
             {
               "name": "东西湖",
               "code": "101200106",
-              "mojiCode": "dongxihu-district",
-              "nmcCode": "dDUzR",
-              "nmcNameCode": "ximeng",
-              "cmaCode": "56948"
+              "mojiCode": "dongxihu-district"
             },
             {
               "name": "江岸",
@@ -14439,6 +14459,7 @@
               "code": "101200112",
               "mojiCode": "qingshan-district",
               "nmcCode": "tspDy",
+              "nmcNameCode": "qingxian",
               "cmaCode": "54615"
             },
             {
@@ -14500,9 +14521,9 @@
               "name": "老河口",
               "code": "101200206",
               "mojiCode": "laohekou",
-              "nmcCode": "DBJmD",
-              "nmcNameCode": "laohekou",
-              "cmaCode": "57265"
+              "nmcCode": "woPhx",
+              "nmcNameCode": "hekou",
+              "cmaCode": "54732"
             },
             {
               "name": "谷城",
@@ -14721,9 +14742,7 @@
             {
               "name": "黄州",
               "code": "101200511",
-              "mojiCode": "huangzhou-district",
-              "nmcCode": "IvFqu",
-              "nmcNameCode": "luogang"
+              "mojiCode": "huangzhou-district"
             }
           ]
         },
@@ -14902,8 +14921,9 @@
               "name": "沙市",
               "code": "101200808",
               "mojiCode": "shashi-district",
-              "nmcCode": "FqHOP",
-              "cmaCode": "58826"
+              "nmcCode": "zOenJ",
+              "nmcNameCode": "changshashi",
+              "cmaCode": "57687"
             }
           ]
         },
@@ -14994,8 +15014,9 @@
               "name": "三峡",
               "code": "101200911",
               "mojiCode": "three-gorge-dam",
-              "nmcCode": "TjcXC",
-              "cmaCode": "57051"
+              "nmcCode": "bTPcC",
+              "nmcNameCode": "yilingsanxia",
+              "cmaCode": "57462"
             },
             {
               "name": "夷陵",
@@ -15393,10 +15414,7 @@
             {
               "name": "西湖",
               "code": "101210113",
-              "mojiCode": "west-lake",
-              "nmcCode": "dDUzR",
-              "nmcNameCode": "ximeng",
-              "cmaCode": "56948"
+              "mojiCode": "west-lake"
             },
             {
               "name": "滨江",
@@ -15514,6 +15532,7 @@
               "code": "101210307",
               "mojiCode": "nanhu-district",
               "nmcCode": "wIetl",
+              "nmcNameCode": "nanxian",
               "cmaCode": "57574"
             },
             {
@@ -15680,8 +15699,8 @@
               "name": "台州",
               "code": "101210601",
               "mojiCode": "taizhou",
-              "nmcCode": "zWIte",
-              "nmcNameCode": "taizhou2",
+              "nmcCode": "hqPdG",
+              "nmcNameCode": "taizhou1",
               "cmaCode": "58665"
             },
             {
@@ -16077,8 +16096,8 @@
               "name": "舟山",
               "code": "101211101",
               "mojiCode": "zhoushan",
-              "nmcCode": "KElec",
-              "nmcNameCode": "zhoushan2",
+              "nmcCode": "MbBco",
+              "nmcNameCode": "zhoushan1",
               "cmaCode": "58477"
             },
             {
@@ -16313,10 +16332,7 @@
             {
               "name": "三山",
               "code": "101220309",
-              "mojiCode": "sanshan-district",
-              "nmcCode": "fzyRB",
-              "nmcNameCode": "sanqingshan",
-              "cmaCode": "58639"
+              "mojiCode": "sanshan-district"
             }
           ]
         },
@@ -16384,9 +16400,9 @@
               "name": "马鞍山",
               "code": "101220501",
               "mojiCode": "maanshan",
-              "nmcCode": "cdzPY",
-              "nmcNameCode": "maanshan",
-              "cmaCode": "58336"
+              "nmcCode": "TopGN",
+              "nmcNameCode": "anshan",
+              "cmaCode": "54339"
             },
             {
               "name": "当涂",
@@ -16688,9 +16704,9 @@
               "name": "黄山区",
               "code": "101221002",
               "mojiCode": "huangshan-district",
-              "nmcCode": "JsxkK",
-              "nmcNameCode": "huangshanqu",
-              "cmaCode": "58426"
+              "nmcCode": "dFIpc",
+              "nmcNameCode": "huangshan",
+              "cmaCode": "58437"
             },
             {
               "name": "屯溪",
@@ -16735,9 +16751,10 @@
             {
               "name": "黄山风景区(光明顶)",
               "code": "101221008",
-              "mojiCode": "huangshan-district",
-              "nmcCode": "gMmSA",
-              "cmaCode": "54711"
+              "mojiCode": "huangshan-scenic-area",
+              "nmcCode": "dFIpc",
+              "nmcNameCode": "huangshan",
+              "cmaCode": "58437"
             },
             {
               "name": "徽州",
@@ -16879,8 +16896,9 @@
               "name": "义安",
               "code": "101221303",
               "mojiCode": "yian-district",
-              "nmcCode": "VXqUh",
-              "cmaCode": "54334"
+              "nmcCode": "OebEp",
+              "nmcNameCode": "anyi",
+              "cmaCode": "58602"
             },
             {
               "name": "郊区",
@@ -17081,8 +17099,8 @@
         }
       ],
       "mojiCode": "anhui",
-      "nmcCode": "GGjbv",
-      "cmaCode": "57110"
+      "nmcCode": "AAH",
+      "cmaCode": "AAH"
     },
     {
       "name": "福建",
@@ -17746,7 +17764,7 @@
               "mojiCode": "nanping",
               "nmcCode": "CGyTI",
               "nmcNameCode": "nanping",
-              "cmaCode": "57574"
+              "cmaCode": "59255"
             },
             {
               "name": "顺昌",
@@ -17836,6 +17854,7 @@
             {
               "name": "钓鱼岛",
               "code": "101231001",
+              "mojiCode": "tiao-yu-island",
               "nmcCode": "TPFDQ",
               "nmcNameCode": "diaoyudao",
               "cmaCode": "58981"
@@ -17873,9 +17892,9 @@
               "name": "南昌县",
               "code": "101240103",
               "mojiCode": "nanchang-county",
-              "nmcCode": "Pohqy",
-              "nmcNameCode": "nanchangxian",
-              "cmaCode": "58607"
+              "nmcCode": "JmxCz",
+              "nmcNameCode": "nanchang",
+              "cmaCode": "58606"
             },
             {
               "name": "安义",
@@ -17901,16 +17920,14 @@
             {
               "name": "西湖",
               "code": "101240107",
-              "mojiCode": "xihu-district",
-              "nmcCode": "dDUzR",
-              "nmcNameCode": "ximeng",
-              "cmaCode": "56948"
+              "mojiCode": "xihu-district"
             },
             {
               "name": "青云谱",
               "code": "101240108",
               "mojiCode": "qingyunpu-district",
               "nmcCode": "tspDy",
+              "nmcNameCode": "qingxian",
               "cmaCode": "54615"
             },
             {
@@ -18097,7 +18114,7 @@
             {
               "name": "上饶县",
               "code": "101240308",
-              "mojiCode": "shangrao-concentration-camp-scenic-area",
+              "mojiCode": "shangrao",
               "nmcCode": "KpYAB",
               "nmcNameCode": "shangrao",
               "cmaCode": "58637"
@@ -18349,8 +18366,8 @@
               "name": "吉安县",
               "code": "101240602",
               "mojiCode": "jianxian",
-              "nmcCode": "ryNCI",
-              "nmcNameCode": "jianxian",
+              "nmcCode": "riQqz",
+              "nmcNameCode": "jian",
               "cmaCode": "57799"
             },
             {
@@ -18462,8 +18479,8 @@
               "name": "赣州",
               "code": "101240701",
               "mojiCode": "ganzhou",
-              "nmcCode": "uBtqa",
-              "nmcNameCode": "ganzhou",
+              "nmcCode": "eNmid",
+              "nmcNameCode": "ganxian",
               "cmaCode": "57993"
             },
             {
@@ -18598,7 +18615,8 @@
               "name": "赣县",
               "code": "101240718",
               "mojiCode": "ganxian-district",
-              "nmcCode": "tPkeh",
+              "nmcCode": "eNmid",
+              "nmcNameCode": "ganxian",
               "cmaCode": "57993"
             },
             {
@@ -18762,8 +18780,8 @@
         }
       ],
       "mojiCode": "jiangxi",
-      "nmcCode": "dDUzR",
-      "cmaCode": "56948"
+      "nmcCode": "AJX",
+      "cmaCode": "AJX"
     },
     {
       "name": "湖南",
@@ -18777,7 +18795,7 @@
               "mojiCode": "changsha-county",
               "nmcCode": "zOenJ",
               "nmcNameCode": "changshashi",
-              "cmaCode": "57687"
+              "cmaCode": "57679"
             },
             {
               "name": "宁乡",
@@ -18798,6 +18816,7 @@
             {
               "name": "湘江新区",
               "code": "101250104",
+              "mojiCode": "xin-county",
               "nmcCode": "htNqQ",
               "nmcNameCode": "xiangjiangxinqu",
               "cmaCode": "P5599"
@@ -18815,6 +18834,7 @@
               "code": "101250106",
               "mojiCode": "changsha-county",
               "nmcCode": "FqHOP",
+              "nmcNameCode": "shaxian",
               "cmaCode": "58826"
             },
             {
@@ -18939,10 +18959,7 @@
             {
               "name": "石峰",
               "code": "101250308",
-              "mojiCode": "shifeng-district",
-              "nmcCode": "eRyds",
-              "nmcNameCode": "fengfeng",
-              "cmaCode": "53894"
+              "mojiCode": "shifeng-district"
             },
             {
               "name": "天元",
@@ -18990,9 +19007,9 @@
               "name": "衡阳县",
               "code": "101250405",
               "mojiCode": "hengyang-county",
-              "nmcCode": "PMfFu",
-              "nmcNameCode": "hengyangxian",
-              "cmaCode": "57871"
+              "nmcCode": "ObykY",
+              "nmcNameCode": "hengyang",
+              "cmaCode": "57872"
             },
             {
               "name": "常宁",
@@ -19034,10 +19051,7 @@
             {
               "name": "雁峰",
               "code": "101250411",
-              "mojiCode": "yanfeng-district",
-              "nmcCode": "eRyds",
-              "nmcNameCode": "fengfeng",
-              "cmaCode": "53894"
+              "mojiCode": "yanfeng-district"
             },
             {
               "name": "石鼓",
@@ -19097,9 +19111,7 @@
             {
               "name": "北湖",
               "code": "101250506",
-              "mojiCode": "beihu-district",
-              "nmcCode": "AHB",
-              "cmaCode": "AHB"
+              "mojiCode": "beihu-district"
             },
             {
               "name": "资兴",
@@ -19211,8 +19223,8 @@
               "name": "津市",
               "code": "101250608",
               "mojiCode": "jinshi",
-              "nmcCode": "yqSjH",
-              "cmaCode": "54622"
+              "nmcCode": "ATJ",
+              "cmaCode": "ATJ"
             },
             {
               "name": "武陵",
@@ -19415,9 +19427,9 @@
               "name": "邵阳县",
               "code": "101250910",
               "mojiCode": "shaoyang-county",
-              "nmcCode": "aFKpi",
-              "nmcNameCode": "shaoyangxian",
-              "cmaCode": "57860"
+              "nmcCode": "KZYji",
+              "nmcNameCode": "shaoyang",
+              "cmaCode": "57766"
             },
             {
               "name": "双清",
@@ -19491,7 +19503,8 @@
               "name": "岳阳楼区",
               "code": "101251007",
               "mojiCode": "yueyanglou-district",
-              "nmcCode": "shWKT",
+              "nmcCode": "bwVav",
+              "nmcNameCode": "yueyang",
               "cmaCode": "57584"
             },
             {
@@ -19807,9 +19820,9 @@
               "name": "龙山",
               "code": "101251507",
               "mojiCode": "longshan-county",
-              "nmcCode": "czHhG",
-              "nmcNameCode": "longshan",
-              "cmaCode": "57544"
+              "nmcCode": "dKioY",
+              "nmcNameCode": "qinglongshan",
+              "cmaCode": "54132"
             },
             {
               "name": "花垣",
@@ -19831,8 +19844,8 @@
         }
       ],
       "mojiCode": "hunan",
-      "nmcCode": "wIetl",
-      "cmaCode": "57574"
+      "nmcCode": "AHN",
+      "cmaCode": "AHN"
     },
     {
       "name": "贵州",
@@ -19852,9 +19865,9 @@
               "name": "白云",
               "code": "101260102",
               "mojiCode": "baiyun-district",
-              "nmcCode": "SOHSv",
-              "nmcNameCode": "baiyun",
-              "cmaCode": "57911"
+              "nmcCode": "tPIAd",
+              "nmcNameCode": "baiyunebo",
+              "cmaCode": "53343"
             },
             {
               "name": "花溪",
@@ -20030,8 +20043,6 @@
               "name": "汇川",
               "code": "101260214",
               "mojiCode": "huichuan-district",
-              "nmcCode": "lZXKF",
-              "nmcNameCode": "chuanhuiqu",
               "cmaCode": "57195"
             },
             {
@@ -20375,9 +20386,9 @@
               "name": "江口",
               "code": "101260602",
               "mojiCode": "eguchi-county",
-              "nmcCode": "vHiWQ",
-              "nmcNameCode": "jiangkou",
-              "cmaCode": "57736"
+              "nmcCode": "ztads",
+              "nmcNameCode": "danjiangkou",
+              "cmaCode": "57260"
             },
             {
               "name": "玉屏",
@@ -20615,9 +20626,9 @@
               "name": "黔西南",
               "code": "101260906",
               "mojiCode": "qianxi",
-              "nmcCode": "pYfUO",
-              "nmcNameCode": "qianxinan",
-              "cmaCode": "57574"
+              "nmcCode": "xfRzH",
+              "nmcNameCode": "qianxi",
+              "cmaCode": "57803"
             },
             {
               "name": "安龙",
@@ -20668,9 +20679,9 @@
               "name": "龙泉驿",
               "code": "101270102",
               "mojiCode": "longquanyi-district",
-              "nmcCode": "mqsMW",
-              "nmcNameCode": "longquanzuo",
-              "cmaCode": "56286"
+              "nmcCode": "IFYzG",
+              "nmcNameCode": "longquan",
+              "cmaCode": "58647"
             },
             {
               "name": "新都",
@@ -20857,14 +20868,16 @@
               "code": "101270205",
               "mojiCode": "dongcheng-district",
               "nmcCode": "gIolY",
+              "nmcNameCode": "midongqu",
               "cmaCode": "51369"
             },
             {
               "name": "西区",
               "code": "101270206",
               "mojiCode": "yuexi-county",
-              "nmcCode": "AXZ",
-              "cmaCode": "AXZ"
+              "nmcCode": "dDUzR",
+              "nmcNameCode": "ximeng",
+              "cmaCode": "54527"
             }
           ]
         },
@@ -21041,8 +21054,9 @@
               "name": "仪陇",
               "code": "101270505",
               "mojiCode": "yilong-county",
-              "nmcCode": "fpJEY",
-              "cmaCode": "57003"
+              "nmcCode": "hvews",
+              "nmcNameCode": "yilongxinzheng",
+              "cmaCode": "S4241"
             },
             {
               "name": "西充",
@@ -21354,10 +21368,7 @@
             {
               "name": "龙马潭",
               "code": "101271008",
-              "mojiCode": "longmatan-district",
-              "nmcCode": "fyDAe",
-              "nmcNameCode": "malong",
-              "cmaCode": "56782"
+              "mojiCode": "longmatan-district"
             }
           ]
         },
@@ -21380,8 +21391,9 @@
             {
               "name": "宜宾县",
               "code": "101271103",
-              "mojiCode": "yibin-shunan-bamboo-sea-scenic-spot",
+              "mojiCode": "yibin",
               "nmcCode": "yiPrH",
+              "nmcNameCode": "binxian",
               "cmaCode": "50960"
             },
             {
@@ -21625,16 +21637,15 @@
             {
               "name": "金口河",
               "code": "101271413",
-              "mojiCode": "jinkouhe-district",
-              "nmcCode": "woPhx",
-              "cmaCode": "54732"
+              "mojiCode": "jinkouhe-district"
             },
             {
               "name": "峨眉山市",
               "code": "101271414",
               "mojiCode": "emeishan",
-              "nmcCode": "sczdz",
-              "cmaCode": "57027"
+              "nmcCode": "JKQBL",
+              "nmcNameCode": "emeishan",
+              "cmaCode": "56385"
             }
           ]
         },
@@ -21645,9 +21656,9 @@
               "name": "眉山",
               "code": "101271501",
               "mojiCode": "meishan",
-              "nmcCode": "zkdYW",
-              "nmcNameCode": "meishan",
-              "cmaCode": "56391"
+              "nmcCode": "JKQBL",
+              "nmcNameCode": "emeishan",
+              "cmaCode": "56385"
             },
             {
               "name": "仁寿",
@@ -21734,8 +21745,9 @@
               "name": "会理",
               "code": "101271606",
               "mojiCode": "huili",
-              "nmcCode": "xYIdl",
-              "cmaCode": "56184"
+              "nmcCode": "sEwty",
+              "nmcNameCode": "huilichengqu",
+              "cmaCode": "S0554"
             },
             {
               "name": "会东",
@@ -22371,9 +22383,9 @@
               "name": "白云",
               "code": "101280110",
               "mojiCode": "baiyun-district",
-              "nmcCode": "SOHSv",
-              "nmcNameCode": "baiyun",
-              "cmaCode": "57911"
+              "nmcCode": "tPIAd",
+              "nmcNameCode": "baiyunebo",
+              "cmaCode": "53343"
             },
             {
               "name": "黄埔",
@@ -22689,8 +22701,9 @@
             {
               "name": "南山",
               "code": "101280604",
-              "mojiCode": "nankunshan-national-forest-park-",
-              "nmcCode": "wIetl",
+              "mojiCode": "nanshan-district",
+              "nmcCode": "uuiXc",
+              "nmcNameCode": "shannan",
               "cmaCode": "57574"
             },
             {
@@ -22981,9 +22994,9 @@
               "name": "台山",
               "code": "101281106",
               "mojiCode": "taishan",
-              "nmcCode": "kRWvm",
-              "nmcNameCode": "taishan",
-              "cmaCode": "59478"
+              "nmcCode": "sxucp",
+              "nmcNameCode": "wutaishan",
+              "cmaCode": "53588"
             },
             {
               "name": "蓬江",
@@ -23384,6 +23397,7 @@
               "code": "101282007",
               "mojiCode": "maonan-district",
               "nmcCode": "wIetl",
+              "nmcNameCode": "nanxian",
               "cmaCode": "57574"
             }
           ]
@@ -23551,6 +23565,7 @@
               "code": "101290116",
               "mojiCode": "xishan-district",
               "nmcCode": "dDUzR",
+              "nmcNameCode": "ximeng",
               "cmaCode": "56948"
             }
           ]
@@ -23759,9 +23774,9 @@
               "name": "河口",
               "code": "101290313",
               "mojiCode": "hekou",
-              "nmcCode": "woPhx",
-              "nmcNameCode": "hekou",
-              "cmaCode": "54732"
+              "nmcCode": "aEizR",
+              "nmcNameCode": "meihekou",
+              "cmaCode": "54266"
             }
           ]
         },
@@ -24621,8 +24636,8 @@
         }
       ],
       "mojiCode": "yunnan",
-      "nmcCode": "wIetl",
-      "cmaCode": "57574"
+      "nmcCode": "AYN",
+      "cmaCode": "AYN"
     },
     {
       "name": "广西",
@@ -24636,7 +24651,7 @@
               "mojiCode": "nanning",
               "nmcCode": "dvHfb",
               "nmcNameCode": "nanning",
-              "cmaCode": "59431"
+              "cmaCode": "N1520"
             },
             {
               "name": "兴宁",
@@ -24659,6 +24674,7 @@
               "code": "101300104",
               "mojiCode": "hengzhou",
               "nmcCode": "JfPmD",
+              "nmcNameCode": "hengfeng",
               "cmaCode": "58625"
             },
             {
@@ -24713,15 +24729,17 @@
               "name": "江南",
               "code": "101300111",
               "mojiCode": "jiangnan-district",
-              "nmcCode": "wIetl",
-              "cmaCode": "57574"
+              "nmcCode": "viieF",
+              "nmcNameCode": "nanjiang",
+              "cmaCode": "57216"
             },
             {
               "name": "西乡塘",
               "code": "101300112",
               "mojiCode": "xixiangtang-district",
-              "nmcCode": "dDUzR",
-              "cmaCode": "56948"
+              "nmcCode": "tWrIf",
+              "nmcNameCode": "xixiang",
+              "cmaCode": "57129"
             },
             {
               "name": "良庆",
@@ -24792,9 +24810,7 @@
             {
               "name": "江州",
               "code": "101300208",
-              "mojiCode": "jiangzhou-district",
-              "nmcCode": "hqPdG",
-              "nmcNameCode": "taizhou1"
+              "mojiCode": "jiangzhou-district"
             }
           ]
         },
@@ -24865,10 +24881,7 @@
             {
               "name": "鱼峰",
               "code": "101300309",
-              "mojiCode": "yufeng-district",
-              "nmcCode": "eRyds",
-              "nmcNameCode": "fengfeng",
-              "cmaCode": "53894"
+              "mojiCode": "yufeng-district"
             },
             {
               "name": "柳南",
@@ -24940,6 +24953,7 @@
               "code": "101300407",
               "mojiCode": "xingbin-district",
               "nmcCode": "RBGVZ",
+              "nmcNameCode": "xingxian",
               "cmaCode": "53664"
             }
           ]
@@ -24958,10 +24972,7 @@
             {
               "name": "秀峰",
               "code": "101300502",
-              "mojiCode": "xiufeng-district",
-              "nmcCode": "eRyds",
-              "nmcNameCode": "fengfeng",
-              "cmaCode": "53894"
+              "mojiCode": "xiufeng-district"
             },
             {
               "name": "龙胜",
@@ -25546,10 +25557,7 @@
             {
               "name": "金城江",
               "code": "101301212",
-              "mojiCode": "jinchengjiang-district",
-              "nmcCode": "yIZKB",
-              "nmcNameCode": "jiangcheng",
-              "cmaCode": "56977"
+              "mojiCode": "jinchengjiang-district"
             }
           ]
         },
@@ -25636,16 +25644,16 @@
               "name": "防城",
               "code": "101301405",
               "mojiCode": "fangcheng-district",
-              "nmcCode": "jOvlz",
-              "nmcNameCode": "fangcheng",
-              "cmaCode": "59631"
+              "nmcCode": "kXkLV",
+              "nmcNameCode": "fangchenggang",
+              "cmaCode": "59635"
             }
           ]
         }
       ],
       "mojiCode": "guangxi",
-      "nmcCode": "dDUzR",
-      "cmaCode": "56948"
+      "nmcCode": "AGX",
+      "cmaCode": "AGX"
     },
     {
       "name": "海南",
@@ -25965,16 +25973,17 @@
             {
               "name": "黄岩岛",
               "code": "101310305",
-              "nmcCode": "JereN",
-              "nmcNameCode": "huangyandao",
-              "cmaCode": "59989"
+              "mojiCode": "huangyan-district",
+              "nmcCode": "ScBYE",
+              "nmcNameCode": "huangyan",
+              "cmaCode": "58661"
             }
           ]
         }
       ],
       "mojiCode": "hainan-district",
-      "nmcCode": "bwKfK",
-      "cmaCode": "57574"
+      "nmcCode": "AHI",
+      "cmaCode": "AHI"
     },
     {
       "name": "香港",
@@ -25986,8 +25995,7 @@
               "name": "香港",
               "code": "101320101",
               "mojiCode": "hong-kong",
-              "nmcCode": "KnxKc",
-              "nmcNameCode": "xianggang",
+              "nmcCode": "AXG",
               "cmaCode": "AXG"
             },
             {
@@ -26010,7 +26018,7 @@
         }
       ],
       "mojiCode": "hong-kong",
-      "nmcCode": "KnxKc",
+      "nmcCode": "AXG",
       "cmaCode": "AXG"
     },
     {
@@ -26023,8 +26031,7 @@
               "name": "澳门",
               "code": "101330101",
               "mojiCode": "macau",
-              "nmcCode": "ZZhCJ",
-              "nmcNameCode": "aomen",
+              "nmcCode": "AAM",
               "cmaCode": "AAM"
             },
             {
@@ -26034,6 +26041,7 @@
             {
               "name": "路环岛",
               "code": "101330103",
+              "mojiCode": "huan-county",
               "nmcCode": "tpwqY",
               "nmcNameCode": "huanxian",
               "cmaCode": "53821"
@@ -26042,7 +26050,7 @@
         }
       ],
       "mojiCode": "macau",
-      "nmcCode": "ZZhCJ",
+      "nmcCode": "AAM",
       "cmaCode": "AAM"
     },
     {
