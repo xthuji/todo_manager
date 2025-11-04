@@ -145,14 +145,14 @@ const WEATHER_API = {
          */
         _loadAreaCodesInternal: async function () {
             this._log(`发送请求获取省市县数据: ${WEATHER_API.AREA_CODES}`);
-            const response = await fetch(WEATHER_API.AREA_CODES, { cache: 'no-store' });
+            const response = await fetch(WEATHER_API.AREA_CODES);
 
             if (!response.ok) {
                 throw new Error(`API请求失败: ${response.status}`);
             }
             const responseData = await response.json();
-            // 只处理服务端返回的固定{data, timestamp}格式
-            return this._extractAreaData(responseData.data || {});
+            // 直接使用responseData，因为后端返回的格式已经是{data, timestamp}
+            return this._extractAreaData(responseData);
         },
 
         /**

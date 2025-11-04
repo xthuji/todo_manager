@@ -44,15 +44,10 @@ router.get('/ip-location', async (req, res) => {
 // 抓取省市县三级地址的天气区域编码数据
 router.get('/weather-area-codes', async (req, res) => {
     try {
-        let areaCodesData = getAllAreaCodes();
+        // getAllAreaCodes() 已经返回标准的 {data, timestamp} 格式，直接返回
+        const areaCodesData = await getAllAreaCodes();
         
-        // 确保返回的数据格式正确：根结构包含data和timestamp，且data为数组
-        const responseData = {
-            data: Array.isArray(areaCodesData.data) ? areaCodesData.data : [areaCodesData.data],
-            timestamp: areaCodesData.timestamp || Date.now()
-        };
-        
-        return res.status(200).json(responseData);
+        return res.status(200).json(areaCodesData);
     } catch (error) {
         console.error('获取天气区域编码数据时发生错误:', error);
         res.status(500).json({

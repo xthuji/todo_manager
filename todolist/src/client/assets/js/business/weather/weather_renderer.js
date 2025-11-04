@@ -48,14 +48,7 @@ window.WeatherModule.DataService = {
         // 统一只接受直接的天气数据对象格式
         // 不再尝试适配多种不同的数据格式
         logStep(`开始规范化天气数据，检查必要字段...`);
-        
-        // 检查数据是否存在
-        if (!data) {
-            logStep(`错误: 天气数据为空`);
-            window.WeatherModule.View.showError('天气数据为空');
-            return null;
-        }
-        
+
         // 处理错误情况 - 支持统一的错误格式 {error: {message: '错误信息'}}
         if (data.error) {
             const errorMessage = data.error.message || data.error || '获取天气数据失败';
@@ -63,13 +56,21 @@ window.WeatherModule.DataService = {
             window.WeatherModule.View.showError(errorMessage);
             return null;
         }
-        
+
+        // 检查数据是否存在
+        if (!data.data) {
+            logStep(`错误: 天气数据为空`);
+            window.WeatherModule.View.showError('天气数据为空');
+            return null;
+        }
+
         // 直接验证数据是否包含必要的天气信息字段
-        if (typeof data === 'object') {
+        if (typeof data.data === 'object') {
             // 验证数据有效性
-            if (data.todayWeather || data.calendarWeather || data.hourlyForecast || data.hourlyWeather || data.recentDaysWeather) {
+            const weatherData = data.data;
+            if (weatherData.todayWeather || weatherData.calendarWeather || weatherData.recentDaysWeather) {
                 logStep(`数据格式验证通过`);
-                return data;
+                return weatherData;
             }
         }
 
@@ -1189,8 +1190,8 @@ function loadWeatherData(weatherCode, retryCount = 0) {
             logStep(`成功获取天气数据: ${JSON.stringify(data).substring(0, 100)}...`);
 
             // 检查 API 返回的业务错误
-            if (data && data.error) {
-                const errorMessage = data.error.message || data.error || '获取天气数据失败';
+            if (!data || data.error) {
+                const errorMessage = data?.error.message || data?.error || '获取天气数据失败';
                 logStep(`错误: API返回错误: ${errorMessage}`);
                 window.WeatherModule.View.showError(errorMessage); // 调用 View 模块
                 return;

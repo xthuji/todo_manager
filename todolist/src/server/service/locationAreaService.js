@@ -44,7 +44,7 @@ function cacheIpLocation(clientIp, locationData = null) {
     if (locationData !== null) {
         console.log('缓存位置数据:', cacheKey);
         // 缓存包装好的响应格式
-        cacheManager.set(cacheKey, {data:{...locationData, weatherAreaCodes: null}, timestamp: Date.now()}, 'ipLocation');
+        cacheManager.set(cacheKey, locationData, 'ipLocation');
         return null;
     } else {
         // 读取模式：直接从缓存获取已经包装好的数据
@@ -63,15 +63,15 @@ function findDistrictInfo(areaData, provinceName, districtName) {
             // 检查是否为叶子节点（区县）
             if (item.code && item.name === districtName && currentProvince === provinceName) {
                 result = {
+                    code: item.code,
                     province: currentProvince,
                     city: currentCity,
-                    code: item.code,
                     district: item.name,
-                    provinceMojiCode: provinceItem.mojiCode,
-                    mojiCode: item.mojiCode,
-                    provinceNmcCode: provinceItem.nmcCode,
-                    nmcCode: item.nmcCode,
-                    cmaCode: item.cmaCode,
+                    // provinceMojiCode: provinceItem.mojiCode,
+                    // mojiCode: item.mojiCode,
+                    // provinceNmcCode: provinceItem.nmcCode,
+                    // nmcCode: item.nmcCode,
+                    // cmaCode: item.cmaCode,
                 };
                 return;
             }
@@ -217,141 +217,96 @@ async function getLocation(clientIp) {
             return cachedResponse;
         }
 
-    console.log('正在调用接口获取位置信息...');
+        console.log('正在调用接口获取位置信息...');
 
-    // 位置数据
-    // 创建并行请求的Promise数组
-    const promises = [];
-    promises.push(getLocation1(), getLocation2());
-    const [addressData1, addressData2] = await Promise.all(promises);
-    const addressData = {... (addressData2 || addressData1)};
-    console.log(`定位数据: ${JSON.stringify(addressData)}`);
-    if (PRINT_API_DATA) {
-        if (PRINT_DATA_LOG) {
-            console.log(`接口获取位置信息结果1: ${JSON.stringify(addressData1)}`);
-            console.log(`接口获取位置信息结果2: ${JSON.stringify(addressData2)}`);
+        // 位置数据
+        // 创建并行请求的Promise数组
+        const promises = [];
+        promises.push(getLocation1(), getLocation2());
+        const [addressData1, addressData2] = await Promise.all(promises);
+        const addressData = {... (addressData2 || addressData1)};
+        console.log(`定位数据: ${JSON.stringify(addressData)}`);
+        if (PRINT_API_DATA) {
+            if (PRINT_DATA_LOG) {
+                console.log(`接口获取位置信息结果1: ${JSON.stringify(addressData1)}`);
+                console.log(`接口获取位置信息结果2: ${JSON.stringify(addressData2)}`);
+            }
+            addressData.apiData = {addressData1, addressData2};
         }
-        addressData.apiData = {addressData1, addressData2};
-    }
 
-    // 读取地区编码数据，用于查找完整的省市县信息
-    const allAreaCodes = getAllAreaCodes();
-    if (allAreaCodes && addressData.province !== '未知省份' && addressData.district !== '未知区县') {
-        // 使用辅助函数查找完整的省市县信息
-        const districtInfo = findDistrictInfo(allAreaCodes.data, addressData.province, addressData.district);
-        if (districtInfo) {
-            addressData.province = districtInfo.province || addressData.province;
-            addressData.city = districtInfo.city || addressData.city;
-            addressData.district = districtInfo.district || addressData.district;
-            addressData.code = districtInfo.code;
-            // addressData.provinceMojiCode = districtInfo.provinceMojiCode;
-            // addressData.districtMojiCode = districtInfo.mojiCode;
-            // addressData.provinceNmcCode = districtInfo.provinceNmcCode;
-            // addressData.districtNmcCode = districtInfo.nmcCode;
-            // addressData.districtCmaCode = districtInfo.cmaCode;
+        // 读取地区编码数据，用于查找完整的省市县信息
+        const allAreaCodes = getAllAreaCodes();
+        if (allAreaCodes && addressData.province !== '未知省份' && addressData.district !== '未知区县') {
+            // 使用辅助函数查找完整的省市县信息
+            const districtInfo = findDistrictInfo(allAreaCodes.data, addressData.province, addressData.district);
+            if (districtInfo) {
+                addressData.province = districtInfo.province || addressData.province;
+                addressData.city = districtInfo.city || addressData.city;
+                addressData.district = districtInfo.district || addressData.district;
+                addressData.code = districtInfo.code;
+                // addressData.provinceMojiCode = districtInfo.provinceMojiCode;
+                // addressData.districtMojiCode = districtInfo.mojiCode;
+                // addressData.provinceNmcCode = districtInfo.provinceNmcCode;
+                // addressData.districtNmcCode = districtInfo.nmcCode;
+                // addressData.districtCmaCode = districtInfo.cmaCode;
+            }
         }
+        console.log('返回完整的位置数据:', addressData.toString());
+
+        // 更新缓存，存储完整响应对象
+        cacheIpLocation(clientIp, addressData);
+
+        // 返回标准格式的响应
+        return {
+            data: addressData,
+            timestamp: Date.now()
+        };
+    } catch (error) {
+        console.error('获取位置信息失败:', error.message);
+        return {
+            data: null,
+            timestamp: Date.now()
+        };
     }
-    console.log('返回完整的位置数据:', addressData.toString());
-
-    // 创建响应对象
-    const response = {
-        data: {...addressData, weatherAreaCodes: null},
-        timestamp: Date.now()
-    };
-    
-    // 更新缓存，存储完整响应对象
-    cacheIpLocation(clientIp, addressData);
-
-    // 返回标准格式的响应
-    return response;
-} catch (error) {
-    console.error('获取位置信息失败:', error.message);
-    const errorResponse = {
-        data: null,
-        timestamp: Date.now()
-    };
-    return errorResponse;
-}
 }
 
 /**
  * 获取所有省市县编码数据
- * @returns {Promise<Object>} 包含data和timestamp的响应对象
+ * @returns {Object} 包含data和timestamp的响应对象
  */
-async function getAllAreaCodes() {
+function getAllAreaCodes() {
   try {
     const cacheKey = 'all_area_codes';
-    const cacheData = cacheManager.get(cacheKey);
+    const sourceFilePath = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
     
-    // 直接返回缓存数据，已经包含了正确的包装格式
-    if (cacheData) {
-      console.log('省市县编码数据从缓存获取成功');
-      return cacheData;
+    // 创建命名空间配置，使用ttl=0表示永不过期，并指向配置文件路径
+    if (!cacheManager.namespaces.has('areaCodes')) {
+      cacheManager.createNamespace('areaCodes', {
+        cachePrefix: 'area_',
+        ttl: 0, // 设置为0表示永不过期
+        useFileCache: true,
+        cacheDir: CACHE_DIR,
+        extension: 'json'
+      });
     }
     
-    // 缓存未命中时，从文件加载数据
-    console.log('省市县编码缓存未命中，从文件加载...');
-    const filePath = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
+    // 使用增强的get方法，当缓存不存在时从源文件创建
+    // 这里会自动处理：检查缓存 -> 缓存不存在则从源文件创建 -> 返回数据
+    const cachedData = cacheManager.get(cacheKey, 'areaCodes', false, false, sourceFilePath);
     
-    // 检查文件是否存在
-    if (!fs.existsSync(filePath)) {
-      console.error('省市县编码文件不存在:', filePath);
-      return {
-        data: [],
-        timestamp: Date.now()
-      };
+    if (cachedData) {
+      return cachedData;
     }
     
-    // 读取文件内容
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    let areaCodesData = [];
-    
-    // 解析JSON数据
-    try {
-      areaCodesData = JSON.parse(fileContent);
-      console.log('成功解析省市县编码文件');
-    } catch (parseError) {
-      console.error('解析省市县编码文件失败:', parseError.message);
-      return {
-        data: [],
-        timestamp: Date.now()
-      };
-    }
-    
-    // 处理数据格式，确保是数组
-    let formattedData = [];
-    if (Array.isArray(areaCodesData)) {
-      formattedData = areaCodesData;
-    } else if (typeof areaCodesData === 'object' && areaCodesData !== null) {
-      // 如果不是数组但有data属性，尝试使用data属性的值
-      if (Array.isArray(areaCodesData.data)) {
-        formattedData = areaCodesData.data;
-      } else {
-        // 否则将对象转换为数组
-        formattedData = [areaCodesData];
-      }
-    }
-    
-    console.log(`省市县编码数据加载成功，共${formattedData.length}条记录`);
-    
-    // 创建标准响应对象
-    const response = {
-      data: formattedData,
-      timestamp: Date.now()
-    };
-    
-    // 缓存响应对象（而不是原始数据）
-    cacheManager.set(cacheKey, response);
-    
-    // 返回标准响应对象
-    return response;
+    // 极端情况：如果源文件也无法读取，返回默认空数据
+    console.warn('无法获取省市县编码数据，返回空数据');
   } catch (error) {
     console.error('获取省市县编码数据失败:', error.message);
-    return {
-      data: [],
-      timestamp: Date.now()
-    };
   }
+    return {
+        data: [],
+        timestamp: Date.now()
+    };
 }
 
 // 获取District对应的各种天气区域编码数据
