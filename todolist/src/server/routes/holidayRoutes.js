@@ -77,35 +77,36 @@ async function clearHolidayCache() {
  */
 async function getHolidayData(apiUrl = CONFIG.DEFAULT_HOLIDAY_API_URL) {
   try {
-    // 首先尝试从缓存获取数据，允许使用过期缓存作为兜底
-    let wrappedData = cacheUtil.getWrappedData(CONFIG.CACHE_KEY, { allowExpired: true });
-    
-    if (wrappedData) {
-      // 如果使用的是过期缓存，记录日志
-      if (wrappedData.expired) {
-        console.log('[节假日服务] 使用过期缓存作为兜底');
+    // 创建同步数据加载函数，内部处理异步API调用
+    // 使用getWrappedData获取缓存，并提供loadData选项用于缓存未命中时的数据加载
+    const wrappedData = cacheUtil.getWrappedData(CONFIG.CACHE_KEY, {
+      allowExpired: true, // 允许使用过期缓存作为兜底
+      ttl: TTL,
+      loadData: function () {
+        console.log('[节假日服务] 缓存未命中或需要更新，从API获取数据');
+        // 返回Promise，让getWrappedData能够识别并异步处理
+        return fetchHolidayData(apiUrl);
       }
-      return {
-        data: wrappedData.data,
-        timestamp: wrappedData.timestamp,
-        apiUrl: apiUrl,
-        expireAt: wrappedData.expired ? Date.now() : wrappedData.timestamp + TTL
-      };
+    });
+    
+    // 处理缓存结果
+    if (!wrappedData) {
+      // 如果没有获取到缓存数据（无论是同步还是异步情况），抛出错误。因为loadData已经在getWrappedData中被调用，如果仍然返回null，说明加载失败
+      throw new Error('无法获取节假日数据');
     }
 
-    // 缓存未命中或过期，从API获取数据
-    console.log('[节假日服务] 缓存未命中或需要更新，从API获取数据');
-    const holidayData = await fetchHolidayData(apiUrl);
-    
-    // 保存到缓存
-    cacheUtil.setData(CONFIG.CACHE_KEY, holidayData, { ttl: TTL });
-    
-    // 返回包含额外信息的响应
+    const holidayData = wrappedData.data;
+    // 检查是否使用了过期缓存
+    if (wrappedData.expired) {
+      console.log('[节假日服务] 使用过期缓存数据');
+    }
+
+    // 返回标准格式的响应
     return {
       data: holidayData,
-      timestamp: Date.now(),
+      timestamp: wrappedData.timestamp,
       apiUrl: apiUrl,
-      expireAt: Date.now() + TTL
+      expireAt: !wrappedData.expired ? wrappedData.timestamp + TTL : Date.now()
     };
   } catch (error) {
     console.error(`[节假日服务] 获取数据失败: ${error.message}`);
