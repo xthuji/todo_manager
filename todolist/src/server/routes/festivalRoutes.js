@@ -5,29 +5,31 @@ const router = require('express').Router();
 const { cacheManager } = require('../utils/cacheUtil');
 
 // 配置路径
-const CONFIG_PATH = path.join(__dirname, '../../../data/config/festival_config.json');
+const FESTIVAL_CONFIG_PATH = path.join(__dirname, '../../../data/config/festival_config.json');
 
-// 创建节日配置缓存命名空间
-cacheManager.createNamespace('festivalConfig', {
-  cacheDir: path.join(__dirname, '../../../data/cache'),
-  cachePrefix: 'festival_',
-  ttl: 3600000, // 1小时缓存
-  extension: 'json',
-  useMemoryCache: true,
-  useFileCache: true
-});
+// 初始化节日配置缓存
+// 缓存1小时
+const CACHE_OPTIONS = {
+  ttl: 3600000,
+  isPermanent: false
+};
+
+try {
+  cacheManager.createNamespace('festivalConfig', CACHE_OPTIONS);
+} catch (error) {
+  console.error('初始化节日配置缓存失败:', error.message);
+}
 
 /**
  * 从缓存获取配置数据
  * @returns {Promise<Object|null>} 配置数据或null
  */
+const CACHE_KEY = 'config';
 async function getConfigFromCache() {
   try {
-    // 使用returnRawData=true获取原始数据，避免嵌套包装
-    const cacheResult = cacheManager.get('config', 'festivalConfig', true);
-    return cacheResult;
+    return await cacheManager.get(CACHE_KEY, 'festivalConfig', { returnRawData: true });
   } catch (error) {
-    console.error('从缓存读取配置失败:', error);
+    console.error('从缓存获取节日配置失败:', error.message);
     return null;
   }
 }
@@ -36,22 +38,26 @@ async function getConfigFromCache() {
  * 将配置数据保存到缓存
  * @param {Object} configData 配置数据
  */
-function saveConfigToCache(configData) {
+async function saveConfigToCache(data) {
   try {
-    cacheManager.set('config', configData, 'festivalConfig');
+    await cacheManager.set(CACHE_KEY, data, 'festivalConfig', { returnRawData: true });
+    return true;
   } catch (error) {
-    console.error('保存配置到缓存失败:', error);
+    console.error('保存节日配置到缓存失败:', error.message);
+    return false;
   }
 }
 
 /**
  * 清除配置缓存
  */
-function clearConfigCache() {
+async function clearConfigCache() {
   try {
-    cacheManager.delete('config', 'festivalConfig');
+    await cacheManager.clear('festivalConfig');
+    return true;
   } catch (error) {
-    console.error('清除配置缓存失败:', error);
+    console.error('清除节日配置缓存失败:', error.message);
+    return false;
   }
 }
 
@@ -61,22 +67,24 @@ function clearConfigCache() {
  */
 router.get('/config', async (req, res) => {
   try {
-    // 1. 尝试从缓存获取
+    // 尝试从缓存获取配置
     const cachedConfig = await getConfigFromCache();
     if (cachedConfig) {
-      console.log('从缓存返回节日配置');
-      // 直接使用缓存的原始数据构建响应
-      return res.json({ data: cachedConfig, timestamp: Date.now() });
+      return res.json({
+        data: cachedConfig,
+        timestamp: Date.now(),
+        error: null
+      });
     }
 
-    // 2. 缓存不存在，从文件读取
+    // 缓存未命中，从文件读取
     try {
-      await fs.access(CONFIG_PATH);
-      const configContent = await fs.readFile(CONFIG_PATH, 'utf8');
+      await fs.access(FESTIVAL_CONFIG_PATH);
+      const configContent = await fs.readFile(FESTIVAL_CONFIG_PATH, 'utf8');
       const configData = JSON.parse(configContent);
       
       // 更新缓存
-      saveConfigToCache(configData);
+      await saveConfigToCache(configData);
       
       console.log('从文件读取并缓存节日配置');
       res.json({ data: configData, timestamp: Date.now() });
@@ -122,7 +130,7 @@ router.post('/save', async (req, res) => {
       await fs.writeFile(CONFIG_PATH, JSON.stringify(configData, null, 2), 'utf8');
       
       // 清除缓存，确保下次读取时获取最新数据
-      clearConfigCache();
+      await clearConfigCache();
       
       console.log('节日配置文件保存成功，缓存已清除');
       res.json({ data: { success: true, message: '节日配置保存成功' }, timestamp: Date.now() });

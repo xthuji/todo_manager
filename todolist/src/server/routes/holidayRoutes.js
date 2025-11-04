@@ -32,7 +32,7 @@ function initCache() {
   try {
     cacheManager.createNamespace('holiday', CACHE_OPTIONS);
     // 仅在调试模式下输出详细配置
-    // console.log('节假日缓存命名空间配置:', cacheManager.getNamespaceOptions('holiday'));
+    // console.log('节假日缓存命名空间配置:', cacheManager.getNamespace('holiday'));
   } catch (error) {
     console.error('初始化缓存命名空间失败:', error.message);
   }
@@ -108,8 +108,10 @@ async function getHolidayData(apiUrl = CONFIG.DEFAULT_HOLIDAY_API_URL) {
         return holidayData;
       },
       CACHE_OPTIONS,
-      true, // returnRawData=true，获取原始数据
-      true  // allowExpired=true，允许使用过期缓存作为兜底
+      { 
+        returnRawData: true, // 获取原始数据
+        allowExpired: true  // 允许使用过期缓存作为兜底
+      }
     );
     
     const currentTime = Date.now();
