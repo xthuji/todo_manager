@@ -43,12 +43,6 @@ async function getHolidayData(apiUrl = null) {
         const requestUrl = new URL('/api/holiday/cache', window.location.origin);
         if (typeof apiUrl === 'string' && apiUrl.trim()) {
             requestUrl.searchParams.append('apiUrl', apiUrl.trim());
-        } else {
-            // 如果没有传入参数或参数无效，尝试从DOM中获取
-            const apiUrlInput = document.getElementById('holiday-api-url');
-            if (apiUrlInput && typeof apiUrlInput.value === 'string' && apiUrlInput.value.trim()) {
-                requestUrl.searchParams.append('apiUrl', apiUrlInput.value.trim());
-            }
         }
         
         // 仅从服务器接口获取节假日数据

@@ -26,9 +26,6 @@ import { getHolidayData, getDateType } from '../common/holiday_manager.js';
 import { editTask } from './task_operations.js';
 import '../common/lunar_utils.js';
 
-// 模块级节假日缓存
-let cachedHolidayData = null;
-
 // 工具函数
 const utils = {
   formatDate: (date) => {
@@ -414,11 +411,6 @@ const yearMonthSelector = {
 
 // 主渲染函数
 export async function renderCalendar(date, tasks = []) {
-  // 加载节假日数据
-  if (!cachedHolidayData) {
-    cachedHolidayData = await getHolidayData();
-  }
-  
   // 重置任务行映射
   if (!window.weeklyTaskRowsMap) {
     window.weeklyTaskRowsMap = new Map();

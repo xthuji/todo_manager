@@ -36,7 +36,7 @@ async function getConfigFromCache() {
 
 /**
  * 将配置数据保存到缓存
- * @param {Object} configData 配置数据
+ * @param {Object} data 配置数据
  */
 async function saveConfigToCache(data) {
   try {

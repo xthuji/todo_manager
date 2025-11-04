@@ -14,7 +14,6 @@ const cacheManager = cacheUtil.cacheManager;
 // merged_weather_area_codes            天气地区编码缓存文件路径(合并了天气网,墨迹天气和,央气象台和中国气象局的地区代码)
 const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
 let mockIpAreaData;
-let areaCodesData;
 let areaCodesMap;
 
 // 接口级别响应缓存处理函数

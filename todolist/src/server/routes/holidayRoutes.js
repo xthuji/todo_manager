@@ -98,31 +98,29 @@ async function clearHolidayCache() {
  */
 async function getHolidayData(apiUrl = CONFIG.DEFAULT_HOLIDAY_API_URL) {
   try {
+    const cacheData = cacheManager.get(CONFIG.CACHE_KEY, CACHE_OPTIONS, {
+      returnRawData: false, // 获取原始数据
+      allowExpired: true  // 允许使用过期缓存作为兜底
+    });
+
+    if (cacheData) {
+      return cacheData;
+    }
+
     // 使用cacheManager的fetch方法，设置allowExpired=true以支持过期缓存作为兜底
-    const result = await cacheManager.fetch(
-      CONFIG.CACHE_KEY,
-      async () => {
-        // 缓存未命中或过期，从API获取数据
-        console.log('[节假日服务] 缓存未命中或需要更新，从API获取数据');
-        const holidayData = await fetchHolidayData(apiUrl);
-        return holidayData;
-      },
-      CACHE_OPTIONS,
-      { 
-        returnRawData: true, // 获取原始数据
-        allowExpired: true  // 允许使用过期缓存作为兜底
-      }
+    return await cacheManager.fetch(
+        CONFIG.CACHE_KEY,
+        async () => {
+          // 缓存未命中或过期，从API获取数据
+          console.log('[节假日服务] 缓存未命中或需要更新，从API获取数据');
+          return await fetchHolidayData(apiUrl);
+        },
+        CACHE_OPTIONS,
+        {
+          returnRawData: false, // 获取原始数据
+          allowExpired: true  // 允许使用过期缓存作为兜底
+        }
     );
-    
-    const currentTime = Date.now();
-    
-    // 构建统一的响应格式
-    return {
-      data: result,
-      timestamp: currentTime,
-      expireAt: currentTime + TTL,
-      apiUrl
-    };
   } catch (error) {
     console.error(`[节假日服务] 获取数据失败: ${error.message}`);
     throw error;
@@ -176,10 +174,9 @@ router.post('/refresh-cache', async (req, res) => {
     
     // 返回成功响应
     res.json({
+      ... cacheData,
       success: true,
       message: '节假日缓存刷新成功',
-      data: cacheData.data,
-      timestamp: cacheData.timestamp
     });
   } catch (error) {
     console.error(`[节假日服务] 刷新缓存失败: ${error.message}`);

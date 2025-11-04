@@ -71,7 +71,7 @@ router.get('/scan', async (req, res) => {
     const cachedFiles = getFromCache('file_list');
     if (cachedFiles) {
       console.log('从缓存返回文件列表');
-      return res.json({ data: cachedFiles, timestamp: Date.now() });
+      return res.json(cachedFiles);
     }
 
     // 2. 缓存不存在，扫描文件系统
@@ -143,7 +143,7 @@ router.get('/read/:filename', async (req, res) => {
     const cachedContent = getFromCache(cacheKey);
     if (cachedContent) {
       console.log(`从缓存返回文件 ${filename} 的内容`);
-      return res.json({ data: cachedContent, timestamp: Date.now() });
+      return res.json(cachedContent);
     }
     
     // 2. 缓存不存在，从文件系统读取
