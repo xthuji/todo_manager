@@ -373,15 +373,16 @@ export async function loadTasksFromFile(filename = 'todo.txt') {
             console.log('任务数量来源: 服务器加载文件数据');
             try {
                 // 尝试解析JSON
-                const data = await response.json();
-                if (data.success && data.content) {
+                const responseData = await response.json();
+                // 只处理服务端返回的固定{data, timestamp}格式
+                if (responseData.data) {
                     try {
-                        // 尝试解析为JSON（为了向后兼容）
-                        const jsonTasks = JSON.parse(data.content);
+                        // 尝试解析为JSON
+                        const jsonTasks = JSON.parse(responseData.data.content);
                         return addDisplayStatusToTasks(jsonTasks);
                     } catch (e) {
                         // 解析为todo.txt格式（符合sleek标准）
-                        const parsedTasks = parseTodoTxtFormat(data.content);
+                        const parsedTasks = parseTodoTxtFormat(responseData.data.content);
                         return parsedTasks;
                     }
                 } else {
@@ -390,14 +391,8 @@ export async function loadTasksFromFile(filename = 'todo.txt') {
                 }
             } catch (jsonError) {
                 // JSON解析失败，可能是文件内容不是JSON格式
-                console.error('JSON解析失败，尝试将内容作为纯文本处理:', jsonError);
-                
-                // 重新获取响应文本
-                const text = await response.text();
-                
-                // 尝试解析文本内容
-                const tasks = parseTodoTxtFormat(text);
-                return addDisplayStatusToTasks(tasks);
+                console.error('JSON解析失败:', jsonError);
+                return [];
             }
         } catch (serverError) {
             console.error(`加载文件${filename}失败，服务器连接问题:`, serverError);
@@ -435,8 +430,9 @@ export async function saveTasksToFile(tasks, filename = 'todo.txt') {
         });
         
         if (response.ok) {
-            const data = await response.json();
-            return data.success;
+            const responseData = await response.json();
+            // 只处理服务端返回的固定{data, timestamp}格式
+            return responseData.data && responseData.data.success;
         }
         throw new Error('保存失败，服务器返回非成功状态');
     } catch (error) {

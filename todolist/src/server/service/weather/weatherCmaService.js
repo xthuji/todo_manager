@@ -21,7 +21,7 @@ function extractCmaWeatherData(cmaData) {
 // 获取中国气象局天气数据
 async function fetchCmaWeather(cmaAreaCode){
     if (!cmaAreaCode) {
-        return { error: '参数cmaAreaCode为空，无法获取中国气象局天气数据' };
+        return { error: { message: '参数cmaAreaCode为空，无法获取中国气象局天气数据' } };
     }
     try {
         // 仅使用指定的URL接口
@@ -39,7 +39,7 @@ async function fetchCmaWeather(cmaAreaCode){
         return cmaWeatherData;
     } catch (error) {
         console.error('获取中国气象局天气数据失败:', error);
-        return { error: error.message || '获取中国气象局天气数据失败' };
+        return { error: { message: error.message || '获取中国气象局天气数据失败' } };
     }
 }
 

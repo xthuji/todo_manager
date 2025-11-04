@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
-const {handleCache} = require('../utils/cacheUtil.js');
+const {cacheManager} = require('../utils/cacheUtil.js');
 const {fetchMojiWeather} = require("./weather/weatherMojiService");
 const {fetchTodayWeather, fetchRecentDaysWeather, fetchTodayDetailWeather, fetchCalendarAndHistoryWeather} = require("./weather/weatherTianqiService");
 const {fetchNmcWeather} = require("./weather/weatherNmcService");
@@ -16,7 +16,19 @@ const {fetchCmaWeather} = require("./weather/weatherCmaService");
 let mockWeatherData;
 
 /**
- * 天气信息缓存处理函数，封装handleCache并提供默认配置
+ * 初始化天气缓存命名空间
+ */
+// 创建天气缓存的命名空间，配置缓存参数
+cacheManager.createNamespace('weather', {
+    cachePrefix: 'weather_',
+    ttl: 120 * 60 * 1000, // 2小时缓存
+    useFileCache: true,
+    cacheDir: CACHE_DIR,
+    extension: 'json'
+});
+
+/**
+ * 天气信息缓存处理函数
  * @param {Object} areaCodeInfo - 天气代码参数
  * @param {Object|null} weatherData - 要缓存的天气数据，如果为null则执行读取操作
  * @returns {Object|null} 读取模式下返回缓存的天气数据，写入模式下返回null
@@ -25,19 +37,16 @@ function cacheWeatherInfo(areaCodeInfo = null, weatherData = null) {
     if (!USE_CACHE) {
         return null;
     }
+    
     const cacheKey = `${(areaCodeInfo.weatherCode)}_${areaCodeInfo.mojiAreaCode || 'default'}`.replaceAll('/', '_');
-    const defaultOptions = {
-        cachePrefix: 'weather_',
-        ttl: 120 * 60 * 1000, // 2小时缓存
-        cacheDir: CACHE_DIR,
-        extension: 'json'
-    };
     
     if (weatherData !== null) {
         console.log('缓存天气信息:', cacheKey);
+        cacheManager.set(cacheKey, weatherData, 'weather');
+        return null;
+    } else {
+        return cacheManager.get(cacheKey, 'weather');
     }
-    
-    return handleCache(cacheKey, weatherData, defaultOptions);
 }
 
 // 辅助函数：递归查找区县信息，确定完整的省市县信息
@@ -169,12 +178,29 @@ async function queryWeatherData(weatherAreaCodeParams) {
 
     // 并行执行所有请求
     const [mojiWeatherData, todayWeatherData, todayDetailWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, cmaWeatherData, nmcWeatherData] = await Promise.all(promises);
+    
+    // 检查各数据源的错误信息并记录
+    const errors = [];
+    if (nmcWeatherData?.error) errors.push('NMC: ' + (nmcWeatherData.error.message || nmcWeatherData.error));
+    if (cmaWeatherData?.error) errors.push('CMA: ' + (cmaWeatherData.error.message || cmaWeatherData.error));
+    if (todayWeatherData?.error) errors.push('Tianqi: ' + (todayWeatherData.error.message || todayWeatherData.error));
+    if (mojiWeatherData?.error) errors.push('Moji: ' + (mojiWeatherData.error.message || mojiWeatherData.error));
+    if (recentDaysWeatherData?.error) errors.push('RecentDays: ' + (recentDaysWeatherData.error.message || recentDaysWeatherData.error));
+    if (calendarAndHistoryWeatherData?.error) errors.push('Calendar: ' + (calendarAndHistoryWeatherData.error.message || calendarAndHistoryWeatherData.error));
+    if (todayDetailWeatherData?.error) errors.push('TodayDetail: ' + (todayDetailWeatherData.error.message || todayDetailWeatherData.error));
+    
+    if (errors.length > 0) {
+        console.log('部分天气服务出错，但尝试继续处理数据:', errors);
+    }
 
     return buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, weatherAreaCodeParams);
 }
 
 // https://www.nmc.cn/publish/forecast/AZJ/wdcXE.html
 async function getWeatherData(weatherAreaCodeParams){
+    if (!weatherAreaCodeParams) {
+        return { error: { message: '参数weatherAreaCodeParams不能为空' } };
+    }
     if (USE_MOCK) {
         if (!mockWeatherData) {
             const mockWeatherDataStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_weather_info.json'), 'utf-8');
@@ -189,16 +215,18 @@ async function getWeatherData(weatherAreaCodeParams){
     
     if (cachedWeatherData) {
         console.log('使用缓存的天气数据');
-        return cachedWeatherData;
+        return cachedWeatherData; // 直接返回缓存工具提供的格式
     }
 
     try {
         const weatherData = await queryWeatherData(weatherAreaCodeParams);
-        // 返回数据
-        return {timestamp:Date.now(),data:weatherData};
+        // 将数据直接存入缓存，让缓存工具处理格式
+        cacheWeatherInfo(weatherAreaCodeParams, weatherData);
+        // 返回符合要求的格式
+        return { data: weatherData, timestamp: Date.now() };
     } catch (error) {
         console.error('获取天气数据失败:', error);
-        throw new Error('获取天气数据失败', error);
+        return { error: { message: error.message || '获取天气数据失败' } };
     }
 }
 

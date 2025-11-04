@@ -112,24 +112,49 @@ async function loadHolidayConfig() {
     }
     let allFestivals = [];
     try {
-        const res = await fetch('/data/config/festival_config.json');
+        // 尝试从API获取节日配置
+        const res = await fetch('/api/festival/config');
         if (res.ok) {
-            const config = await res.json();
-            // 为每个节日添加唯一ID和确保日期格式正确
-            allFestivals = config.festivals.map((festival, index) => {
-                const festivalWithId = { ...festival };
-
-                // 为没有ID的节日生成ID
-                if (!festivalWithId.id) {
-                    festivalWithId.id = index.toString();
-                }
-
-                return festivalWithId;
-            });
-            holidayConfig = { ...config, ...DEFAULT_HOLIDAY_CONFIG };
+            const responseData = await res.json();
+            
+            // 处理服务端返回的标准{data, timestamp}格式
+            if (responseData.data) {
+                // 确保数据结构正确，避免多层嵌套
+                const configData = responseData.data;
+                
+                // 为每个节日添加唯一ID
+                allFestivals = configData.festivals?.map((festival, index) => {
+                    const festivalWithId = { ...festival };
+                    // 为没有ID的节日生成ID
+                    if (!festivalWithId.id) {
+                        festivalWithId.id = index.toString();
+                    }
+                    return festivalWithId;
+                }) || [];
+                
+                // 合并配置，保留默认值
+                holidayConfig = { ...DEFAULT_HOLIDAY_CONFIG, ...configData };
+            }
         }
     } catch (e) {
-        console.warn('节日配置加载失败，使用默认配置');
+        console.warn('节日配置加载失败，尝试使用本地配置文件');
+        // 尝试从本地配置文件加载作为备用方案
+        try {
+            const localRes = await fetch('/data/config/festival_config.json');
+            if (localRes.ok) {
+                const config = await localRes.json();
+                allFestivals = config.festivals.map((festival, index) => {
+                    const festivalWithId = { ...festival };
+                    if (!festivalWithId.id) {
+                        festivalWithId.id = index.toString();
+                    }
+                    return festivalWithId;
+                });
+                holidayConfig = { ...config, ...DEFAULT_HOLIDAY_CONFIG };
+            }
+        } catch (localError) {
+            console.warn('本地节日配置加载也失败，使用默认配置');
+        }
     }
     holidayConfig.festivals = allFestivals;
     window.calendarConfig.festivals = allFestivals;

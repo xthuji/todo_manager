@@ -56,8 +56,8 @@ async function getHolidayData(apiUrl = null) {
         if (response.ok) {
             const cacheData = await response.json();
             
-            // 检查是否有缓存数据
-            if (cacheData.data) {
+            // 处理标准的{data, timestamp}格式
+            if (cacheData && cacheData.data && typeof cacheData.data === 'object') {
                 holidayData = cacheData.data;
                 holidayDataTimestamp = cacheData.timestamp;
                 
@@ -76,19 +76,19 @@ async function getHolidayData(apiUrl = null) {
                     console.warn('节假日缓存已过期，建议手动刷新');
                 }
             } else {
-                // 当没有数据时，重置为null，当作没有节假日
+                // 当没有数据或数据格式不符合标准时，重置为null
                 resetHolidayData();
-                console.log('未获取到节假日数据，将当作没有节假日处理');
+                console.log('未获取到有效的节假日数据，将当作没有节假日处理');
             }
         } else {
-            // 请求失败，重置数据，当作没有节假日
+            // 请求失败，重置数据
             resetHolidayData();
             console.warn('获取节假日数据失败，服务器返回状态码:', response.status);
         }
         
         return holidayData;
     } catch (error) {
-        // 发生异常，重置数据，当作没有节假日
+        // 发生异常，重置数据
         resetHolidayData();
         console.error('获取节假日数据时发生异常:', error);
         return holidayData;
@@ -275,11 +275,12 @@ async function refreshHolidayCache(apiUrl = null) {
         }
 
         // 获取刷新后的节假日数据
-        const result = await response.json();
+        const responseData = await response.json();
+        // 只处理服务端返回的固定{data, timestamp}格式
         
         // 更新本地数据
-        holidayData = result.data;
-        holidayDataTimestamp = result.timestamp;
+        holidayData = responseData.data;
+        holidayDataTimestamp = responseData.timestamp;
         holidayDataForCalendar = convertHolidayDataToCalendarFormat(holidayData);
 
         // 更新缓存信息显示

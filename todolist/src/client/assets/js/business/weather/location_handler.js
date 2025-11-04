@@ -150,9 +150,9 @@ const WEATHER_API = {
             if (!response.ok) {
                 throw new Error(`API请求失败: ${response.status}`);
             }
-            const result = await response.json();
-            this._log('成功获取省市县数据');
-            return this._extractAreaData(result);
+            const responseData = await response.json();
+            // 只处理服务端返回的固定{data, timestamp}格式
+            return this._extractAreaData(responseData.data || {});
         },
 
         /**
@@ -198,6 +198,7 @@ const WEATHER_API = {
             }
 
             const responseData = await response.json();
+            // 只处理服务端返回的固定{data, timestamp}格式
             const locationData = responseData.data || {};
 
             if (!locationData.province) { // 区县可能没有，但省份必须有
@@ -206,7 +207,7 @@ const WEATHER_API = {
             locationData.city = locationData.city || ''; // 确保city存在
             locationData.district = locationData.district || ''; // 确保district存在
 
-            return { locationData, weatherAreaCodes: responseData.weatherAreaCodes?.data };
+            return { locationData, weatherAreaCodes: responseData.data?.weatherAreaCodes };
         },
 
         /**

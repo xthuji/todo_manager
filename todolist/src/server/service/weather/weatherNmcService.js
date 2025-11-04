@@ -38,7 +38,7 @@ function extractNmcWeatherData(nmcData) {
 // 获取中央气象台天气数据
 async function fetchNmcWeather(nmcApiCode){
     if (!nmcApiCode) {
-        return { error: '参数nmcApiCode为空，无法获取中央气象台天气数据' };
+        return { error: { message: '参数nmcApiCode为空，无法获取中央气象台天气数据' } };
     }
     try {
         // 仅使用指定的URL接口，使用当前时间戳
@@ -56,7 +56,7 @@ async function fetchNmcWeather(nmcApiCode){
         return nmcWeatherData;
     } catch (error) {
         console.error('获取中央气象台天气数据失败:', error);
-        return { error: error.message || '获取中央气象台天气数据失败' };
+        return { error: { message: error.message || '获取中央气象台天气数据失败' } };
     }
 }
 

@@ -45,7 +45,14 @@ router.get('/ip-location', async (req, res) => {
 router.get('/weather-area-codes', async (req, res) => {
     try {
         let areaCodesData = getAllAreaCodes();
-        return res.status(200).json(areaCodesData);
+        
+        // 确保返回的数据格式正确：根结构包含data和timestamp，且data为数组
+        const responseData = {
+            data: Array.isArray(areaCodesData.data) ? areaCodesData.data : [areaCodesData.data],
+            timestamp: areaCodesData.timestamp || Date.now()
+        };
+        
+        return res.status(200).json(responseData);
     } catch (error) {
         console.error('获取天气区域编码数据时发生错误:', error);
         res.status(500).json({

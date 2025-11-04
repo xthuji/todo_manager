@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
-const {handleCache} = require('../utils/cacheUtil.js');
+const cacheUtil = require('../utils/cacheUtil');
+const cacheManager = cacheUtil.cacheManager;
 
 
 // tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js
@@ -18,28 +19,37 @@ let areaCodesMap;
 
 // 接口级别响应缓存处理函数
 /**
- * 接口级别响应缓存处理函数，用于缓存整个API的响应结果
- * @param {string} clientIp - 客户端IP地址
- * @param {Object|null} responseData - 要缓存的响应数据，如果为null则执行读取操作
- * @returns {Object|null} 读取模式下返回缓存的响应数据，写入模式下返回null
+ * 初始化IP定位缓存命名空间
  */
-function cacheIpLocation(clientIp, responseData = null) {
+cacheManager.createNamespace('ipLocation', {
+    cachePrefix: 'ip_',
+    ttl: 300 * 60 * 1000, // 5小时缓存
+    useFileCache: true,
+    cacheDir: CACHE_DIR,
+    extension: 'json'
+});
+
+/**
+ * 接口级别响应缓存处理函数，用于缓存API响应数据
+ * @param {string} clientIp - 客户端IP地址
+ * @param {Object|null} locationData - 要缓存的位置数据，如果为null则执行读取操作
+ * @returns {Object|null} 读取模式下返回完整的响应对象，写入模式下返回null
+ */
+function cacheIpLocation(clientIp, locationData = null) {
     if (!USE_CACHE) {
         return null;
     }
     const cacheKey = `${clientIp}`.replaceAll(':', "_");
-    const defaultOptions = {
-        cachePrefix: 'ip_',
-        ttl: 300 * 60 * 1000, // 5小时缓存
-        cacheDir: CACHE_DIR,
-        extension: 'json'
-    };
     
-    if (responseData !== null) {
-        console.log('缓存接口响应:', cacheKey);
+    if (locationData !== null) {
+        console.log('缓存位置数据:', cacheKey);
+        // 缓存包装好的响应格式
+        cacheManager.set(cacheKey, {data:{...locationData, weatherAreaCodes: null}, timestamp: Date.now()}, 'ipLocation');
+        return null;
+    } else {
+        // 读取模式：直接从缓存获取已经包装好的数据
+        return cacheManager.get(cacheKey, 'ipLocation');
     }
-    
-    return handleCache(cacheKey, responseData, defaultOptions);
 }
 
 // 辅助函数：递归查找区县信息，确定完整的省市县信息
@@ -190,20 +200,22 @@ async function getLocation2() {
 // https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}
 // https://weather.cma.cn/api/weather/view
 async function getLocation(clientIp) {
-    if (USE_MOCK) {
-        if (!mockIpAreaData) {
-            const mockIpAreaStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_ip_area.json'), 'utf-8');
-            mockIpAreaData = JSON.parse(mockIpAreaStr);
+    try {
+        if (USE_MOCK) {
+            if (!mockIpAreaData) {
+                const mockIpAreaStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_ip_area.json'), 'utf-8');
+                mockIpAreaData = JSON.parse(mockIpAreaStr);
+            }
+            return mockIpAreaData;
         }
-        return mockIpAreaData;
-    }
 
-    // 尝试从接口级缓存获取结果
-    const cachedAddressData = cacheIpLocation(clientIp);
-    if (cachedAddressData) {
-        console.log('使用接口级缓存的位置信息响应');
-        return cachedAddressData;
-    }
+        // 尝试从接口级缓存获取结果
+        const cachedResponse = cacheIpLocation(clientIp);
+        if (cachedResponse) {
+            console.log('使用接口级缓存的位置信息响应');
+            // 直接返回缓存工具返回的格式，已经包含了data和timestamp
+            return cachedResponse;
+        }
 
     console.log('正在调用接口获取位置信息...');
 
@@ -241,25 +253,105 @@ async function getLocation(clientIp) {
     }
     console.log('返回完整的位置数据:', addressData.toString());
 
-    // 将最终响应数据缓存到接口级缓存
+    // 创建响应对象
+    const response = {
+        data: {...addressData, weatherAreaCodes: null},
+        timestamp: Date.now()
+    };
+    
+    // 更新缓存，存储完整响应对象
     cacheIpLocation(clientIp, addressData);
 
-    return {data:addressData, timestamp: Date.now()};
+    // 返回标准格式的响应
+    return response;
+} catch (error) {
+    console.error('获取位置信息失败:', error.message);
+    const errorResponse = {
+        data: null,
+        timestamp: Date.now()
+    };
+    return errorResponse;
+}
 }
 
-// 获取省市县三级地址的天气区域编码数据
-function getAllAreaCodes() {
-    if (areaCodesData) {
-        return areaCodesData;
+/**
+ * 获取所有省市县编码数据
+ * @returns {Promise<Object>} 包含data和timestamp的响应对象
+ */
+async function getAllAreaCodes() {
+  try {
+    const cacheKey = 'all_area_codes';
+    const cacheData = cacheManager.get(cacheKey);
+    
+    // 直接返回缓存数据，已经包含了正确的包装格式
+    if (cacheData) {
+      console.log('省市县编码数据从缓存获取成功');
+      return cacheData;
     }
-    if (!fs.existsSync(AREA_CODES_FILE)) {
-        throw new Error(`文件不存在，无法返回数据`);
+    
+    // 缓存未命中时，从文件加载数据
+    console.log('省市县编码缓存未命中，从文件加载...');
+    const filePath = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
+    
+    // 检查文件是否存在
+    if (!fs.existsSync(filePath)) {
+      console.error('省市县编码文件不存在:', filePath);
+      return {
+        data: [],
+        timestamp: Date.now()
+      };
     }
-
-    const areaCodesStr = fs.readFileSync(AREA_CODES_FILE, 'utf-8');
-    areaCodesData = JSON.parse(areaCodesStr);
-    // 省份（第一级）有mojiCode，没有code, 城市（第二级）没有code和mojiCode, 区县（第三级/叶子节点）有code和mojiCode
-    return areaCodesData;
+    
+    // 读取文件内容
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    let areaCodesData = [];
+    
+    // 解析JSON数据
+    try {
+      areaCodesData = JSON.parse(fileContent);
+      console.log('成功解析省市县编码文件');
+    } catch (parseError) {
+      console.error('解析省市县编码文件失败:', parseError.message);
+      return {
+        data: [],
+        timestamp: Date.now()
+      };
+    }
+    
+    // 处理数据格式，确保是数组
+    let formattedData = [];
+    if (Array.isArray(areaCodesData)) {
+      formattedData = areaCodesData;
+    } else if (typeof areaCodesData === 'object' && areaCodesData !== null) {
+      // 如果不是数组但有data属性，尝试使用data属性的值
+      if (Array.isArray(areaCodesData.data)) {
+        formattedData = areaCodesData.data;
+      } else {
+        // 否则将对象转换为数组
+        formattedData = [areaCodesData];
+      }
+    }
+    
+    console.log(`省市县编码数据加载成功，共${formattedData.length}条记录`);
+    
+    // 创建标准响应对象
+    const response = {
+      data: formattedData,
+      timestamp: Date.now()
+    };
+    
+    // 缓存响应对象（而不是原始数据）
+    cacheManager.set(cacheKey, response);
+    
+    // 返回标准响应对象
+    return response;
+  } catch (error) {
+    console.error('获取省市县编码数据失败:', error.message);
+    return {
+      data: [],
+      timestamp: Date.now()
+    };
+  }
 }
 
 // 获取District对应的各种天气区域编码数据

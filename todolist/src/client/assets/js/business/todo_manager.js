@@ -143,44 +143,72 @@ export async function init() {
 // 更新文件下拉框
 async function updateFileDropdown() {
     try {
+        console.log('开始扫描文件列表...');
         const response = await fetch('/api/file/scan');
-        const data = await response.json();
         
-        if (data.success) {
+        if (!response.ok) {
+            console.error('文件扫描API返回错误状态:', response.status);
+            throw new Error(`文件扫描失败: ${response.status}`);
+        }
+        
+        const responseData = await response.json();
+        console.log('文件扫描API返回数据:', responseData);
+        
+        // 兼容两种格式：{data, timestamp} 和直接返回数据
+        let data;
+        if (responseData.data) {
+            // 标准格式 {data, timestamp}
+            data = responseData.data;
+        } else {
+            // 直接返回的数据格式
+            data = responseData;
+        }
+        
+        if (data && (data.files || data.success)) {
             const fileDropdown = document.getElementById('todo-file-select');
             if (fileDropdown) {
                 fileDropdown.innerHTML = '';
                 
                 // 添加所有扫描到的文件
-                data.files.forEach(file => {
-                    if (file.exists) {
-                        const option = document.createElement('option');
-                        option.value = file.name;
-                        option.textContent = file.name;
-                        fileDropdown.appendChild(option);
-                    }
-                });
+                if (data.files && Array.isArray(data.files)) {
+                    data.files.forEach(file => {
+                        if (file && file.exists) {
+                            const option = document.createElement('option');
+                            option.value = file.name;
+                            option.textContent = file.name;
+                            fileDropdown.appendChild(option);
+                        }
+                    });
+                }
                 
                 // 如果有默认文件，选中它
                 if (data.defaultFile) {
                     fileDropdown.value = data.defaultFile;
                 }
+                
+                console.log('文件下拉框更新成功');
             }
         } else {
-            console.error('更新文件下拉框失败:', data.message);
+            console.error('更新文件下拉框失败: 返回数据格式不正确');
+            // 失败时，至少添加默认文件
+            addDefaultFileToDropdown();
         }
     } catch (error) {
         console.error('获取文件列表失败:', error);
-        
-        // 失败时，至少添加默认文件
-        const fileDropdown = document.getElementById('todo-file-select');
-        if (fileDropdown) {
-            fileDropdown.innerHTML = '';
-            const option = document.createElement('option');
-            option.value = defaultFileName;
-            option.textContent = defaultFileName;
-            fileDropdown.appendChild(option);
-        }
+        addDefaultFileToDropdown();
+    }
+}
+
+// 添加默认文件到下拉框
+function addDefaultFileToDropdown() {
+    const fileDropdown = document.getElementById('todo-file-select');
+    if (fileDropdown) {
+        fileDropdown.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = defaultFileName;
+        option.textContent = defaultFileName;
+        fileDropdown.appendChild(option);
+        console.log('已添加默认文件到下拉框');
     }
 }
 
@@ -472,17 +500,37 @@ function updateCurrentHolidayCacheDisplay() {
 // 检查服务状态
 async function checkServerStatus() {
     try {
+        // 使用Promise.race实现超时控制，因为fetch API不直接支持timeout参数
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('请求超时')), 1000)
+        );
+        
         // 尝试发送一个简单的请求来检查服务是否可用
-        const response = await fetch('/api/check-status', {
+        const fetchPromise = fetch('/api/check-status', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
-            },
-            timeout: 1000 // 设置1秒超时
+            }
         });
-        return response.ok;
+        
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (response.ok) {
+            const responseData = await response.json();
+            // 检查服务端返回的数据格式
+            // 兼容两种格式：{data, timestamp} 和 {success, message}
+            if (responseData.data) {
+                // 标准格式
+                return responseData.data.status === 'running';
+            } else if (responseData.success) {
+                // 简化格式
+                return true;
+            }
+        }
+        return false;
     } catch (error) {
         // 如果请求失败，说明服务可能未运行
+        console.log('服务状态检查失败:', error.message);
         return false;
     }
 }
@@ -590,11 +638,18 @@ async function performServerShutdown() {
         });
         
         if (response.ok) {
-            // 服务器确认关闭成功
-            setTimeout(() => {
-                showNotification('服务已成功关闭。', 3000);
-                updateServerControlButton(false);
-            }, 1000);
+            const responseData = await response.json();
+            // 只处理服务端返回的固定{data, timestamp}格式
+            if (responseData.data && responseData.data.success) {
+                // 服务器确认关闭成功
+                setTimeout(() => {
+                    showNotification('服务已成功关闭。', 3000);
+                    updateServerControlButton(false);
+                }, 1000);
+            } else {
+                // 关闭失败
+                showNotification('关闭服务失败，请稍后再试。', 3000);
+            }
         } else {
             // 关闭失败
             showNotification('关闭服务失败，请稍后再试。', 3000);

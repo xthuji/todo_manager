@@ -559,11 +559,20 @@ async function saveFestivalsToServer() {
             body: JSON.stringify(dataToSave)
         });
         
+        // 获取响应数据
+        const responseData = await response.json();
+        
+        // 检查是否有错误
+        if (responseData.error) {
+            throw new Error(responseData.error.message || '保存失败');
+        }
+        
         if (!response.ok) {
             throw new Error(`保存失败: ${response.status} ${response.statusText}`);
         }
         
-        const result = await response.json();
+        // 从响应中提取数据（只处理服务端返回的固定{data, timestamp}格式）
+        const result = responseData.data;
         console.log('Festival data saved to festival_config.json successfully:', result);
         
         // 显示保存成功提示
