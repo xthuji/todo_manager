@@ -250,6 +250,20 @@ window.WeatherModule.View = {
         safeUpdate('visibility-info', todayWeather.visibility || '--');
         safeUpdate('traffic-restriction', todayWeather.limit || '--');
         safeUpdate('weather-tips', todayWeather.tips || '暂无提示');
+        
+        // 处理日出日落时间显示
+        const sunriseSunsetElement = document.getElementById('sunrise-sunset');
+        if (sunriseSunsetElement) {
+            if (todayWeather.sunrise && todayWeather.sunset) {
+                // 显示日出日落时间
+                safeUpdate('sunrise-time', todayWeather.sunrise);
+                safeUpdate('sunset-time', todayWeather.sunset);
+                sunriseSunsetElement.classList.remove('hidden');
+            } else {
+                // 隐藏日出日落区域
+                sunriseSunsetElement.classList.add('hidden');
+            }
+        }
 
         // ... (动态注入 CSS 的逻辑 - 建议将此 CSS 移至主样式表)
         let extraInfoContainer = document.getElementById('weather-extra-info');

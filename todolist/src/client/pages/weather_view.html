@@ -453,7 +453,20 @@
                                         <div id="temp-range" class="text-gray-500 mt-1"><!-- --></div>
                                     </div>
                                     
-                                    <!-- 天气提示 - 移动到天气和温度的正下方，并靠底部显示，Tips与内容显示在同一行 -->
+                                    <!-- 日出日落时间显示 -->
+                                    <div id="sunrise-sunset" class="hidden w-full flex justify-between items-center max-w-xs mt-2 text-sm text-gray-600">
+                                        <div class="flex items-center">
+                                            <i class="fa fa-sun-o text-yellow-500 mr-2" title="日出">
+                                                <span id="sunrise-time" class="font-medium">--:--</span>
+                                            </i>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fa fa-moon-o text-indigo-400 mr-2" title="日落">
+                                                <span id="sunset-time" class="font-medium">--:--</span>
+                                            </i>
+                                        </div>
+                                    </div>
+                                    
                                     <div class="w-full mt-auto">
                                         <div class="bg-blue-50 border-l-4 border-blue-400 p-3 rounded w-full">
                                             <span class="text-gray-500 text-sm mr-2">Tips:</span>
