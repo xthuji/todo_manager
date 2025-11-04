@@ -3,9 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
-const cacheUtil = require('../utils/cacheUtil');
-const cacheManager = cacheUtil.cacheManager;
+const { cacheUtil } = require('../utils/cacheUtil');
 
+// 缓存前缀和配置
+const IP_CACHE_PREFIX = 'ip_';
+const IP_CACHE_TTL = 300 * 60 * 1000; // 5小时缓存
+const AREA_CACHE_PREFIX = 'area_';
 
 // tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js
 // moji_weather_area_codes.json 数据源： https://m.moji.com/weather/china/beijing
@@ -15,18 +18,6 @@ const cacheManager = cacheUtil.cacheManager;
 const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
 let mockIpAreaData;
 let areaCodesMap;
-
-// 接口级别响应缓存处理函数
-/**
- * 初始化IP定位缓存命名空间
- */
-cacheManager.createNamespace('ipLocation', {
-    cachePrefix: 'ip_',
-    ttl: 300 * 60 * 1000, // 5小时缓存
-    useFileCache: true,
-    cacheDir: CACHE_DIR,
-    extension: 'json'
-});
 
 /**
  * 接口级别响应缓存处理函数，用于缓存API响应数据
@@ -38,16 +29,16 @@ function cacheIpLocation(clientIp, locationData = null) {
     if (!USE_CACHE) {
         return null;
     }
-    const cacheKey = `${clientIp}`.replaceAll(':', "_");
+    const cacheKey = `${IP_CACHE_PREFIX}${clientIp}`.replaceAll(':', "_");
     
     if (locationData !== null) {
         console.log('缓存位置数据:', cacheKey);
         // 缓存包装好的响应格式
-        cacheManager.set(cacheKey, locationData, 'ipLocation');
+        cacheUtil.setData(cacheKey, locationData, { ttl: IP_CACHE_TTL });
         return null;
     } else {
         // 读取模式：直接从缓存获取已经包装好的数据
-        return cacheManager.get(cacheKey, 'ipLocation');
+        return cacheUtil.getWrappedData(cacheKey);
     }
 }
 
@@ -275,37 +266,36 @@ async function getLocation(clientIp) {
  */
 function getAllAreaCodes() {
   try {
-    const cacheKey = 'all_area_codes';
+    const cacheKey = `${AREA_CACHE_PREFIX}all_area_codes`;
     const sourceFilePath = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
     
-    // 创建命名空间配置，使用ttl=0表示永不过期，并指向配置文件路径
-    if (!cacheManager.namespaces.has('areaCodes')) {
-      cacheManager.createNamespace('areaCodes', {
-        cachePrefix: 'area_',
-        ttl: 0, // 设置为0表示永不过期
-        useFileCache: true,
-        cacheDir: CACHE_DIR,
-        extension: 'json'
-      });
+    // 首先尝试从缓存获取数据
+    let cachedData = cacheUtil.getWrappedData(cacheKey);
+    
+    if (!cachedData) {
+      // 如果缓存不存在，尝试从源文件读取数据作为永久缓存
+      console.log('从源文件读取地区编码数据作为永久缓存');
+      const fileContent = fs.readFileSync(sourceFilePath, 'utf-8');
+      const areaCodesData = JSON.parse(fileContent);
+      
+      // 将读取的数据设置为永不过期的缓存
+      cacheUtil.setData(cacheKey, areaCodesData, { ttl: 0 });
+      
+      // 返回包装后的数据
+      cachedData = {
+        data: areaCodesData,
+        timestamp: Date.now()
+      };
     }
     
-    // 使用增强的get方法，当缓存不存在时从源文件创建
-    // 这里会自动处理：检查缓存 -> 缓存不存在则从源文件创建 -> 返回数据
-    const cachedData = cacheManager.get(cacheKey, 'areaCodes', false, false, sourceFilePath);
-    
-    if (cachedData) {
-      return cachedData;
-    }
-    
-    // 极端情况：如果源文件也无法读取，返回默认空数据
-    console.warn('无法获取省市县编码数据，返回空数据');
+    return cachedData;
   } catch (error) {
     console.error('获取省市县编码数据失败:', error.message);
-  }
     return {
-        data: [],
-        timestamp: Date.now()
+      data: [],
+      timestamp: Date.now()
     };
+  }
 }
 
 // 获取District对应的各种天气区域编码数据

@@ -2,20 +2,16 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const router = express.Router();
-const { cacheManager } = require('../utils/cacheUtil');
+const { cacheUtil } = require('../utils/cacheUtil');
 
 // 数据目录配置
 const DATA_DIR = path.join(__dirname, '../../../data');
+// 缓存目录
+const CACHE_DIR = path.join(__dirname, '../../../data/cache');
 
-// 创建文件缓存命名空间
-cacheManager.createNamespace('fileCache', {
-  cacheDir: path.join(__dirname, '../../../data/cache'),
-  cachePrefix: 'file_',
-  ttl: 300000, // 5分钟缓存
-  extension: 'json',
-  useMemoryCache: true,
-  useFileCache: true
-});
+// 缓存配置
+const CACHE_TTL = 300000; // 5分钟缓存
+const CACHE_PREFIX = 'file_';
 
 /**
  * 从缓存获取数据
@@ -24,7 +20,8 @@ cacheManager.createNamespace('fileCache', {
  */
 function getFromCache(cacheKey) {
   try {
-    return cacheManager.get(cacheKey, 'fileCache');
+    const fullCacheKey = `${CACHE_PREFIX}${cacheKey}`;
+    return cacheUtil.getWrappedData(fullCacheKey);
   } catch (error) {
     console.error('从缓存读取失败:', error);
     return null;
@@ -38,7 +35,8 @@ function getFromCache(cacheKey) {
  */
 function saveToCache(cacheKey, data) {
   try {
-    cacheManager.set(cacheKey, data, 'fileCache');
+    const fullCacheKey = `${CACHE_PREFIX}${cacheKey}`;
+    cacheUtil.setData(fullCacheKey, data, { ttl: CACHE_TTL });
   } catch (error) {
     console.error('保存到缓存失败:', error);
   }
@@ -52,10 +50,10 @@ function clearFileCache(specificFile = null) {
   try {
     if (specificFile) {
       // 清除特定文件的读取缓存
-      cacheManager.delete(`read_${specificFile}`, 'fileCache');
+      cacheUtil.delete(`${CACHE_PREFIX}read_${specificFile}`);
     }
     // 总是清除文件列表缓存
-    cacheManager.delete('file_list', 'fileCache');
+    cacheUtil.delete(`${CACHE_PREFIX}file_list`);
   } catch (error) {
     console.error('清除文件缓存失败:', error);
   }

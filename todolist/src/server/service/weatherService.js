@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
-const {cacheManager} = require('../utils/cacheUtil.js');
+const { cacheUtil } = require('../utils/cacheUtil');
 const {fetchMojiWeather} = require("./weather/weatherMojiService");
 const {fetchTodayWeather, fetchRecentDaysWeather, fetchTodayDetailWeather, fetchCalendarAndHistoryWeather} = require("./weather/weatherTianqiService");
 const {fetchNmcWeather} = require("./weather/weatherNmcService");
@@ -15,17 +15,9 @@ const {fetchCmaWeather} = require("./weather/weatherCmaService");
 
 let mockWeatherData;
 
-/**
- * 初始化天气缓存命名空间
- */
-// 创建天气缓存的命名空间，配置缓存参数
-cacheManager.createNamespace('weather', {
-    cachePrefix: 'weather_',
-    ttl: 120 * 60 * 1000, // 2小时缓存
-    useFileCache: true,
-    cacheDir: CACHE_DIR,
-    extension: 'json'
-});
+// 缓存配置
+const WEATHER_CACHE_PREFIX = 'weather_';
+const WEATHER_CACHE_TTL = 30 * 60 * 1000; // 30分钟缓存
 
 /**
  * 天气信息缓存处理函数
@@ -39,13 +31,23 @@ function cacheWeatherInfo(areaCodeInfo = null, weatherData = null) {
     }
     
     const cacheKey = `${(areaCodeInfo.weatherCode)}_${areaCodeInfo.mojiAreaCode || 'default'}`.replaceAll('/', '_');
+    const fullCacheKey = `${WEATHER_CACHE_PREFIX}${cacheKey}`;
     
     if (weatherData !== null) {
         console.log('缓存天气信息:', cacheKey);
-        cacheManager.set(cacheKey, weatherData, 'weather');
+        try {
+            cacheUtil.setData(fullCacheKey, weatherData, { ttl: WEATHER_CACHE_TTL });
+        } catch (error) {
+            console.error('缓存天气数据失败:', error.message);
+        }
         return null;
     } else {
-        return cacheManager.get(cacheKey, 'weather');
+        try {
+            return cacheUtil.getWrappedData(fullCacheKey);
+        } catch (error) {
+            console.error('获取缓存天气数据失败:', error.message);
+            return null;
+        }
     }
 }
 

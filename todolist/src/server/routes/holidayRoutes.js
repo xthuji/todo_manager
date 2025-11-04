@@ -3,7 +3,7 @@ const path = require('path');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const router = express.Router();
-const { cacheManager } = require('../utils/cacheUtil');
+const { cacheUtil } = require('../utils/cacheUtil');
 
 // 配置常量
 const CONFIG = {
@@ -16,27 +16,6 @@ const CONFIG = {
 
 // 计算缓存TTL
 const TTL = CONFIG.HOLIDAY_CACHE_DAYS * 24 * 60 * 60 * 1000;
-
-// 缓存配置选项
-const CACHE_OPTIONS = {
-  cacheDir: CONFIG.CACHE_DIR,
-  cachePrefix: '',
-  extension: 'json',
-  ttl: TTL,
-  useFileCache: true,
-  useMemoryCache: true
-};
-
-// 初始化缓存命名空间
-function initCache() {
-  try {
-    cacheManager.createNamespace('holiday', CACHE_OPTIONS);
-    // 仅在调试模式下输出详细配置
-    // console.log('节假日缓存命名空间配置:', cacheManager.getNamespace('holiday'));
-  } catch (error) {
-    console.error('初始化缓存命名空间失败:', error.message);
-  }
-}
 
 /**
  * 从API获取节假日数据
@@ -82,7 +61,7 @@ async function fetchHolidayData(apiUrl) {
  */
 async function clearHolidayCache() {
   try {
-    await cacheManager.delete(CONFIG.CACHE_KEY);
+    cacheUtil.delete(CONFIG.CACHE_KEY);
     console.log('[节假日服务] 缓存已清除');
     return true;
   } catch (error) {
@@ -98,29 +77,36 @@ async function clearHolidayCache() {
  */
 async function getHolidayData(apiUrl = CONFIG.DEFAULT_HOLIDAY_API_URL) {
   try {
-    const cacheData = cacheManager.get(CONFIG.CACHE_KEY, CACHE_OPTIONS, {
-      returnRawData: false, // 获取原始数据
-      allowExpired: true  // 允许使用过期缓存作为兜底
-    });
-
-    if (cacheData) {
-      return cacheData;
+    // 首先尝试从缓存获取数据，允许使用过期缓存作为兜底
+    let wrappedData = cacheUtil.getWrappedData(CONFIG.CACHE_KEY, { allowExpired: true });
+    
+    if (wrappedData) {
+      // 如果使用的是过期缓存，记录日志
+      if (wrappedData.expired) {
+        console.log('[节假日服务] 使用过期缓存作为兜底');
+      }
+      return {
+        data: wrappedData.data,
+        timestamp: wrappedData.timestamp,
+        apiUrl: apiUrl,
+        expireAt: wrappedData.expired ? Date.now() : wrappedData.timestamp + TTL
+      };
     }
 
-    // 使用cacheManager的fetch方法，设置allowExpired=true以支持过期缓存作为兜底
-    return await cacheManager.fetch(
-        CONFIG.CACHE_KEY,
-        async () => {
-          // 缓存未命中或过期，从API获取数据
-          console.log('[节假日服务] 缓存未命中或需要更新，从API获取数据');
-          return await fetchHolidayData(apiUrl);
-        },
-        CACHE_OPTIONS,
-        {
-          returnRawData: false, // 获取原始数据
-          allowExpired: true  // 允许使用过期缓存作为兜底
-        }
-    );
+    // 缓存未命中或过期，从API获取数据
+    console.log('[节假日服务] 缓存未命中或需要更新，从API获取数据');
+    const holidayData = await fetchHolidayData(apiUrl);
+    
+    // 保存到缓存
+    cacheUtil.setData(CONFIG.CACHE_KEY, holidayData, { ttl: TTL });
+    
+    // 返回包含额外信息的响应
+    return {
+      data: holidayData,
+      timestamp: Date.now(),
+      apiUrl: apiUrl,
+      expireAt: Date.now() + TTL
+    };
   } catch (error) {
     console.error(`[节假日服务] 获取数据失败: ${error.message}`);
     throw error;
@@ -129,8 +115,7 @@ async function getHolidayData(apiUrl = CONFIG.DEFAULT_HOLIDAY_API_URL) {
 
 
 
-// 初始化缓存
-initCache();
+// 不需要单独初始化缓存命名空间，直接使用cacheUtil即可
 
 /**
  * API端点：获取节假日缓存

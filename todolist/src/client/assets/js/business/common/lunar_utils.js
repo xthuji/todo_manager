@@ -137,24 +137,7 @@ async function loadHolidayConfig() {
             }
         }
     } catch (e) {
-        console.warn('节日配置加载失败，尝试使用本地配置文件');
-        // 尝试从本地配置文件加载作为备用方案
-        try {
-            const localRes = await fetch('/data/config/festival_config.json');
-            if (localRes.ok) {
-                const config = await localRes.json();
-                allFestivals = config.festivals.map((festival, index) => {
-                    const festivalWithId = { ...festival };
-                    if (!festivalWithId.id) {
-                        festivalWithId.id = index.toString();
-                    }
-                    return festivalWithId;
-                });
-                holidayConfig = { ...config, ...DEFAULT_HOLIDAY_CONFIG };
-            }
-        } catch (localError) {
-            console.warn('本地节日配置加载也失败，使用默认配置');
-        }
+        console.error('节日配置加载失败');
     }
     holidayConfig.festivals = allFestivals;
     window.calendarConfig.festivals = allFestivals;

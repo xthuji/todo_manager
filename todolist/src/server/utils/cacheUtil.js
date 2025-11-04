@@ -3,585 +3,335 @@ const path = require('path');
 const { USE_CACHE, CACHE_DIR } = require('./constants');
 
 /**
- * 简化的内存缓存类
+ * 两级缓存工具类
+ * 提供内存缓存和文件缓存两级缓存功能
  */
-class MemoryCache {
+class CacheUtil {
+  /**
+   * 构造函数
+   * @param {Object} options 配置选项
+   * @param {string} options.cacheDir 缓存文件目录
+   * @param {number} options.defaultTTL 默认过期时间（毫秒），0表示永不过期
+   * @param {string} options.fileExtension 缓存文件扩展名
+   */
   constructor(options = {}) {
-    this._cache = new Map();
-    this._maxSize = options.maxSize || 1000; // 默认最大缓存1000个项
-    this._defaultTTL = options.defaultTTL || 3600000; // 默认1小时
-    this._stats = {
-      hits: 0,
-      misses: 0,
-      sets: 0,
-      deletes: 0
-    };
+    this.memoryCache = new Map();
+    this.cacheDir = options.cacheDir || CACHE_DIR;
+    this.defaultTTL = options.defaultTTL || 3600000; // 默认1小时
+    this.fileExtension = options.fileExtension || 'json';
+    
+    // 确保缓存目录存在
+    if (!fs.existsSync(this.cacheDir)) {
+      fs.mkdirSync(this.cacheDir, { recursive: true });
+    }
   }
 
   /**
-   * 获取缓存项
-   * @param {string} key - 缓存键
-   * @param {Object} options - 获取选项
-   * @returns {Object|null} 缓存数据或null
+   * 生成安全的缓存键名
+   * @param {string} key 原始键名
+   * @returns {string} 安全的键名
    */
-  get(key, options = {}) {
-    const { returnRawData = false, allowExpired = false } = options;
-    
-    if (!this._cache.has(key)) {
-      this._stats.misses++;
-      return null;
-    }
+  _getSafeKey(key) {
+    return key.replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
 
-    const cachedItem = this._cache.get(key);
+  /**
+   * 获取缓存文件路径
+   * @param {string} key 缓存键
+   * @returns {string} 文件路径
+   */
+  _getFilePath(key) {
+    const safeKey = this._getSafeKey(key);
+    return path.join(this.cacheDir, `${safeKey}.${this.fileExtension}`);
+  }
+
+  /**
+   * 获取缓存数据（返回原始数据）
+   * @param {string} key 缓存键
+   * @param {Object} options 选项
+   * @param {boolean} options.allowExpired 是否允许使用过期缓存
+   * @param {string} options.sourceFile 可选的源文件路径，用于永久缓存
+   * @returns {*} 缓存的原始数据，如果不存在或已过期且不允许使用过期数据则返回null
+   */
+  getData(key, options = {}) {
+    const wrappedData = this.getWrappedData(key, options);
+    return wrappedData ? wrappedData.data : null;
+  }
+
+  /**
+   * 获取缓存数据（返回包装后的数据 {data, timestamp}）
+   * @param {string} key 缓存键
+   * @param {Object} options 选项
+   * @param {boolean} options.allowExpired 是否允许使用过期缓存
+   * @param {string} options.sourceFile 可选的源文件路径，用于永久缓存
+   * @returns {Object|null} 包装后的缓存数据 {data, timestamp}，如果不存在或已过期且不允许使用过期数据则返回null
+   */
+  getWrappedData(key, options = {}) {
+    if (!USE_CACHE) return null;
+    
+    const { allowExpired = false, sourceFile = null } = options;
     const now = Date.now();
     
-    // 检查是否过期
-    const isExpired = cachedItem.expireAt !== null && now > cachedItem.expireAt;
-    
-    // 如果过期且不允许使用过期数据，删除缓存并返回null
-    if (isExpired && !allowExpired) {
-      this._cache.delete(key);
-      this._stats.misses++;
-      return null;
-    }
-
-    // 更新LRU顺序
-    this._cache.delete(key);
-    this._cache.set(key, cachedItem);
-    
-    // 更新统计信息
-    if (!isExpired) {
-      this._stats.hits++;
-    }
-
-    // 根据选项返回原始数据或包装数据
-    if (returnRawData) {
-      return cachedItem.data;
-    }
-    
-    const result = {
-      data: cachedItem.data,
-      timestamp: cachedItem.timestamp
-    };
-    
-    if (isExpired) {
-      result.expired = true;
-    }
-    
-    return result;
-  }
-
-  /**
-   * 设置缓存项
-   * @param {string} key - 缓存键
-   * @param {*} data - 缓存数据
-   * @param {number} ttl - 过期时间（毫秒），0表示永不过期
-   */
-  set(key, data, ttl = this._defaultTTL) {
-    // 维护LRU顺序
-    if (this._cache.has(key)) {
-      this._cache.delete(key);
-    }
-
-    // 检查是否需要淘汰旧项
-    if (this._cache.size >= this._maxSize) {
-      const oldestKey = this._cache.keys().next().value;
-      this._cache.delete(oldestKey);
-    }
-
-    const cacheItem = {
-      data,
-      timestamp: Date.now(),
-      expireAt: ttl === 0 ? null : Date.now() + ttl
-    };
-
-    this._cache.set(key, cacheItem);
-    this._stats.sets++;
-  }
-
-  /**
-   * 删除缓存项
-   * @param {string} key - 缓存键
-   */
-  delete(key) {
-    if (this._cache.has(key)) {
-      this._cache.delete(key);
-      this._stats.deletes++;
-    }
-  }
-
-  /**
-   * 清除所有缓存
-   */
-  clear() {
-    this._cache.clear();
-  }
-
-  /**
-   * 按前缀清除内存缓存
-   * @param {string} prefix 缓存键前缀
-   */
-  async clearByPrefix(prefix) {
-    for (const key of this._cache.keys()) {
-      if (key.startsWith(prefix)) {
-        this._cache.delete(key);
-      }
-    }
-  }
-
-  /**
-   * 获取缓存统计信息
-   * @returns {Object} 统计信息
-   */
-  getStats() {
-    return {
-      size: this._cache.size,
-      maxSize: this._maxSize,
-      hits: this._stats.hits,
-      misses: this._stats.misses,
-      sets: this._stats.sets,
-      deletes: this._stats.deletes,
-      hitRate: (this._stats.hits + this._stats.misses) > 0
-        ? Math.round((this._stats.hits / (this._stats.hits + this._stats.misses)) * 100)
-        : 0
-    };
-  }
-}
-
-/**
- * 文件缓存工具类
- */
-class FileCache {
-  /**
-   * 从文件读取缓存
-   * @param {string} key - 缓存键
-   * @param {Object} options - 文件缓存选项
-   * @returns {Object|null} 缓存数据或null
-   */
-  static read(key, options) {
-    if (!options.cacheDir || !options.extension) {
-      return null;
-    }
-
-    try {
-      const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const cacheFile = path.join(
-        options.cacheDir,
-        `${options.cachePrefix || ''}${safeKey}.${options.extension}`
-      );
-
-      if (fs.existsSync(cacheFile)) {
-        const cachedData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        
-        // 检查是否过期（ttl为0表示永不过期）
-        if (options.ttl !== 0 && cachedData.timestamp && 
-            Date.now() - cachedData.timestamp > options.ttl) {
-          // 如果过期且设置了自动删除，则删除过期文件
-          if (options.autoDeleteExpired) {
-            fs.unlinkSync(cacheFile);
-          }
-          return null;
-        }
-        
-        return cachedData;
-      }
-    } catch (error) {
-      console.error(`FileCache read error for key '${key}':`, error);
-    }
-    return null;
-  }
-
-  /**
-   * 写入缓存到文件
-   * @param {string} key - 缓存键
-   * @param {*} data - 缓存数据
-   * @param {Object} options - 文件缓存选项
-   */
-  static write(key, data, options) {
-    if (!options.cacheDir || !options.extension) {
-      return;
-    }
-
-    try {
-      // 确保缓存目录存在
-      if (!fs.existsSync(options.cacheDir)) {
-        fs.mkdirSync(options.cacheDir, { recursive: true });
-      }
-
-      const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const cacheFile = path.join(
-        options.cacheDir,
-        `${options.cachePrefix || ''}${safeKey}.${options.extension}`
-      );
-
-      const cacheItem = {
-        data,
-        timestamp: Date.now(),
-        isPermanent: options.ttl === 0
-      };
-
-      fs.writeFileSync(cacheFile, JSON.stringify(cacheItem), 'utf8');
-    } catch (error) {
-      console.error(`FileCache write error for key '${key}':`, error);
-    }
-  }
-
-  /**
-   * 删除文件缓存
-   * @param {string} key - 缓存键
-   * @param {Object} options - 文件缓存选项
-   */
-  static delete(key, options) {
-    if (!options.cacheDir || !options.extension) {
-      return;
-    }
-
-    try {
-      const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const cacheFile = path.join(
-        options.cacheDir,
-        `${options.cachePrefix || ''}${safeKey}.${options.extension}`
-      );
-
-      if (fs.existsSync(cacheFile)) {
-        fs.unlinkSync(cacheFile);
-      }
-    } catch (error) {
-      console.error(`FileCache delete error for key '${key}':`, error);
-    }
-  }
-
-  /**
-   * 从源文件创建缓存
-   * @param {string} sourceFilePath - 源文件路径
-   * @param {string} cacheKey - 缓存键
-   * @param {Object} options - 缓存选项
-   * @returns {Object|null} 创建的缓存数据或null
-   */
-  static createFromSource(sourceFilePath, cacheKey, options) {
-    try {
-      // 检查源文件是否存在
-      if (!fs.existsSync(sourceFilePath)) {
-        console.error(`Source file not found: ${sourceFilePath}`);
-        return null;
-      }
-
-      // 读取源文件内容
-      const content = fs.readFileSync(sourceFilePath, 'utf8');
-      const data = JSON.parse(content);
+    // 1. 尝试从内存缓存获取
+    const memoryItem = this.memoryCache.get(key);
+    if (memoryItem) {
+      // 检查是否过期
+      const isExpired = memoryItem.ttl !== 0 && now > memoryItem.timestamp + memoryItem.ttl;
       
-      // 写入缓存
-      FileCache.write(cacheKey, data.data || data, options);
-      
-      return {
-        data: data.data || data,
-        timestamp: Date.now()
-      };
-    } catch (error) {
-      console.error(`FileCache createFromSource error:`, error);
-      return null;
-    }
-  }
-}
-
-/**
- * 缓存管理器 - 提供简洁的缓存API
- */
-class CacheManager {
-  constructor(options = {}) {
-    this.defaultOptions = {
-      cacheDir: CACHE_DIR,
-      cachePrefix: '',
-      ttl: 3600000, // 默认1小时
-      extension: 'json',
-      useMemoryCache: true,
-      useFileCache: false,
-      autoDeleteExpired: true,
-      ...options
-    };
-    
-    this.namespaces = new Map();
-    this.memoryCache = new MemoryCache();
-  }
-
-  /**
-   * 创建缓存命名空间
-   * @param {string} name - 命名空间名称
-   * @param {Object} options - 命名空间特定的选项
-   */
-  createNamespace(name, options = {}) {
-    this.namespaces.set(name, {
-      ...this.defaultOptions,
-      ...options
-    });
-  }
-
-  /**
-   * 获取命名空间选项
-   * @param {string} name - 命名空间名称
-   * @returns {Object} 命名空间选项
-   */
-  getNamespace(name) {
-    return this.namespaces.get(name) || this.defaultOptions;
-  }
-
-  /**
-   * 解析缓存选项
-   * @param {Object|string} optionsOrNamespace - 选项对象或命名空间名称
-   * @returns {Object} 解析后的选项
-   */
-  _resolveOptions(optionsOrNamespace) {
-    if (typeof optionsOrNamespace === 'string') {
-      return this.getNamespace(optionsOrNamespace);
-    }
-    return {
-      ...this.defaultOptions,
-      ...optionsOrNamespace
-    };
-  }
-
-  /**
-   * 生成完整的缓存键
-   * @param {string} key - 原始键
-   * @param {Object} options - 缓存选项
-   * @returns {string} 完整的缓存键
-   */
-  _getFullKey(key, options) {
-    return `${options.cachePrefix || ''}${key}`;
-  }
-
-  /**
-   * 获取缓存数据
-   * @param {string} key - 缓存键
-   * @param {Object|string} optionsOrNamespace - 选项或命名空间
-   * @param {Object} options - 获取选项
-   * @returns {Object|null} 缓存数据或null
-   */
-  get(key, optionsOrNamespace = null, options = {}) {
-    if (!USE_CACHE) return null;
-
-    const cacheOptions = this._resolveOptions(optionsOrNamespace);
-    const fullKey = this._getFullKey(key, cacheOptions);
-    
-    // 优先从内存缓存获取
-    if (cacheOptions.useMemoryCache) {
-      const memoryData = this.memoryCache.get(fullKey, options);
-      if (memoryData !== null) {
-        return memoryData;
-      }
-    }
-
-    // 从文件缓存获取
-    if (cacheOptions.useFileCache) {
-      const fileData = FileCache.read(key, cacheOptions);
-      if (fileData !== null) {
-        // 同步到内存缓存
-        if (cacheOptions.useMemoryCache) {
-          this.memoryCache.set(fullKey, fileData.data, cacheOptions.ttl);
-        }
-        
-        // 根据选项返回原始数据或包装数据
-        if (options.returnRawData) {
-          return fileData.data;
-        }
-        
-        const result = {
-          data: fileData.data,
-          timestamp: fileData.timestamp
+      if (!isExpired || allowExpired) {
+        return {
+          data: memoryItem.data,
+          timestamp: memoryItem.timestamp,
+          expired: isExpired
         };
-        
-        if (fileData.isPermanent !== true && 
-            cacheOptions.ttl > 0 && 
-            Date.now() - fileData.timestamp > cacheOptions.ttl) {
-          result.expired = true;
-        }
-        
-        return result;
-      }
-      
-      // 如果提供了源文件路径，尝试从源文件创建缓存
-      if (options.sourceFilePath) {
-        const createdCache = FileCache.createFromSource(
-          options.sourceFilePath,
-          key,
-          cacheOptions
-        );
-        
-        if (createdCache !== null) {
-          // 同步到内存缓存
-          if (cacheOptions.useMemoryCache) {
-            this.memoryCache.set(fullKey, createdCache.data, cacheOptions.ttl);
-          }
-          
-          return options.returnRawData ? createdCache.data : createdCache;
-        }
       }
     }
-
+    
+    // 2. 尝试从文件缓存获取
+    try {
+      const filePath = this._getFilePath(key);
+      if (fs.existsSync(filePath)) {
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const fileItem = JSON.parse(fileContent);
+        
+        // 检查是否过期
+        const isExpired = fileItem.ttl !== 0 && now > fileItem.timestamp + fileItem.ttl;
+        
+        if (!isExpired || allowExpired) {
+          // 同步到内存缓存
+          this.memoryCache.set(key, {
+            data: fileItem.data,
+            timestamp: fileItem.timestamp,
+            ttl: fileItem.ttl
+          });
+          
+          return {
+            data: fileItem.data,
+            timestamp: fileItem.timestamp,
+            expired: isExpired
+          };
+        }
+      }
+    } catch (error) {
+      console.error(`Error reading cache file for key '${key}':`, error);
+    }
+    
+    // 3. 尝试从源文件获取（用于永久缓存）
+    if (sourceFile && fs.existsSync(sourceFile)) {
+      try {
+        const sourceContent = fs.readFileSync(sourceFile, 'utf8');
+        const sourceData = JSON.parse(sourceContent);
+        
+        // 源文件作为永久缓存
+        const dataToCache = sourceData.data || sourceData; // 支持直接数据或 {data, ...} 格式
+        
+        // 写入内存缓存和文件缓存
+        this.setData(key, dataToCache, { ttl: 0 });
+        
+        return {
+          data: dataToCache,
+          timestamp: now,
+          expired: false
+        };
+      } catch (error) {
+        console.error(`Error reading source file '${sourceFile}':`, error);
+      }
+    }
+    
     return null;
   }
 
   /**
    * 设置缓存数据
-   * @param {string} key - 缓存键
-   * @param {*} data - 缓存数据
-   * @param {Object|string} optionsOrNamespace - 选项或命名空间
+   * @param {string} key 缓存键
+   * @param {*} data 要缓存的原始数据
+   * @param {Object} options 选项
+   * @param {number} options.ttl 过期时间（毫秒），0表示永不过期
+   * @returns {boolean} 是否设置成功
    */
-  set(key, data, optionsOrNamespace = null) {
-    if (!USE_CACHE) return;
-
-    const cacheOptions = this._resolveOptions(optionsOrNamespace);
-    const fullKey = this._getFullKey(key, cacheOptions);
+  setData(key, data, options = {}) {
+    if (!USE_CACHE) return false;
     
-    // 解包数据（如果是已包装的格式）
-    const dataToCache = (typeof data === 'object' && data !== null && 
-                        'data' in data && 'timestamp' in data) ? data.data : data;
-
-    // 写入内存缓存
-    if (cacheOptions.useMemoryCache) {
-      this.memoryCache.set(fullKey, dataToCache, cacheOptions.ttl);
-    }
-
-    // 写入文件缓存
-    if (cacheOptions.useFileCache) {
-      FileCache.write(key, dataToCache, cacheOptions);
+    const { ttl = this.defaultTTL } = options;
+    const timestamp = Date.now();
+    const cacheItem = {
+      data,
+      timestamp,
+      ttl
+    };
+    
+    try {
+      // 1. 写入内存缓存
+      this.memoryCache.set(key, cacheItem);
+      
+      // 2. 写入文件缓存
+      const filePath = this._getFilePath(key);
+      fs.writeFileSync(filePath, JSON.stringify(cacheItem), 'utf8');
+      
+      return true;
+    } catch (error) {
+      console.error(`Error setting cache for key '${key}':`, error);
+      return false;
     }
   }
 
   /**
-   * 删除缓存数据
-   * @param {string} key - 缓存键
-   * @param {Object|string} optionsOrNamespace - 选项或命名空间
+   * 删除缓存
+   * @param {string} key 缓存键
+   * @returns {boolean} 是否删除成功
    */
-  delete(key, optionsOrNamespace = null) {
-    const cacheOptions = this._resolveOptions(optionsOrNamespace);
-    const fullKey = this._getFullKey(key, cacheOptions);
-
-    // 删除内存缓存
-    if (cacheOptions.useMemoryCache) {
-      this.memoryCache.delete(fullKey);
-    }
-
-    // 删除文件缓存
-    if (cacheOptions.useFileCache) {
-      FileCache.delete(key, cacheOptions);
-    }
-  }
-  
-  /**
-   * 清空整个命名空间的缓存
-   * @param {string} namespace 命名空间
-   */
-  async clear(namespace = 'default') {
-    const ns = this.namespaces.get(namespace);
-    if (!ns) {
-      throw new Error(`命名空间 ${namespace} 不存在`);
-    }
-    
-    // 清空内存缓存中该命名空间的所有缓存
-    if (ns.useMemoryCache) {
-      const prefix = ns.cachePrefix || '';
-      await this.memoryCache.clearByPrefix(prefix);
-    }
-    
-    // 清空文件缓存中该命名空间的所有缓存
-    if (ns.useFileCache && ns.cacheDir) {
-      try {
-        const files = await fs.promises.readdir(ns.cacheDir);
-        const prefix = ns.cachePrefix || '';
-        const extension = ns.extension || 'json';
-        
-        const deletePromises = files
-          .filter(file => file.startsWith(prefix) && file.endsWith(`.${extension}`))
-          .map(file => fs.promises.unlink(path.join(ns.cacheDir, file)));
-        
-        await Promise.all(deletePromises);
-      } catch (error) {
-        throw new Error(`清空文件缓存失败: ${error.message}`);
+  delete(key) {
+    try {
+      // 1. 从内存缓存删除
+      this.memoryCache.delete(key);
+      
+      // 2. 从文件缓存删除
+      const filePath = this._getFilePath(key);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
       }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error deleting cache for key '${key}':`, error);
+      return false;
     }
   }
 
   /**
-   * 清除所有缓存
+   * 清空所有缓存
    */
-  clearAll() {
-    this.memoryCache.clear();
-    // 注意：文件缓存不会自动清除，需要手动删除
+  clear() {
+    try {
+      // 1. 清空内存缓存
+      this.memoryCache.clear();
+      
+      // 2. 清空文件缓存
+      const files = fs.readdirSync(this.cacheDir);
+      files
+        .filter(file => file.endsWith(`.${this.fileExtension}`))
+        .forEach(file => {
+          try {
+            fs.unlinkSync(path.join(this.cacheDir, file));
+          } catch (error) {
+            console.error(`Error deleting cache file '${file}':`, error);
+          }
+        });
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+    }
+  }
+
+  /**
+   * 检查缓存是否存在且未过期
+   * @param {string} key 缓存键
+   * @returns {boolean} 是否存在且未过期
+   */
+  has(key) {
+    const wrappedData = this.getWrappedData(key, { allowExpired: false });
+    return wrappedData !== null && !wrappedData.expired;
+  }
+
+  /**
+   * 获取或创建缓存（如果缓存不存在则使用提供的函数创建）
+   * @param {string} key 缓存键
+   * @param {Function} createFn 创建缓存数据的函数
+   * @param {Object} options 选项
+   * @param {number} options.ttl 过期时间（毫秒）
+   * @param {boolean} options.allowExpired 是否允许使用过期缓存
+   * @returns {Promise<*>} 缓存的原始数据
+   */
+  async getOrCreate(key, createFn, options = {}) {
+    // 尝试获取现有缓存
+    const wrappedData = this.getWrappedData(key, {
+      allowExpired: options.allowExpired !== false
+    });
+    
+    if (wrappedData && !wrappedData.expired) {
+      return wrappedData.data;
+    }
+    
+    try {
+      // 缓存不存在或已过期，创建新数据
+      const newData = await createFn();
+      
+      // 保存到缓存
+      if (newData !== null && newData !== undefined) {
+        this.setData(key, newData, {
+          ttl: options.ttl !== undefined ? options.ttl : this.defaultTTL
+        });
+      }
+      
+      return newData;
+    } catch (error) {
+      // 如果允许使用过期缓存，且存在过期缓存，则返回过期缓存
+      if (options.allowExpired !== false && wrappedData) {
+        console.log(`Failed to create new cache data, using expired cache for key: ${key}`);
+        return wrappedData.data;
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * 从源文件创建永久缓存
+   * @param {string} key 缓存键
+   * @param {string} sourceFilePath 源文件路径
+   * @returns {boolean} 是否创建成功
+   */
+  createFromSource(key, sourceFilePath) {
+    if (!fs.existsSync(sourceFilePath)) {
+      console.error(`Source file not found: ${sourceFilePath}`);
+      return false;
+    }
+    
+    try {
+      const content = fs.readFileSync(sourceFilePath, 'utf8');
+      const data = JSON.parse(content);
+      
+      // 支持直接数据或 {data, ...} 格式
+      const dataToCache = data.data || data;
+      
+      // 创建永久缓存
+      return this.setData(key, dataToCache, { ttl: 0 });
+    } catch (error) {
+      console.error(`Error creating cache from source file '${sourceFilePath}':`, error);
+      return false;
+    }
   }
 
   /**
    * 获取缓存统计信息
-   * @returns {Object} 统计信息
+   * @returns {Object} 缓存统计信息
    */
   getStats() {
-    return this.memoryCache.getStats();
+    return {
+      memoryCacheSize: this.memoryCache.size,
+      fileCacheSize: this._getFileCacheSize()
+    };
   }
 
   /**
-   * 获取或设置缓存数据（支持回调函数获取数据）
-   * @param {string} key - 缓存键
-   * @param {Function} getDataFn - 获取数据的回调函数
-   * @param {Object|string} optionsOrNamespace - 选项或命名空间
-   * @param {Object} options - 获取选项
-   * @returns {Promise<Object>} 缓存数据
+   * 获取文件缓存数量
+   * @private
+   * @returns {number} 文件缓存数量
    */
-  async fetch(key, getDataFn, optionsOrNamespace = null, options = {}) {
-    // 尝试从缓存获取
-    const cachedData = this.get(key, optionsOrNamespace, {
-      ...options,
-      allowExpired: options.allowExpired !== false // 默认为true
-    });
-    
-    if (cachedData !== null) {
-      // 如果是过期数据且不允许使用过期数据，则继续获取新数据
-      if (cachedData.expired && options.allowExpired === false) {
-        // 不返回过期数据，继续获取新数据
-      } else {
-        return cachedData;
-      }
-    }
-
+  _getFileCacheSize() {
     try {
-      // 缓存未命中或过期且不允许使用过期数据，执行回调获取数据
-      const data = await getDataFn();
-      
-      // 存入缓存
-      if (data !== null && data !== undefined) {
-        // 解包数据（如果是已包装的格式）
-        const dataToCache = (typeof data === 'object' && data !== null && 
-                            'data' in data && 'timestamp' in data) ? data.data : data;
-        this.set(key, dataToCache, optionsOrNamespace);
-        
-        // 返回包装格式的数据
-        if (!options.returnRawData) {
-          return {
-            data: dataToCache,
-            timestamp: Date.now()
-          };
-        }
-      }
-      
-      return data;
+      const files = fs.readdirSync(this.cacheDir);
+      return files.filter(file => file.endsWith(`.${this.fileExtension}`)).length;
     } catch (error) {
-      // 获取数据失败时，如果允许使用过期数据，则尝试返回过期缓存
-      if (options.allowExpired !== false) {
-        const expiredCache = this.get(key, optionsOrNamespace, options, true);
-        if (expiredCache !== null) {
-          console.log(`Failed to fetch new data, using expired cache for key: ${key}`);
-          return expiredCache;
-        }
-      }
-      throw error;
+      console.error('Error getting file cache size:', error);
+      return 0;
     }
   }
 }
 
-// 创建并导出缓存管理器实例
-const cacheManager = new CacheManager();
+// 创建并导出默认缓存工具实例
+const cacheUtil = new CacheUtil();
 
 module.exports = {
-  cacheManager,
-  MemoryCache,
-  FileCache
+  CacheUtil,
+  cacheUtil
 };

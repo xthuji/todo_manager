@@ -2,32 +2,23 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const router = require('express').Router();
-const { cacheManager } = require('../utils/cacheUtil');
+const { cacheUtil } = require('../utils/cacheUtil');
 
 // 配置路径
 const FESTIVAL_CONFIG_PATH = path.join(__dirname, '../../../data/config/festival_config.json');
 
-// 初始化节日配置缓存
-// 缓存1小时
-const CACHE_OPTIONS = {
-  ttl: 3600000,
-  isPermanent: false
-};
-
-try {
-  cacheManager.createNamespace('festivalConfig', CACHE_OPTIONS);
-} catch (error) {
-  console.error('初始化节日配置缓存失败:', error.message);
-}
+// 缓存配置
+const CACHE_KEY = 'festival_config';
+const CACHE_TTL = 3600000; // 1小时缓存
 
 /**
  * 从缓存获取配置数据
- * @returns {Promise<Object|null>} 配置数据或null
+ * @returns {Object|null} 配置数据或null
  */
-const CACHE_KEY = 'config';
 async function getConfigFromCache() {
   try {
-    return await cacheManager.get(CACHE_KEY, 'festivalConfig', { returnRawData: true });
+    const wrappedData = cacheUtil.getWrappedData(CACHE_KEY);
+    return wrappedData ? wrappedData.data : null;
   } catch (error) {
     console.error('从缓存获取节日配置失败:', error.message);
     return null;
@@ -37,11 +28,11 @@ async function getConfigFromCache() {
 /**
  * 将配置数据保存到缓存
  * @param {Object} data 配置数据
+ * @returns {boolean} 是否保存成功
  */
 async function saveConfigToCache(data) {
   try {
-    await cacheManager.set(CACHE_KEY, data, 'festivalConfig', { returnRawData: true });
-    return true;
+    return cacheUtil.setData(CACHE_KEY, data, { ttl: CACHE_TTL });
   } catch (error) {
     console.error('保存节日配置到缓存失败:', error.message);
     return false;
@@ -50,10 +41,11 @@ async function saveConfigToCache(data) {
 
 /**
  * 清除配置缓存
+ * @returns {boolean} 是否清除成功
  */
 async function clearConfigCache() {
   try {
-    await cacheManager.clear('festivalConfig');
+    cacheUtil.delete(CACHE_KEY);
     return true;
   } catch (error) {
     console.error('清除节日配置缓存失败:', error.message);
