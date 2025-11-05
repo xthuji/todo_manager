@@ -6,16 +6,15 @@ const router = express.Router();
 const { cacheUtil } = require('../utils/cacheUtil');
 
 // 配置常量
-const CONFIG = {
-  DEFAULT_HOLIDAY_API_URL: 'https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json',
-  HOLIDAY_CACHE_DAYS: 100,
-  CACHE_KEY: 'holiday_cache',
-  CACHE_DIR: path.join(__dirname, '../../../data/cache'),
-  API_TIMEOUT: 10000
-};
+const DEFAULT_HOLIDAY_API_URL= 'https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json';
+const CACHE_KEY = 'holiday_cache';
+const TTL = 100 * 24 * 3600 * 1000; // 缓存有效期100天
+const HOLIDAY_OPTIONS = {
+  allowExpired: true, // 允许使用过期缓存作为兜底
+  sourceFile: path.join(__dirname, '../../../data/cache/holiday_cache.json'),
+  ttl: TTL,
+}
 
-// 计算缓存TTL
-const TTL = CONFIG.HOLIDAY_CACHE_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * 从API获取节假日数据
@@ -27,26 +26,26 @@ async function fetchHolidayData(apiUrl) {
   try {
     console.log(`[节假日服务] 从API获取数据: ${apiUrl}`);
     const response = await fetch(apiUrl, {
-      timeout: CONFIG.API_TIMEOUT,
-      headers: { 'Content-Type': 'application/json' }
+      timeout: 10000,
+      headers: {'Content-Type': 'application/json'}
     });
-    
+
     if (!response.ok) {
       throw new Error(`API响应错误: ${response.status}`);
     }
-    
-    const data = await response.json();
-    
+
+    const data = response.json();
+
     // 验证数据质量
     if (!data || typeof data !== 'object') {
       throw new Error('获取到的节假日数据格式错误');
     }
-    
+
     // 记录数据基本信息（减少冗余日志）
-    const years = data.Years && typeof data.Years === 'object' 
-      ? Object.keys(data.Years).filter(key => !isNaN(parseInt(key)))
-      : Object.keys(data).filter(key => !isNaN(parseInt(key)));
-    
+    const years = data.Years && typeof data.Years === 'object'
+        ? Object.keys(data.Years).filter(key => !isNaN(parseInt(key)))
+        : Object.keys(data).filter(key => !isNaN(parseInt(key)));
+
     console.log(`[节假日服务] 成功获取数据，包含${years.length}个年份`);
     return data;
   } catch (error) {
@@ -61,7 +60,7 @@ async function fetchHolidayData(apiUrl) {
  */
 async function clearHolidayCache() {
   try {
-    cacheUtil.delete(CONFIG.CACHE_KEY);
+    cacheUtil.delete(CACHE_KEY);
     console.log('[节假日服务] 缓存已清除');
     return true;
   } catch (error) {
@@ -75,12 +74,14 @@ async function clearHolidayCache() {
  * @param {string} [apiUrl] - 可选的API地址，默认使用配置的地址
  * @returns {Promise<Object>} 包含data、timestamp、expireAt、apiUrl的节假日数据对象
  */
-async function getHolidayData(apiUrl = CONFIG.DEFAULT_HOLIDAY_API_URL) {
+async function getHolidayData(apiUrl = DEFAULT_HOLIDAY_API_URL) {
   try {
     // 创建同步数据加载函数，内部处理异步API调用
     // 使用getWrappedData获取缓存，并提供loadData选项用于缓存未命中时的数据加载
-    const wrappedData = cacheUtil.getWrappedData(CONFIG.CACHE_KEY, {
+    const wrappedData = cacheUtil.getWrappedData(CACHE_KEY, {
+      // ... HOLIDAY_OPTIONS,
       allowExpired: true, // 允许使用过期缓存作为兜底
+      sourceFile: path.join(__dirname, '../../../data/cache/holiday_cache.json'),
       ttl: TTL,
       loadData: function () {
         console.log('[节假日服务] 缓存未命中或需要更新，从API获取数据');
@@ -150,7 +151,7 @@ router.post('/refresh-cache', async (req, res) => {
   try {
     // 获取请求参数
     const { apiUrl } = req.body || {};
-    const finalApiUrl = apiUrl && apiUrl.trim() ? apiUrl.trim() : CONFIG.DEFAULT_HOLIDAY_API_URL;
+    const finalApiUrl = apiUrl && apiUrl.trim() ? apiUrl.trim() : DEFAULT_HOLIDAY_API_URL;
     
     // 清除现有缓存
     await clearHolidayCache();

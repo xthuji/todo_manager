@@ -2,13 +2,8 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
-const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
-const { cacheUtil } = require('../utils/cacheUtil');
-
-// 缓存前缀和配置
-const IP_CACHE_PREFIX = 'ip_';
-const IP_CACHE_TTL = 300 * 60 * 1000; // 5小时缓存
-const AREA_CACHE_PREFIX = 'area_';
+const {MOCK_DIR, USE_CACHE, USE_MOCK, PRINT_API_DATA, PRINT_DATA_LOG} = require('../utils/constants.js');
+const {cacheUtil} = require('../utils/cacheUtil');
 
 // tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js
 // moji_weather_area_codes.json 数据源： https://m.moji.com/weather/china/beijing
@@ -16,6 +11,21 @@ const AREA_CACHE_PREFIX = 'area_';
 // merged_tianqi_moji_nmc_area_codes    天气地区编码缓存文件路径(合并了天气网,墨迹天气和中央气象台的地区代码)
 // merged_weather_area_codes            天气地区编码缓存文件路径(合并了天气网,墨迹天气和,央气象台和中国气象局的地区代码)
 const AREA_CODES_FILE = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
+const AREA_CODES_KEY = 'area_all_area_codes';
+const AREA_CODES_OPTIONS = {
+    sourceFile: AREA_CODES_FILE,
+    permanent: true,
+    ttl: 0
+};
+// 初始化 天气地区编码缓存数据
+cacheUtil.getWrappedData(AREA_CODES_KEY, AREA_CODES_OPTIONS);
+
+const IP_LOCATION_OPTIONS = {
+    allowExpired: true, // 允许使用过期缓存作为兜底
+    ttl: 5 * 3600 * 1000 // 缓存5小时
+};
+
+
 let mockIpAreaData;
 let areaCodesMap;
 
@@ -29,22 +39,22 @@ function cacheIpLocation(clientIp, locationData = null) {
     if (!USE_CACHE) {
         return null;
     }
-    const cacheKey = `${IP_CACHE_PREFIX}${clientIp}`.replaceAll(':', "_");
-    
+    const cacheKey = `ip_${clientIp}`.replaceAll(':', "_");
     if (locationData !== null) {
         console.log('缓存位置数据:', cacheKey);
         // 缓存包装好的响应格式
-        cacheUtil.setData(cacheKey, locationData, { ttl: IP_CACHE_TTL });
+        cacheUtil.setData(cacheKey, locationData, IP_LOCATION_OPTIONS);
         return null;
     } else {
         // 读取模式：直接从缓存获取已经包装好的数据
-        return cacheUtil.getWrappedData(cacheKey);
+        return cacheUtil.getWrappedData(cacheKey, IP_LOCATION_OPTIONS);
     }
 }
 
 // 辅助函数：递归查找区县信息，确定完整的省市县信息
 function findDistrictInfo(areaData, provinceName, districtName) {
     let result = null;
+
     // 递归搜索函数
     function searchRecursive(data, currentProvince, currentCity, provinceItem) {
         if (!data || !Array.isArray(data)) return;
@@ -57,11 +67,6 @@ function findDistrictInfo(areaData, provinceName, districtName) {
                     province: currentProvince,
                     city: currentCity,
                     district: item.name,
-                    // provinceMojiCode: provinceItem.mojiCode,
-                    // mojiCode: item.mojiCode,
-                    // provinceNmcCode: provinceItem.nmcCode,
-                    // nmcCode: item.nmcCode,
-                    // cmaCode: item.cmaCode,
                 };
                 return;
             }
@@ -90,18 +95,19 @@ function findDistrictInfo(areaData, provinceName, districtName) {
 
 async function getLocation1() {
     try {
-        console.log('正在调用气象局天气接口获取天气和位置信息...');
-        const weatherLocationApiResponse = await fetch('https://weather.cma.cn/api/weather/view', {
+        let cmaUrl = 'https://weather.cma.cn/api/weather/view';
+        console.log(`开始调用气象局天气接口获取位置信息，正在访问: ${cmaUrl}`);
+        const weatherLocationApiResponse = await fetch(cmaUrl, {
             timeout: 10000 // 设置10秒超时
         });
-        
+
         if (!weatherLocationApiResponse.ok) {
             throw new Error(`气象局天气接口接口响应状态码: ${weatherLocationApiResponse.status}`);
         }
-        
+
         const weatherLocationData = await weatherLocationApiResponse.json();
         console.log('成功获取气象局天气接口数据');
-        
+
         // 位置数据
         return {
             province: weatherLocationData.data.location.path
@@ -121,35 +127,27 @@ async function getLocation1() {
 async function getLocation2() {
     try {
         // 1. 调用ip-api获取基础位置信息
-        console.log('正在调用ip-api获取位置信息...');
         const ipApiUrl = 'http://ip-api.com/json/?lang=zh-CN';
-        
+        console.log(`开始调用ip-api获取位置信息，正在访问: ${ipApiUrl}`);
+
         const ipApiResponse = await fetch(ipApiUrl, {
             timeout: 5000 // 设置5秒超时
         });
-        
+
         if (!ipApiResponse.ok) {
             throw new Error(`ip-api响应状态码: ${ipApiResponse.status}`);
         }
-        
+
         let ipLocationData = await ipApiResponse.json();
         console.log('成功获取ip-api位置数据');
-        
-        // 验证是否成功获取到经纬度信息
-        if (ipLocationData && typeof ipLocationData.lat === 'number' && typeof ipLocationData.lon === 'number') {
-            console.log(`从ip-api获取到的经纬度：纬度=${ipLocationData.lat}, 经度=${ipLocationData.lon}`);
-        } else {
-            console.warn('从ip-api未能获取到有效的经纬度信息');
-        }
-        
+
         // 2. 使用从ip-api获取的IP地址调用美团地理位置服务获取省市区县信息
         let weatherLocationData = null;
         if (ipLocationData && ipLocationData.query) {
             const ipAddress = ipLocationData.query;
-            console.log('正在调用美团地理位置服务获取详细地区信息...');
             // 从ip-api获取的IP地址，传递给美团API
             const meituanUrl = `https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}`;
-            console.log(`使用从ip-api获取的IP地址构建美团API请求: ${meituanUrl}`);
+            console.log(`开始根据IP调用美团API获取位置信息，正在访问: ${meituanUrl}`);
 
             const meituanResponse = await fetch(meituanUrl, {
                 timeout: 5000,
@@ -166,7 +164,7 @@ async function getLocation2() {
             weatherLocationData = await meituanResponse.json();
             console.log('成功获取美团地理位置服务数据');
         }
-        
+
         // 3. 综合两个API的数据，只返回省市区县信息
         return {
             province: weatherLocationData && weatherLocationData.data && weatherLocationData.data.rgeo && weatherLocationData.data.rgeo.province
@@ -214,13 +212,12 @@ async function getLocation(clientIp) {
         const promises = [];
         promises.push(getLocation1(), getLocation2());
         const [addressData1, addressData2] = await Promise.all(promises);
-        const addressData = {... (addressData2 || addressData1)};
-        console.log(`定位数据: ${JSON.stringify(addressData)}`);
+        const addressData = {...(addressData2 || addressData1)};
+        if (PRINT_DATA_LOG) {
+            console.log(`接口获取位置信息结果1: ${JSON.stringify(addressData1)}`);
+            console.log(`接口获取位置信息结果2: ${JSON.stringify(addressData2)}`);
+        }
         if (PRINT_API_DATA) {
-            if (PRINT_DATA_LOG) {
-                console.log(`接口获取位置信息结果1: ${JSON.stringify(addressData1)}`);
-                console.log(`接口获取位置信息结果2: ${JSON.stringify(addressData2)}`);
-            }
             addressData.apiData = {addressData1, addressData2};
         }
 
@@ -234,14 +231,9 @@ async function getLocation(clientIp) {
                 addressData.city = districtInfo.city || addressData.city;
                 addressData.district = districtInfo.district || addressData.district;
                 addressData.code = districtInfo.code;
-                // addressData.provinceMojiCode = districtInfo.provinceMojiCode;
-                // addressData.districtMojiCode = districtInfo.mojiCode;
-                // addressData.provinceNmcCode = districtInfo.provinceNmcCode;
-                // addressData.districtNmcCode = districtInfo.nmcCode;
-                // addressData.districtCmaCode = districtInfo.cmaCode;
             }
         }
-        console.log('返回完整的位置数据:', addressData.toString());
+        console.log('返回完整的位置数据:', JSON.stringify(addressData));
 
         // 更新缓存，存储完整响应对象
         cacheIpLocation(clientIp, addressData);
@@ -265,37 +257,24 @@ async function getLocation(clientIp) {
  * @returns {Object} 包含data和timestamp的响应对象
  */
 function getAllAreaCodes() {
-  try {
-    const cacheKey = `${AREA_CACHE_PREFIX}all_area_codes`;
-    const sourceFilePath = path.join(__dirname, '../../../data/weather/merged_weather_area_codes.json');
-    
-    // 首先尝试从缓存获取数据
-    let cachedData = cacheUtil.getWrappedData(cacheKey);
-    
-    if (!cachedData) {
-      // 如果缓存不存在，尝试从源文件读取数据作为永久缓存
-      console.log('从源文件读取地区编码数据作为永久缓存');
-      const fileContent = fs.readFileSync(sourceFilePath, 'utf-8');
-      const areaCodesData = JSON.parse(fileContent);
-      
-      // 将读取的数据设置为永不过期的缓存
-      cacheUtil.setData(cacheKey, areaCodesData, { ttl: 0 });
-      
-      // 返回包装后的数据
-      cachedData = {
-        data: areaCodesData,
-        timestamp: Date.now()
-      };
+    try {
+        // 使用cacheUtil.getWrappedData配合sourceFile参数自动处理缓存和文件读取
+        const wrappedData = cacheUtil.getWrappedData(AREA_CODES_KEY, AREA_CODES_OPTIONS);
+
+        // 如果成功获取到数据，返回标准格式
+        if (wrappedData) {
+            return wrappedData;
+        }
+
+        // 如果wrappedData为null，表示文件不存在或读取失败
+        console.error('地区编码数据文件不存在或无法读取');
+    } catch (error) {
+        console.error('获取省市县编码数据失败:', error.message);
     }
-    
-    return cachedData;
-  } catch (error) {
-    console.error('获取省市县编码数据失败:', error.message);
     return {
-      data: [],
-      timestamp: Date.now()
+        data: [],
+        timestamp: Date.now()
     };
-  }
 }
 
 // 获取District对应的各种天气区域编码数据
@@ -303,7 +282,7 @@ function getDistrictAreaCodes(areaCode) {
     if (!areaCodesMap) {
         areaCodesMap = {};
         // 遍历 allAreaCodes 数据，查找叶子节点的数据，将数据中的code作为Map的key，将数据对象作为Map的value
-        getAllAreaCodes().data.forEach(item => {
+        getAllAreaCodes()?.data.forEach(item => {
             if (item.children && item.children.length > 0) {
                 // 递归处理子节点
                 item.children.forEach(child => {
@@ -319,12 +298,20 @@ function getDistrictAreaCodes(areaCode) {
                         });
                     } else {
                         // 直接添加子节点到Map
-                        areaCodesMap[child.code] = {mojiAreaCode: child.mojiCode, nmcAreaCode: child.nmcCode, cmaAreaCode: child.cmaCode,};
+                        areaCodesMap[child.code] = {
+                            mojiAreaCode: child.mojiCode,
+                            nmcAreaCode: child.nmcCode,
+                            cmaAreaCode: child.cmaCode,
+                        };
                     }
                 });
             } else {
                 // 直接添加叶子节点到Map
-                areaCodesMap[item.code] = {mojiAreaCode: item.mojiCode, nmcAreaCode: item.nmcCode, cmaAreaCode: item.cmaCode,};
+                areaCodesMap[item.code] = {
+                    mojiAreaCode: item.mojiCode,
+                    nmcAreaCode: item.nmcCode,
+                    cmaAreaCode: item.cmaCode,
+                };
             }
         });
     }

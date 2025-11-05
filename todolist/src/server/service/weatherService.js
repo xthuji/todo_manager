@@ -13,11 +13,11 @@ const {fetchTodayWeather, fetchRecentDaysWeather, fetchTodayDetailWeather, fetch
 const {fetchNmcWeather} = require("./weather/weatherNmcService");
 const {fetchCmaWeather} = require("./weather/weatherCmaService");
 
+let WEATHER_OPTIONS = {
+    allowExpired: true, // 允许使用过期缓存作为兜底
+    ttl: 3600 * 1000, // 缓存1小时
+};
 let mockWeatherData;
-
-// 缓存配置
-const WEATHER_CACHE_PREFIX = 'weather_';
-const WEATHER_CACHE_TTL = 30 * 60 * 1000; // 30分钟缓存
 
 /**
  * 天气信息缓存处理函数
@@ -29,14 +29,14 @@ function cacheWeatherInfo(areaCodeInfo = null, weatherData = null) {
     if (!USE_CACHE) {
         return null;
     }
-    
+
     const cacheKey = `${(areaCodeInfo.weatherCode)}_${areaCodeInfo.mojiAreaCode || 'default'}`.replaceAll('/', '_');
-    const fullCacheKey = `${WEATHER_CACHE_PREFIX}${cacheKey}`;
-    
+    const fullCacheKey = `weather_${cacheKey}`;
+
     if (weatherData !== null) {
         console.log('缓存天气信息:', cacheKey);
         try {
-            cacheUtil.setData(fullCacheKey, weatherData, { ttl: WEATHER_CACHE_TTL });
+            cacheUtil.setData(fullCacheKey, weatherData, WEATHER_OPTIONS);
         } catch (error) {
             console.error('缓存天气数据失败:', error.message);
         }
@@ -117,17 +117,17 @@ function buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherD
         todayWeather: todayWeather, recentDaysWeather: recentDaysWeather, calendarWeather: calendarWeather,
     };
     console.log('天气数据提取完成');
-    
+
+    if (PRINT_DATA_LOG) {
+        console.log('墨迹天气数据:', JSON.stringify(mojiWeatherData));
+        console.log('今日天气数据:', JSON.stringify(todayWeatherData));
+        console.log('今日天气补充数据:', JSON.stringify(todayDetailWeatherData));
+        console.log('近几日天气数据:', JSON.stringify(recentDaysWeatherData));
+        console.log('天气历史数据:', JSON.stringify(calendarAndHistoryWeatherData));
+        console.log('CMA(中国气象局)天气数据:', JSON.stringify(cmaWeatherData));
+        console.log('NMC(中央气象台)天气数据:', JSON.stringify(nmcWeatherData));
+    }
     if (PRINT_API_DATA) {
-        if (PRINT_DATA_LOG) {
-            console.log('墨迹天气数据:', JSON.stringify(mojiWeatherData));
-            console.log('今日天气数据:', JSON.stringify(todayWeatherData));
-            console.log('今日天气补充数据:', JSON.stringify(todayDetailWeatherData));
-            console.log('近几日天气数据:', JSON.stringify(recentDaysWeatherData));
-            console.log('天气历史数据:', JSON.stringify(calendarAndHistoryWeatherData));
-            console.log('CMA(中国气象局)天气数据:', JSON.stringify(cmaWeatherData));
-            console.log('NMC(中央气象台)天气数据:', JSON.stringify(nmcWeatherData));
-        }
         weatherData.apiData = {mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData};
     }
     
@@ -144,17 +144,6 @@ function buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherD
     if (hasMoji && hasToday && hasTodayLiveWeather && hasTodayHourlyWeather && hasTodayLifeHelper && hasDetail && hasRecentDays && hasCalendar) {
         console.log('所有API结果数据完整，缓存天气数据');
         cacheWeatherInfo(weatherAreaCodeParams, weatherData);
-    } else {
-        console.log('部分API结果数据不完整，不缓存天气数据');
-        // 日志记录结果数据是否为空 mojiWeatherData, todayWeatherData, todayDetailWeatherData, calendarAndHistoryWeatherData
-        if (!hasMoji) console.log('天气数据为空, mojiWeatherData:', JSON.stringify(mojiWeatherData));
-        if (!hasToday) console.log('天气数据为空, todayWeatherData:', JSON.stringify(todayWeatherData));
-        if (!hasTodayLiveWeather) console.log('天气数据为空, todayWeatherData.liveWeather:', JSON.stringify(todayWeatherData.liveWeather));
-        if (!hasTodayHourlyWeather) console.log('天气数据为空, todayWeatherData.hourlyWeather:', JSON.stringify(todayWeatherData.hourlyWeather));
-        if (!hasTodayLifeHelper) console.log('天气数据为空, todayWeatherData.lifeHelper:', JSON.stringify(todayWeatherData.lifeHelper));
-        if (!hasDetail) console.log('天气数据为空, todayDetailWeatherData:', JSON.stringify(todayDetailWeatherData));
-        if (!hasRecentDays) console.log('天气数据为空, recentDaysWeatherData:', JSON.stringify(recentDaysWeatherData));
-        if (!hasCalendar) console.log('天气数据为空, calendarAndHistoryWeatherData:', JSON.stringify(calendarAndHistoryWeatherData));
     }
     return weatherData;
 }
@@ -222,8 +211,6 @@ async function getWeatherData(weatherAreaCodeParams){
 
     try {
         const weatherData = await queryWeatherData(weatherAreaCodeParams);
-        // 将数据直接存入缓存，让缓存工具处理格式
-        cacheWeatherInfo(weatherAreaCodeParams, weatherData);
         // 返回符合要求的格式
         return { data: weatherData, timestamp: Date.now() };
     } catch (error) {
