@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
-const {MOCK_DIR, USE_CACHE, USE_MOCK, PRINT_API_DATA, PRINT_DATA_LOG} = require('../utils/constants.js');
+const {MOCK_DIR, USE_MOCK, PRINT_API_DATA, PRINT_DATA_LOG} = require('../utils/constants.js');
 const {cacheUtil} = require('../utils/cacheUtil');
 
 // tianqi_weather_area_codes.json 数据源： https://j.i8tq.com/weather2020/search/city.js
@@ -20,13 +20,6 @@ const AREA_CODES_OPTIONS = {
 // 初始化 天气地区编码缓存数据
 cacheUtil.getWrappedDataAsync(AREA_CODES_KEY, AREA_CODES_OPTIONS);
 
-const IP_LOCATION_OPTIONS = {
-    allowExpired: true, // 允许使用过期缓存作为兜底
-    ttl: 5 * 3600 * 1000 // 缓存5小时
-};
-
-
-let mockIpAreaData;
 let areaCodesMap;
 
 // 辅助函数：递归查找区县信息，确定完整的省市县信息
@@ -201,11 +194,11 @@ async function getCurrLocation() {
 async function getLocation(clientIp) {
     try {
         if (USE_MOCK) {
-            if (!mockIpAreaData) {
-                const mockIpAreaStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_ip_area.json'), 'utf-8');
-                mockIpAreaData = JSON.parse(mockIpAreaStr);
-            }
-            return mockIpAreaData;
+            return cacheUtil.getWrappedData('mock_ip_area', {
+                sourceFile: path.join(MOCK_DIR, 'mock_ip_area.json'),
+                permanent: true,
+                ttl: 0,
+            })
         }
 
         return cacheUtil.getWrappedDataAsync(`ip_${clientIp}`, {

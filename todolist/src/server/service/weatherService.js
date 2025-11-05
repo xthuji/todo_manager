@@ -6,7 +6,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-const {CACHE_DIR, MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
+const {MOCK_DIR, USE_CACHE, USE_MOCK,PRINT_API_DATA,PRINT_DATA_LOG} = require('../utils/constants.js');
 const { cacheUtil } = require('../utils/cacheUtil');
 const {fetchMojiWeather} = require("./weather/weatherMojiService");
 const {fetchTodayWeather, fetchRecentDaysWeather, fetchTodayDetailWeather, fetchCalendarAndHistoryWeather} = require("./weather/weatherTianqiService");
@@ -150,6 +150,13 @@ function buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherD
 
 // https://weather.cma.cn/web/weather/58459.html
 async function queryWeatherData(weatherAreaCodeParams) {
+    // 尝试从缓存获取数据
+    const cachedWeatherData = cacheWeatherInfo(weatherAreaCodeParams);
+    if (cachedWeatherData) {
+        console.log('使用缓存的天气数据');
+        return cachedWeatherData; // 直接返回缓存工具提供的格式
+    }
+
     // 创建并行请求的Promise数组
     const promises = [];
     // 1. 墨迹天气数据获取Promise
@@ -184,7 +191,8 @@ async function queryWeatherData(weatherAreaCodeParams) {
         console.log('部分天气服务出错，但尝试继续处理数据:', errors);
     }
 
-    return buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, weatherAreaCodeParams);
+    let weatherData = buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData, recentDaysWeatherData, calendarAndHistoryWeatherData, weatherAreaCodeParams);
+    return { data: weatherData, timestamp: Date.now() };
 }
 
 // https://www.nmc.cn/publish/forecast/AZJ/wdcXE.html
@@ -193,26 +201,16 @@ async function getWeatherData(weatherAreaCodeParams){
         return { error: { message: '参数weatherAreaCodeParams不能为空' } };
     }
     if (USE_MOCK) {
-        if (!mockWeatherData) {
-            const mockWeatherDataStr = fs.readFileSync(path.join(MOCK_DIR, 'mock_weather_info.json'), 'utf-8');
-            mockWeatherData = JSON.parse(mockWeatherDataStr)
-        }
-        return mockWeatherData;
+        return cacheUtil.getWrappedData('mock_weather_info', {
+            sourceFile: path.join(MOCK_DIR, 'mock_weather_info.json'),
+            permanent: true,
+            ttl: 0,
+        })
     }
     console.log('天气请求参数:', JSON.stringify(weatherAreaCodeParams));
 
-    // 尝试从缓存获取数据
-    const cachedWeatherData = cacheWeatherInfo(weatherAreaCodeParams);
-    
-    if (cachedWeatherData) {
-        console.log('使用缓存的天气数据');
-        return cachedWeatherData; // 直接返回缓存工具提供的格式
-    }
-
     try {
-        const weatherData = await queryWeatherData(weatherAreaCodeParams);
-        // 返回符合要求的格式
-        return { data: weatherData, timestamp: Date.now() };
+        return await queryWeatherData(weatherAreaCodeParams);
     } catch (error) {
         console.error('获取天气数据失败:', error);
         return { error: { message: error.message || '获取天气数据失败' } };

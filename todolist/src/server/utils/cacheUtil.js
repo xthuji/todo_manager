@@ -176,7 +176,7 @@ class CacheUtil {
       const isExpired = ttl !== 0 && now > fileTimestamp + ttl;
 
       if (!isExpired || options.allowExpired) {
-        this._log('debug', `成功从源文件同步加载数据: key=${key}, 过期状态=${isExpired}`);
+        this._log('debug', `成功从源文件同步加载数据: key=${key}, ${isExpired?'已过期':'未过期'}`);
 
         const cacheItem = this._createCacheItem(dataToReturn, options, fileTimestamp);
         this.memoryCache.set(key, cacheItem);
@@ -231,7 +231,7 @@ class CacheUtil {
         // 同步到内存缓存
         this.memoryCache.set(key, { data: fileData, timestamp: fileTimestamp, ttl: ttl });
 
-        this._log('debug', `成功从默认缓存文件同步加载数据: key=${key}, 过期状态=${isExpired}`);
+        this._log('debug', `成功从默认缓存文件同步加载数据: key=${key}, ${isExpired?'已过期':'未过期'}`);
 
         return {
           data: fileData,
@@ -336,6 +336,7 @@ class CacheUtil {
    * @param {Object} options 选项
    * @param {boolean} options.allowExpired 是否允许使用过期缓存
    * @param {string} options.sourceFile 可选的源文件路径，直接将该文件作为缓存文件使用
+   * @param {boolean} options.permanent 可选的是否永久数据，用于sourceFile配置文件只读，不修改原文件
    * @param {Function} options.loadDataFn 可选的自定义数据加载函数，当缓存不存在或已过期时调用（必须是同步函数）
    * @param {number} options.ttl 可选的缓存过期时间，用于loadDataFn加载的数据
    * @returns {Object|null} 包装后的缓存数据 {data, timestamp, expired, permanent}
@@ -431,6 +432,7 @@ class CacheUtil {
    * @param {Object} options 选项
    * @param {boolean} options.allowExpired 是否允许使用过期缓存
    * @param {string} options.sourceFile 可选的源文件路径，直接将该文件作为缓存文件使用
+   * @param {boolean} options.permanent 可选的是否永久数据，用于sourceFile配置文件只读，不修改原文件
    * @param {Function} options.loadDataFn 可选的自定义数据加载函数，当缓存不存在或已过期时调用（支持返回Promise的异步函数）
    * @param {number} options.ttl 可选的缓存过期时间，用于loadDataFn加载的数据
    * @returns {Promise<Object|null>} 包装后的缓存数据 {data, timestamp, expired, permanent}
