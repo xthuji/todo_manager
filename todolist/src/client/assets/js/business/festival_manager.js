@@ -149,12 +149,12 @@ async function loadHolidayData() {
             
             html += `
                 <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${holiday.Name || holiday.name || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${holiday.StartDate || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${holiday.EndDate || '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${holiday.Duration || '-'}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${compDaysHtml}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${holiday.Year || (holiday.StartDate ? new Date(holiday.StartDate).getFullYear() : '-')}</td>
+                    <td class="w-[20%] px-6 py-4 text-sm font-medium text-gray-900 truncate">${holiday.Name || holiday.name || '-'}</td>
+                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate">${holiday.StartDate || '-'}</td>
+                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate">${holiday.EndDate || '-'}</td>
+                    <td class="w-[10%] px-6 py-4 text-sm text-gray-500 truncate">${holiday.Duration || '-'}</td>
+                    <td class="w-[25%] px-6 py-4 text-sm text-gray-500">${compDaysHtml}</td>
+                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate">${holiday.Year || (holiday.StartDate ? new Date(holiday.StartDate).getFullYear() : '-')}</td>
                 </tr>
             `;
         });
