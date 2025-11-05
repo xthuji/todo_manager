@@ -39,7 +39,105 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.closeDeleteModal = closeDeleteModal;
     window.closeFestivalModal = closeFestivalModal;
     window.toggleDateTypeInputs = toggleDateTypeInputs;
+    window.openHolidayModal = openHolidayModal;
+    window.closeHolidayModal = closeHolidayModal;
+    
+    // 初始化事件监听器
+    const viewHolidayBtn = document.getElementById('btn-view-holiday-info');
+    if (viewHolidayBtn) {
+        viewHolidayBtn.addEventListener('click', openHolidayModal);
+    }
 });
+
+// 查看节假日信息相关函数
+function openHolidayModal() {
+    const modal = document.getElementById('holiday-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadHolidayData();
+    }
+}
+
+function closeHolidayModal() {
+    const modal = document.getElementById('holiday-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function loadHolidayData() {
+    const tbody = document.getElementById('holiday-list-body');
+    if (!tbody) {
+        console.error('节假日列表表格体不存在');
+        return;
+    }
+    
+    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">加载中...</td></tr>';
+
+    try {
+        // 直接使用holidayManager获取节假日数据，而不是从localStorage读取
+        const holidayData = window.holidayManager?.holidayData;
+        let allHolidays = [];
+
+        // 修复：适配不同的数据结构
+        if (holidayData && holidayData.Years) {
+            // 处理Years嵌套结构
+            const years = holidayData.Years;
+            for (const year in years) {
+                if (Array.isArray(years[year])) {
+                    years[year].forEach(holiday => {
+                        allHolidays.push({
+                            ...holiday,
+                            Year: year
+                        });
+                    });
+                }
+            }
+        } else if (!holidayData) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">未找到节假日缓存数据，请先刷新节假日缓存</td></tr>';
+            return;
+        } else if (Array.isArray(holidayData)) {
+            // 如果是直接的数组结构
+            allHolidays = holidayData;
+        }
+
+        // 按开始日期倒序排序（时间更大的放在前面）
+        allHolidays.sort((a, b) => {
+            const dateA = a.StartDate ? new Date(a.StartDate) : new Date(0);
+            const dateB = b.StartDate ? new Date(b.StartDate) : new Date(0);
+            return dateB - dateA;
+        });
+
+        // 生成表格内容
+        if (allHolidays.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无节假日数据</td></tr>';
+            return;
+        }
+
+        let html = '';
+        allHolidays.forEach(holiday => {
+            const compDaysHtml = holiday.CompDays && Array.isArray(holiday.CompDays) && holiday.CompDays.length > 0 
+                ? holiday.CompDays.join('<br>') 
+                : '-';
+            
+            html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${holiday.Name || holiday.name || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${holiday.StartDate || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${holiday.EndDate || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${holiday.Duration || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${compDaysHtml}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${holiday.Year || (holiday.StartDate ? new Date(holiday.StartDate).getFullYear() : '-')}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    } catch (error) {
+        console.error('解析节假日数据失败:', error);
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">解析节假日数据失败: ${error.message}</td></tr>`;
+    }
+}
 
 // 初始化节日管理
 async function initFestivalManager() {
@@ -479,35 +577,9 @@ function saveFestival() {
         
         date = `${weekMonth}-${weekCount}-${weekDay}`;
     } else if (dateType === 'solar_terms') {
-        // 节气的日期是固定的，根据名称确定
-        const solarTermDateMap = {
-            '立春': '02-04',
-            '雨水': '02-19',
-            '惊蛰': '03-06',
-            '春分': '03-21',
-            '清明': '04-05',
-            '谷雨': '04-20',
-            '立夏': '05-05',
-            '小满': '05-21',
-            '芒种': '06-06',
-            '夏至': '06-21',
-            '小暑': '07-07',
-            '大暑': '07-23',
-            '立秋': '08-07',
-            '处暑': '08-23',
-            '白露': '09-07',
-            '秋分': '09-23',
-            '寒露': '10-08',
-            '霜降': '10-23',
-            '立冬': '11-07',
-            '小雪': '11-22',
-            '大雪': '12-07',
-            '冬至': '12-22',
-            '小寒': '01-05',
-            '大寒': '01-20'
-        };
-        
-        date = solarTermDateMap[name] || '';
+        // 对于节气类型，我们不需要存储具体日期
+        // 日期会在显示时由lunarUtils动态计算
+        date = '';
     }
     
     // 构建节日对象

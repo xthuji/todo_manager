@@ -48,6 +48,7 @@
             }
         }
     </style>
+    <!-- JavaScript代码已移至festival_manager.js文件中统一管理 -->
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-6 max-w-6xl">
@@ -79,6 +80,9 @@
                         <input type="text" id="holiday-api-url" class="form-input flex-grow bg-gray-50 border-gray-200 focus:bg-white transition-colors duration-200 text-sm" placeholder="请输入节假日API地址" value="https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json">
                         <button id="btn-refresh-holiday-cache" class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 text-sm flex items-center gap-2 shadow-md hover:shadow-lg active:shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 group" onclick="refreshHolidayCache()">
                             <i class="fa fa-refresh mr-1.5 transition-transform duration-300 group-hover:rotate-180"></i> 刷新节假日缓存
+                        </button>
+                        <button id="btn-view-holiday-info" class="whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 text-sm flex items-center gap-2 shadow-md hover:shadow-lg active:shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2">
+                            <i class="fa fa-calendar mr-1.5"></i> 查看节假日信息
                         </button>
                     </div>
                 </div>
@@ -137,6 +141,40 @@
             <div id="festival-list" class="max-h-[500px] overflow-y-auto pr-2 border-x-2 border-b-2 border-gray-200 rounded-b-lg">
                 <div class="space-y-1">
                     <!-- 节日列表将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 查看节假日信息浮层模态框 -->
+        <div id="holiday-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 class="text-xl font-bold text-gray-800">节假日信息列表</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeHolidayModal()">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="overflow-auto flex-grow">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">节日名称</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">开始日期</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">结束日期</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">持续天数</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">补班日期</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">年份</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holiday-list-body" class="bg-white divide-y divide-gray-200">
+                            <!-- 节假日数据将通过JS动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 border-t pt-4 flex justify-end">
+                    <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors" onclick="closeHolidayModal()">
+                        关闭
+                    </button>
                 </div>
             </div>
         </div>
