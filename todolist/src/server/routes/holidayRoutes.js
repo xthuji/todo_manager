@@ -78,15 +78,15 @@ async function getHolidayData(apiUrl = DEFAULT_HOLIDAY_API_URL) {
   try {
     // 创建同步数据加载函数，内部处理异步API调用
     // 使用getWrappedData获取缓存，并提供loadDataFn选项用于缓存未命中时的数据加载
-    const wrappedData = cacheUtil.getWrappedData(CACHE_KEY, {
+    const wrappedData = await cacheUtil.getWrappedDataAsync(CACHE_KEY, {
       // ... HOLIDAY_OPTIONS,
       allowExpired: true, // 允许使用过期缓存作为兜底
       sourceFile: path.join(__dirname, '../../../data/cache/holiday_cache.json'),
       ttl: TTL,
-      loadDataFn: function () {
+      loadDataFn: async function () {
         console.log('[节假日服务] 缓存未命中或需要更新，从API获取数据');
         // 返回Promise，让getWrappedData能够识别并异步处理
-        return fetchHolidayData(apiUrl);
+        return await fetchHolidayData(apiUrl);
       }
     });
     
