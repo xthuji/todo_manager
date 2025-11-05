@@ -50,11 +50,35 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // 查看节假日信息相关函数
-function openHolidayModal() {
+async function openHolidayModal() {
     const modal = document.getElementById('holiday-modal');
     if (modal) {
         modal.classList.remove('hidden');
-        loadHolidayData();
+        await loadHolidayData();
+        
+        // 添加点击浮层外部关闭浮层的功能
+        // 使用setTimeout确保modal已经显示
+        setTimeout(() => {
+            document.addEventListener('click', handleOutsideClick);
+        }, 10);
+        
+        // 获取内部内容div并添加点击事件阻止冒泡
+        const modalContent = modal.querySelector('div.bg-white');
+        if (modalContent) {
+            modalContent.addEventListener('click', function(e) {
+                e.stopPropagation(); // 阻止事件冒泡，防止点击内部内容关闭浮层
+            });
+        }
+    }
+}
+
+// 处理点击浮层外部关闭浮层的函数
+function handleOutsideClick(event) {
+    const modal = document.getElementById('holiday-modal');
+    
+    // 直接判断点击目标是否为modal本身（即半透明背景层）且浮层是可见的
+    if (modal && !modal.classList.contains('hidden') && event.target === modal) {
+        closeHolidayModal();
     }
 }
 
@@ -62,10 +86,13 @@ function closeHolidayModal() {
     const modal = document.getElementById('holiday-modal');
     if (modal) {
         modal.classList.add('hidden');
+        
+        // 移除点击事件监听器，避免重复绑定
+        document.removeEventListener('click', handleOutsideClick);
     }
 }
 
-function loadHolidayData() {
+async function loadHolidayData() {
     const tbody = document.getElementById('holiday-list-body');
     if (!tbody) {
         console.error('节假日列表表格体不存在');
@@ -75,11 +102,10 @@ function loadHolidayData() {
     tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">加载中...</td></tr>';
 
     try {
-        // 直接使用holidayManager获取节假日数据，而不是从localStorage读取
-        const holidayData = window.holidayManager?.holidayData;
+        // 主动调用getHolidayData获取最新的节假日数据
+        const holidayData = await window.holidayManager?.getHolidayData();
         let allHolidays = [];
 
-        // 修复：适配不同的数据结构
         if (holidayData && holidayData.Years) {
             // 处理Years嵌套结构
             const years = holidayData.Years;
@@ -96,9 +122,10 @@ function loadHolidayData() {
         } else if (!holidayData) {
             tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">未找到节假日缓存数据，请先刷新节假日缓存</td></tr>';
             return;
-        } else if (Array.isArray(holidayData)) {
-            // 如果是直接的数组结构
-            allHolidays = holidayData;
+        } else {
+            console.warn('未知的节假日数据格式:', holidayData);
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">节假日数据格式未知，请检查数据来源</td></tr>';
+            return;
         }
 
         // 按开始日期倒序排序（时间更大的放在前面）
