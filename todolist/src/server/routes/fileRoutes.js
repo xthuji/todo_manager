@@ -10,58 +10,40 @@ const DATA_DIR = path.join(__dirname, '../../../data');
 const CACHE_DIR = path.join(__dirname, '../../../data/cache');
 
 // 缓存配置
-const CACHE_PREFIX = 'file_';
 const FILE_OPTIONS = {
     allowExpired: false, // 允许使用过期缓存作为兜底
     ttl: 300000 // 5分钟缓存
 };
 
-/**
- * 从缓存获取数据
- * @param {string} cacheKey 缓存键
- * @param {string} filePath 文件路径
- * @returns {Object|null} 缓存数据或null
- */
-async function getFromCache(cacheKey, filePath) {
-    try {
-        const fullCacheKey = `${CACHE_PREFIX}${cacheKey}`;
-        return cacheUtil.getWrappedData(fullCacheKey, {...FILE_OPTIONS, sourceFile: filePath});
-    } catch (error) {
-        console.error('从缓存读取失败:', error);
-        return null;
-    }
-}
+// 扫描文件系统
+async function scanFiles() {
+    // 读取data目录中的所有todo*.txt文件
+    const files = await fs.readdir(DATA_DIR);
+    const todoFiles = files.filter(file => file.startsWith('todo') && file.endsWith('.txt'));
 
-/**
- * 将数据保存到缓存
- * @param {string} cacheKey 缓存键
- * @param {Object} data 要缓存的数据
- * @param {String} filePath 文件路径
- */
-function saveToCache(cacheKey, data, filePath) {
-    try {
-        const fullCacheKey = `${CACHE_PREFIX}${cacheKey}`;
-        cacheUtil.setData(fullCacheKey, data, {... FILE_OPTIONS, sourceFile: filePath});
-    } catch (error) {
-        console.error('保存到缓存失败:', error);
-    }
-}
-
-/**
- * 清除文件相关缓存
- * @param {string} [specificFile] 特定文件名，不传则清除所有文件缓存
- */
-function clearFileCache(specificFile = null) {
-    try {
-        if (specificFile) {
-            // 清除特定文件的读取缓存
-            cacheUtil.delete(`${CACHE_PREFIX}read_${specificFile}`);
+    // 获取每个文件的信息（包括修改时间）
+    const fileInfoPromises = todoFiles.map(async file => {
+        try {
+            const stats = await fs.stat(path.join(DATA_DIR, file));
+            return {name: file, exists: true, mtime: stats.mtime.getTime() /* 修改时间戳 */};
+        } catch (error) {
+            return {name: file, exists: false};
         }
-        // 总是清除文件列表缓存
-        cacheUtil.delete(`${CACHE_PREFIX}file_list`);
-    } catch (error) {
-        console.error('清除文件缓存失败:', error);
-    }
+    });
+
+    const fileInfos = await Promise.all(fileInfoPromises);
+    console.log(`读取目录中的文件列表 ${DATA_DIR}`);
+
+    // 按修改时间降序排序（最新的文件在前）
+    const sortedFiles = fileInfos.sort((a, b) => {
+        if (!a.exists || !a.mtime) return 1;
+        if (!b.exists || !b.mtime) return -1;
+        return b.mtime - a.mtime;
+    });
+
+    // 如果有文件，默认选择最新的文件
+    const defaultFile = sortedFiles.length > 0 && sortedFiles[0].exists ? sortedFiles[0].name : 'todo.txt';
+    return {success: true, files: sortedFiles, defaultFile: defaultFile};
 }
 
 /**
@@ -70,63 +52,31 @@ function clearFileCache(specificFile = null) {
  */
 router.get('/scan', async (req, res) => {
     try {
-        // 1. 尝试从缓存获取文件列表
-        const cachedFiles = getFromCache('file_list');
-        if (cachedFiles) {
-            console.log('从缓存返回文件列表');
-            return res.json(cachedFiles);
-        }
-
-        // 2. 缓存不存在，扫描文件系统
-        // 读取data目录中的所有todo*.txt文件
-        const files = await fs.readdir(DATA_DIR);
-        const todoFiles = files.filter(file => file.startsWith('todo') && file.endsWith('.txt'));
-
-        // 获取每个文件的信息（包括修改时间）
-        const fileInfoPromises = todoFiles.map(async file => {
-            try {
-                const stats = await fs.stat(path.join(DATA_DIR, file));
-                return {
-                    name: file,
-                    exists: true,
-                    mtime: stats.mtime.getTime() // 修改时间戳
-                };
-            } catch (error) {
-                return {
-                    name: file,
-                    exists: false
-                };
-            }
+        const responseData = await cacheUtil.getWrappedDataAsync('file_list', {
+            ... FILE_OPTIONS,
+            loadDataFn: async () => await scanFiles()
         });
-
-        const fileInfos = await Promise.all(fileInfoPromises);
-
-        // 按修改时间降序排序（最新的文件在前）
-        const sortedFiles = fileInfos.sort((a, b) => {
-            if (!a.exists || !a.mtime) return 1;
-            if (!b.exists || !b.mtime) return -1;
-            return b.mtime - a.mtime;
-        });
-
-        // 如果有文件，默认选择最新的文件
-        const defaultFile = sortedFiles.length > 0 && sortedFiles[0].exists ? sortedFiles[0].name : 'todo.txt';
-
-        const responseData = {
-            success: true,
-            files: sortedFiles,
-            defaultFile: defaultFile
-        };
-
-        // 更新缓存
-        saveToCache('file_list', responseData, defaultFile);
-        console.log('扫描文件并更新缓存');
-
-        res.json({data: responseData, timestamp: Date.now()});
+        res.json(responseData);
     } catch (error) {
         console.error('扫描文件失败:', error);
         res.status(500).json({error: {message: '扫描文件失败: ' + error.message}});
     }
 });
+
+async function readFile(filename) {
+    const filePath = path.join(DATA_DIR, filename);
+
+    // 检查文件是否存在，如果不存在则创建空文件
+    try {
+        await fs.access(filePath);
+    } catch {
+        await fs.writeFile(filePath, '', 'utf8');
+    }
+
+    const content = await fs.readFile(filePath, 'utf8');
+    console.log(`读取文件 ${filename}`);
+    return {success: true, content: content};
+}
 
 /**
  * 读取文件内容接口
@@ -141,37 +91,35 @@ router.get('/read/:filename', async (req, res) => {
             return res.status(403).json({success: false, message: '不允许访问此文件'});
         }
 
-        // 1. 尝试从缓存获取文件内容
-        const cacheKey = `read_${filename}`;
-        const cachedContent = getFromCache(cacheKey);
-        if (cachedContent) {
-            console.log(`从缓存返回文件 ${filename} 的内容`);
-            return res.json(cachedContent);
-        }
+        const responseData = await cacheUtil.getWrappedDataAsync(`file_read_${filename}`, {
+            ... FILE_OPTIONS,
+            loadDataFn: async () => await readFile(filename)
+        })
 
-        // 2. 缓存不存在，从文件系统读取
-        const filePath = path.join(DATA_DIR, filename);
-
-        // 检查文件是否存在，如果不存在则创建空文件
-        try {
-            await fs.access(filePath);
-        } catch {
-            await fs.writeFile(filePath, '', 'utf8');
-        }
-
-        const content = await fs.readFile(filePath, 'utf8');
-        const responseData = {success: true, content: content};
-
-        // 更新缓存
-        saveToCache(cacheKey, responseData, filePath);
-        console.log(`读取文件 ${filename} 并更新缓存`);
-
-        res.json({data: responseData, timestamp: Date.now()});
+        res.json(responseData);
     } catch (error) {
         console.error('读取文件失败:', error);
         res.status(500).json({error: {message: '读取文件失败: ' + error.message}});
     }
 });
+
+
+/**
+ * 清除文件相关缓存
+ * @param {string} [specificFile] 特定文件名，不传则清除所有文件缓存
+ */
+function clearFileCache(specificFile = null) {
+    try {
+        if (specificFile) {
+            // 清除特定文件的读取缓存
+            cacheUtil.delete(`file_read_${specificFile}`);
+        }
+        // 总是清除文件列表缓存
+        cacheUtil.delete(`file_list`);
+    } catch (error) {
+        console.error('清除文件缓存失败:', error);
+    }
+}
 
 /**
  * 写入文件内容接口

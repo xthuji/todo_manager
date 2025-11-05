@@ -18,7 +18,7 @@ const AREA_CODES_OPTIONS = {
     ttl: 0
 };
 // 初始化 天气地区编码缓存数据
-cacheUtil.getWrappedData(AREA_CODES_KEY, AREA_CODES_OPTIONS);
+cacheUtil.getWrappedDataAsync(AREA_CODES_KEY, AREA_CODES_OPTIONS);
 
 const IP_LOCATION_OPTIONS = {
     allowExpired: true, // 允许使用过期缓存作为兜底
@@ -28,28 +28,6 @@ const IP_LOCATION_OPTIONS = {
 
 let mockIpAreaData;
 let areaCodesMap;
-
-/**
- * 接口级别响应缓存处理函数，用于缓存API响应数据
- * @param {string} clientIp - 客户端IP地址
- * @param {Object|null} locationData - 要缓存的位置数据，如果为null则执行读取操作
- * @returns {Object|null} 读取模式下返回完整的响应对象，写入模式下返回null
- */
-function cacheIpLocation(clientIp, locationData = null) {
-    if (!USE_CACHE) {
-        return null;
-    }
-    const cacheKey = `ip_${clientIp}`.replaceAll(':', "_");
-    if (locationData !== null) {
-        console.log('缓存位置数据:', cacheKey);
-        // 缓存包装好的响应格式
-        cacheUtil.setData(cacheKey, locationData, IP_LOCATION_OPTIONS);
-        return null;
-    } else {
-        // 读取模式：直接从缓存获取已经包装好的数据
-        return cacheUtil.getWrappedData(cacheKey, IP_LOCATION_OPTIONS);
-    }
-}
 
 // 辅助函数：递归查找区县信息，确定完整的省市县信息
 function findDistrictInfo(areaData, provinceName, districtName) {
@@ -186,6 +164,39 @@ async function getLocation2() {
 // 根据IP地址获取位置信息 - 综合多个API获取准确的城市地区信息
 // http://ip-api.com/json/?lang=zh-CN
 // https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}
+async function getCurrLocation() {
+    console.log('正在调用接口获取位置信息...');
+
+    // 位置数据
+    // 创建并行请求的Promise数组
+    const promises = [];
+    promises.push(getLocation1(), getLocation2());
+    const [addressData1, addressData2] = await Promise.all(promises);
+    const addressData = {...(addressData2 || addressData1)};
+    if (PRINT_DATA_LOG) {
+        console.log(`接口获取位置信息结果1: ${JSON.stringify(addressData1)}`);
+        console.log(`接口获取位置信息结果2: ${JSON.stringify(addressData2)}`);
+    }
+    if (PRINT_API_DATA) {
+        addressData.apiData = {addressData1, addressData2};
+    }
+
+    // 读取地区编码数据，用于查找完整的省市县信息
+    const allAreaCodes = getAllAreaCodes();
+    if (allAreaCodes && addressData.province !== '未知省份' && addressData.district !== '未知区县') {
+        // 使用辅助函数查找完整的省市县信息
+        const districtInfo = findDistrictInfo(allAreaCodes.data, addressData.province, addressData.district);
+        if (districtInfo) {
+            addressData.province = districtInfo.province || addressData.province;
+            addressData.city = districtInfo.city || addressData.city;
+            addressData.district = districtInfo.district || addressData.district;
+            addressData.code = districtInfo.code;
+        }
+    }
+    console.log('返回完整的位置数据:', JSON.stringify(addressData));
+    return addressData;
+}
+
 // https://weather.cma.cn/api/weather/view
 async function getLocation(clientIp) {
     try {
@@ -197,52 +208,11 @@ async function getLocation(clientIp) {
             return mockIpAreaData;
         }
 
-        // 尝试从接口级缓存获取结果
-        const cachedResponse = cacheIpLocation(clientIp);
-        if (cachedResponse) {
-            console.log('使用接口级缓存的位置信息响应');
-            // 直接返回缓存工具返回的格式，已经包含了data和timestamp
-            return cachedResponse;
-        }
-
-        console.log('正在调用接口获取位置信息...');
-
-        // 位置数据
-        // 创建并行请求的Promise数组
-        const promises = [];
-        promises.push(getLocation1(), getLocation2());
-        const [addressData1, addressData2] = await Promise.all(promises);
-        const addressData = {...(addressData2 || addressData1)};
-        if (PRINT_DATA_LOG) {
-            console.log(`接口获取位置信息结果1: ${JSON.stringify(addressData1)}`);
-            console.log(`接口获取位置信息结果2: ${JSON.stringify(addressData2)}`);
-        }
-        if (PRINT_API_DATA) {
-            addressData.apiData = {addressData1, addressData2};
-        }
-
-        // 读取地区编码数据，用于查找完整的省市县信息
-        const allAreaCodes = getAllAreaCodes();
-        if (allAreaCodes && addressData.province !== '未知省份' && addressData.district !== '未知区县') {
-            // 使用辅助函数查找完整的省市县信息
-            const districtInfo = findDistrictInfo(allAreaCodes.data, addressData.province, addressData.district);
-            if (districtInfo) {
-                addressData.province = districtInfo.province || addressData.province;
-                addressData.city = districtInfo.city || addressData.city;
-                addressData.district = districtInfo.district || addressData.district;
-                addressData.code = districtInfo.code;
-            }
-        }
-        console.log('返回完整的位置数据:', JSON.stringify(addressData));
-
-        // 更新缓存，存储完整响应对象
-        cacheIpLocation(clientIp, addressData);
-
-        // 返回标准格式的响应
-        return {
-            data: addressData,
-            timestamp: Date.now()
-        };
+        return cacheUtil.getWrappedDataAsync(`ip_${clientIp}`, {
+            allowExpired: true,
+            ttl: 60 * 60 * 1000,
+            loadDataFn: async () => await getCurrLocation()
+        });
     } catch (error) {
         console.error('获取位置信息失败:', error.message);
         return {

@@ -24,10 +24,10 @@ const cacheTest = async () => {
     await cache.setData(key, data, { ttl: 5000 });
     
     // 同步获取
-    const wrappedData = cache.getWrappedDataSync(key);
+    const wrappedData = cache.getWrappedData(key);
     console.log('同步获取结果:', wrappedData ? wrappedData.data : null);
     
-    const simpleData = cache.getDataSync(key);
+    const simpleData = cache.getData(key);
     console.log('同步获取简单数据:', simpleData);
   } catch (error) {
     console.error('同步函数测试失败:', error);
@@ -40,10 +40,10 @@ const cacheTest = async () => {
     const data = { async: 'test', time: Date.now() };
     await cache.setData(key, data);
     
-    const wrappedAsyncData = await cache.getWrappedData(key);
+    const wrappedAsyncData = await cache.getWrappedDataAsync(key);
     console.log('异步获取包装数据:', wrappedAsyncData ? wrappedAsyncData.data : null);
     
-    const simpleAsyncData = await cache.getData(key);
+    const simpleAsyncData = await cache.getDataAsync(key);
     console.log('异步获取简单数据:', simpleAsyncData);
   } catch (error) {
     console.error('异步函数测试失败:', error);
@@ -61,7 +61,7 @@ const cacheTest = async () => {
     fs.writeFileSync(sourceFilePath, JSON.stringify(sourceData));
     
     const sourceKey = 'test_source_key';
-    const sourceResult = await cache.getWrappedData(sourceKey, { sourceFile: sourceFilePath });
+    const sourceResult = await cache.getWrappedDataAsync(sourceKey, { sourceFile: sourceFilePath });
     console.log('从源文件加载结果:', sourceResult ? sourceResult.data : null);
   } catch (error) {
     console.error('源文件加载测试失败:', error);
@@ -79,7 +79,7 @@ const cacheTest = async () => {
     cache.memoryCache.clear();
     
     // 从默认文件加载
-    const defaultResult = await cache.getWrappedData(defaultKey);
+    const defaultResult = await cache.getWrappedDataAsync(defaultKey);
     console.log('从默认缓存文件加载结果:', defaultResult ? defaultResult.data : null);
   } catch (error) {
     console.error('默认缓存文件加载测试失败:', error);

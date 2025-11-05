@@ -109,9 +109,10 @@
       "date": "06-18"
     },
     {
-      "dateType": "solar",
       "name": "双11",
+      "alias": "",
       "type": "custom",
+      "dateType": "solar",
       "date": "11-11"
     },
     {
@@ -340,7 +341,5 @@
       "name": "大寒",
       "type": "solar_terms"
     }
-  ],
-  "holidayTypes": {},
-  "holidayStyles": {}
+  ]
 }

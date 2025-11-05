@@ -6,7 +6,7 @@ const { USE_CACHE, CACHE_DIR } = require('./constants');
  * 提供内存缓存和文件缓存两级缓存功能
  * * 核心设计：
  * - 异步优先：所有文件I/O操作均为异步，返回Promise，避免阻塞事件循环。
- * - 自动刷新：支持loadData函数，在缓存未命中或过期时自动异步加载。
+ * - 自动刷新：支持loadDataFn函数，在缓存未命中或过期时自动异步加载。
  * - 永久缓存：支持permanent标志，永久数据仅存留于内存中。
  */
 class CacheUtil {
@@ -54,8 +54,8 @@ class CacheUtil {
     };
   }
 
-  // 保存缓存项的异步方法（唯一）
-  async _saveCacheItem(key, cacheItem) {
+  // 保存缓存项的同步方法（默认）
+  _saveCacheItem(key, cacheItem) {
     // 更新内存缓存
     this.memoryCache.set(key, cacheItem);
 
@@ -64,9 +64,11 @@ class CacheUtil {
       try {
         const filePath = this._getFilePath(key);
         const dir = path.dirname(filePath);
-        // 异步按需创建目录
-        await fs.promises.mkdir(dir, { recursive: true });
-        await fs.promises.writeFile(filePath, JSON.stringify(cacheItem), 'utf8');
+        // 同步按需创建目录
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, JSON.stringify(cacheItem), 'utf8');
         return true;
       } catch (error) {
         this._log('error', `写入缓存文件失败: ${key}`, { error });
@@ -100,7 +102,7 @@ class CacheUtil {
    * 提供更简洁的接口，直接返回缓存的数据内容
    * 
    * @param {string} key 缓存键
-   * @param {Object} options 选项 (见 getWrappedDataSync)
+   * @param {Object} options 选项 (见 getWrappedData)
    * @returns {*} 缓存的数据，如果不存在则返回null
    * 
    * @example
@@ -115,21 +117,21 @@ class CacheUtil {
    * - 在同步代码环境中快速访问缓存
    * - 模块初始化时加载配置数据
    * 
-   * @see getWrappedDataSync 获取完整的包装数据（包含过期状态等信息）
+   * @see getWrappedData 获取完整的包装数据（包含过期状态等信息）
    */
-  getDataSync(key, options = {}) {
-    const wrappedData = this.getWrappedDataSync(key, options);
+  getData(key, options = {}) {
+    const wrappedData = this.getWrappedData(key, options);
     return wrappedData ? wrappedData.data : null;
   }
 
   /**
-   * 异步获取缓存数据（仅数据）
+   * 异步获取缓存数据（仅数据）- 异步版本
    * @param {string} key 缓存键
-   * @param {Object} options 选项 (见 getWrappedData)
+   * @param {Object} options 选项 (见 getWrappedDataAsync)
    * @returns {Promise<*>} 缓存的数据，如果不存在则返回null
    */
-  async getData(key, options = {}) {
-    const wrappedData = await this.getWrappedData(key, options);
+  async getDataAsync(key, options = {}) {
+    const wrappedData = await this.getWrappedDataAsync(key, options);
     return wrappedData ? wrappedData.data : null;
   }
 
@@ -137,7 +139,8 @@ class CacheUtil {
    * 从指定源文件同步加载数据
    * @private
    */
-  _loadFromSourceFileSync(key, sourceFile, options, now) {
+  _loadFromSourceFile(key, options, now) {
+    const sourceFile = options.sourceFile;
     try {
       this._log('debug', `尝试从源文件同步加载数据: key=${key}, file=${sourceFile}`);
 
@@ -162,12 +165,11 @@ class CacheUtil {
 
       let dataToReturn = fileData.data;
       let fileTimestamp = fileData.timestamp;
-      let ttl = fileData.ttl;
-      if (typeof dataToReturn === 'undefined' || typeof fileTimestamp === 'undefined' || typeof ttl === 'undefined') {
+      let ttl = fileData.ttl || options.permanent && options.ttl === undefined ? 0 :
+          (options.ttl !== undefined ? options.ttl : this.defaultTTL);
+      if (typeof dataToReturn === 'undefined' || typeof fileTimestamp === 'undefined') {
         dataToReturn = fileData;
         fileTimestamp = stats.mtimeMs || now;
-        ttl = options.permanent && options.ttl === undefined ? 0 :
-            (options.ttl !== undefined ? options.ttl : this.defaultTTL);
         this._log('debug', `检测到非缓存格式数据，进行转换: key=${key}`);
       }
 
@@ -194,29 +196,12 @@ class CacheUtil {
     return null;
   }
 
-  /**
-   * 从指定源文件异步加载数据
-   * @private
-   */
-  async _loadFromSourceFile(key, sourceFile, options, now) {
-    // 异步包装同步操作，复用同步实现
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        try {
-          resolve(this._loadFromSourceFileSync(key, sourceFile, options, now));
-        } catch (error) {
-          this._log('error', `从源文件加载数据时出错: key=${key}, file=${sourceFile}`, { error });
-          resolve(null);
-        }
-      }, 0);
-    });
-  }
 
   /**
    * 从默认缓存文件同步加载数据
    * @private
    */
-  _loadFromDefaultCacheSync(key, options, now) {
+  _loadFromDefaultCache(key, options, now) {
     try {
       this._log('debug', `尝试从默认缓存文件同步加载数据: key=${key}`);
 
@@ -264,33 +249,15 @@ class CacheUtil {
   }
 
   /**
-   * 从默认缓存文件异步加载数据
+   * 从自定义加载函数加载数据（同步）
    * @private
    */
-  async _loadFromDefaultCache(key, options, now) {
-    // 异步包装同步操作，复用同步实现
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        try {
-          resolve(this._loadFromDefaultCacheSync(key, options, now));
-        } catch (error) {
-          this._log('error', `从默认缓存文件加载数据时出错: key=${key}`, { error });
-          resolve(null);
-        }
-      }, 0);
-    });
-  }
-
-  /**
-   * 从自定义加载函数异步加载数据（支持永久数据）
-   * @private
-   */
-  async _loadFromCustomLoader(key, loadData, options, now, sourceFile) {
+  _loadFromCustomLoader(key, options) {
     try {
-      this._log('debug', `尝试从自定义加载函数加载数据: key=${key}`);
+      this._log('debug', `尝试从自定义加载函数同步加载数据: key=${key}`);
 
-      const data = await loadData();
-
+      // 同步执行加载函数
+      let data = options.loadDataFn();
       if (data === undefined || data === null) {
         this._log('warn', `自定义加载函数返回无效数据: key=${key}, 返回值=${data}`);
         return null;
@@ -298,9 +265,10 @@ class CacheUtil {
 
       this._log('debug', `成功从自定义加载函数获取数据: key=${key}`);
 
-      const setResult = await this.setData(key, data, {
+      // 使用同步方法设置缓存
+      const setResult = this.setData(key, data, {
         ttl: options.ttl || this.defaultTTL,
-        sourceFile,
+        sourceFile: options.sourceFile,
         permanent: !!options.permanent
       });
 
@@ -310,33 +278,71 @@ class CacheUtil {
 
       return {
         data: data,
-        timestamp: now,
+        timestamp: Date.now(),
         expired: false,
         permanent: !!options.permanent
       };
     } catch (error) {
-      this._log('error', `从自定义加载函数加载数据时出错: key=${key}`, { error });
+      this._log('error', `从自定义加载函数同步加载数据时出错: key=${key}`, { error });
       return null;
     }
   }
 
+  /**
+   * 从自定义加载函数加载数据（异步）
+   * @private
+   */
+  async _loadFromCustomLoaderAsync(key, options) {
+    try {
+      this._log('debug', `尝试从自定义加载函数异步加载数据: key=${key}`);
+
+      // 异步执行加载函数
+      let data = await options.loadDataFn();
+      if (data === undefined || data === null) {
+        this._log('warn', `自定义加载函数返回无效数据: key=${key}, 返回值=${data}`);
+        return null;
+      }
+
+      this._log('debug', `成功从自定义加载函数获取数据: key=${key}`);
+
+      // 使用异步方法设置缓存
+      const setResult = this.setData(key, data, {
+        ttl: options.ttl || this.defaultTTL,
+        sourceFile: options.sourceFile,
+        permanent: !!options.permanent
+      });
+
+      if (!setResult) {
+        this._log('warn', `数据加载成功但缓存设置失败: key=${key}`);
+      }
+
+      return {
+        data: data,
+        timestamp: Date.now(),
+        expired: false,
+        permanent: !!options.permanent
+      };
+    } catch (error) {
+      this._log('error', `从自定义加载函数异步加载数据时出错: key=${key}`, {error});
+      return null;
+    }
+  }
 
   /**
-   * 同步获取缓存数据（返回包装后的数据 {data, timestamp, expired}）
-   * 核心功能：同步获取缓存，如缓存不存在或已过期，仅从文件系统读取
+   * 同步获取缓存数据（返回包装后的数据 {data, timestamp, expired}）- 默认方法
+   * 核心功能：同步获取缓存，如缓存不存在或已过期，可通过options.loadDataFn同步加载数据并更新缓存
    * 
    * @param {string} key 缓存键
    * @param {Object} options 选项
    * @param {boolean} options.allowExpired 是否允许使用过期缓存
    * @param {string} options.sourceFile 可选的源文件路径，直接将该文件作为缓存文件使用
-   * @param {number} options.ttl 可选的缓存过期时间
+   * @param {Function} options.loadDataFn 可选的自定义数据加载函数，当缓存不存在或已过期时调用（必须是同步函数）
+   * @param {number} options.ttl 可选的缓存过期时间，用于loadDataFn加载的数据
    * @returns {Object|null} 包装后的缓存数据 {data, timestamp, expired, permanent}
-   * 
-   * @note 同步版本不支持options.loadData，因为它需要异步操作
    * 
    * @example
    * // 基本使用 - 从内存或文件缓存同步获取数据
-   * const wrappedData = cacheUtil.getWrappedDataSync('user_settings');
+   * const wrappedData = cacheUtil.getWrappedData('user_settings');
    * if (wrappedData) {
    *   console.log('数据:', wrappedData.data);
    *   console.log('是否过期:', wrappedData.expired);
@@ -344,38 +350,46 @@ class CacheUtil {
    * 
    * @example
    * // 从指定源文件获取数据
-   * const data = cacheUtil.getWrappedDataSync('config_data', {
+   * const data = cacheUtil.getWrappedData('config_data', {
    *   sourceFile: './config.json'
    * });
    * 
    * @example
    * // 允许使用过期数据
-   * const cachedData = cacheUtil.getWrappedDataSync('stale_data', {
+   * const cachedData = cacheUtil.getWrappedData('stale_data', {
    *   allowExpired: true
+   * });
+   * 
+   * @example
+   * // 使用同步loadDataFn加载数据
+   * const data = cacheUtil.getWrappedData('dynamic_data', {
+   *   loadDataFn: () => {
+   *     // 同步加载数据的逻辑
+   *     return { value: '动态加载的数据' };
+   *   }
    * });
    * 
    * @usageScenario
    * - 在需要同步代码环境中使用缓存（如模块初始化时）
    * - 在不支持异步操作的回调函数中使用缓存
-   * - 简单的数据读取场景，不需要动态加载数据
+   * - 需要同步动态加载数据的场景
    * 
    * @limitation
-   * - 不支持options.loadData参数，无法在缓存不存在时动态加载数据
+   * - loadDataFn参数必须是同步函数，不支持返回Promise的异步函数
    * - 可能会阻塞事件循环，不推荐在高并发场景下频繁使用
    * - 文件操作失败时会记录错误并返回null
    */
-  getWrappedDataSync(key, options = {}) {
+  getWrappedData(key, options = {}) {
     if (!USE_CACHE) return null;
-
-    const { allowExpired = false, sourceFile = null } = options;
     const now = Date.now();
+    const safeKey = this._getSafeKey(key);
 
     // 1. 尝试从内存缓存获取（同步）
-    const memoryItem = this.memoryCache.get(key);
+    const memoryItem = this.memoryCache.get(safeKey);
     if (memoryItem) {
       const isExpired = memoryItem.ttl !== 0 && now > memoryItem.timestamp + memoryItem.ttl;
 
-      if (!isExpired || allowExpired) {
+      if (!isExpired || options.allowExpired) {
         return {
           data: memoryItem.data,
           timestamp: memoryItem.timestamp,
@@ -388,75 +402,19 @@ class CacheUtil {
     // 2. 尝试从文件缓存获取 (同步)
     let fileData;
 
-    if (sourceFile) {
-      fileData = this._loadFromSourceFileSync(key, sourceFile, options, now);
+    if (options.sourceFile) {
+      fileData = this._loadFromSourceFile(safeKey, options, now);
     } else {
-      fileData = this._loadFromDefaultCacheSync(key, options, now);
+      fileData = this._loadFromDefaultCache(safeKey, options, now);
     }
-
-    // 3. 同步版本不支持loadData，因为它需要异步操作
-    if (options.loadData && typeof options.loadData === 'function') {
-      this._log('warn', `同步方法getWrappedDataSync不支持loadData参数，建议使用异步方法getWrappedData`);
-    }
-
-    return fileData;
-  }
-
-  /**
-   * 异步获取缓存数据（返回包装后的数据 {data, timestamp, expired}）
-   * 核心功能：异步获取缓存，如缓存不存在或已过期，可通过options.loadData异步加载数据并更新缓存
-   * @param {string} key 缓存键
-   * @param {Object} options 选项
-   * @param {boolean} options.allowExpired 是否允许使用过期缓存
-   * @param {string} options.sourceFile 可选的源文件路径，直接将该文件作为缓存文件使用
-   * @param {Function} options.loadData 可选的自定义数据加载函数，当缓存不存在或已过期时调用
-   * @param {number} options.ttl 可选的缓存过期时间，用于loadData加载的数据
-   * @returns {Promise<Object|null>} 包装后的缓存数据 {data, timestamp, expired, permanent}
-   */
-  async getWrappedData(key, options = {}) {
-    if (!USE_CACHE) return null;
-
-    const { allowExpired = false, sourceFile = null } = options;
-    const now = Date.now();
-
-    // 1. 尝试从内存缓存获取（同步）
-    const memoryItem = this.memoryCache.get(key);
-    if (memoryItem) {
-      const isExpired = memoryItem.ttl !== 0 && now > memoryItem.timestamp + memoryItem.ttl;
-
-      if (!isExpired || allowExpired) {
-        return {
-          data: memoryItem.data,
-          timestamp: memoryItem.timestamp,
-          expired: isExpired,
-          permanent: !!memoryItem.permanent
-        };
-      }
-    }
-
-    // 2. 尝试从文件缓存获取 (异步包装同步操作)
-    let fileData = await new Promise((resolve) => {
-      setTimeout(() => {
-        try {
-          if (sourceFile) {
-            resolve(this._loadFromSourceFileSync(key, sourceFile, options, now));
-          } else {
-            resolve(this._loadFromDefaultCacheSync(key, options, now));
-          }
-        } catch (error) {
-          this._log('error', `从文件缓存读取时出错: key=${key}`, { error });
-          resolve(null);
-        }
-      }, 0);
-    });
 
     if (fileData) {
       return fileData;
     }
 
-    // 3. 尝试使用自定义数据加载函数 (异步)
-    if (options.loadData && typeof options.loadData === 'function') {
-      const customData = await this._loadFromCustomLoader(key, options.loadData, options, now, sourceFile);
+    // 3. 尝试使用自定义同步数据加载函数
+    if (options.loadDataFn && typeof options.loadDataFn === 'function') {
+      const customData = this._loadFromCustomLoader(safeKey, options);
       if (customData) {
         return customData;
       }
@@ -466,62 +424,155 @@ class CacheUtil {
   }
 
   /**
-   * 异步设置缓存数据
+   * 异步获取缓存数据（返回包装后的数据 {data, timestamp, expired}）
+   * 核心功能：异步获取缓存，如缓存不存在或已过期，可通过options.loadDataFn异步加载数据并更新缓存
+   * 
+   * @param {string} key 缓存键
+   * @param {Object} options 选项
+   * @param {boolean} options.allowExpired 是否允许使用过期缓存
+   * @param {string} options.sourceFile 可选的源文件路径，直接将该文件作为缓存文件使用
+   * @param {Function} options.loadDataFn 可选的自定义数据加载函数，当缓存不存在或已过期时调用（支持返回Promise的异步函数）
+   * @param {number} options.ttl 可选的缓存过期时间，用于loadDataFn加载的数据
+   * @returns {Promise<Object|null>} 包装后的缓存数据 {data, timestamp, expired, permanent}
+   *
+   * @example
+   * // 基本使用 - 从内存或文件缓存异步获取数据
+   * const wrappedData = await cacheUtil.getWrappedDataAsync('user_settings');
+   * if (wrappedData) {
+   *   console.log('数据:', wrappedData.data);
+   *   console.log('是否过期:', wrappedData.expired);
+   * }
+   *
+   * @example
+   * // 从指定源文件获取数据
+   * const data = await cacheUtil.getWrappedDataAsync('config_data', {
+   *   sourceFile: './config.json'
+   * });
+   *
+   * @example
+   * // 允许使用过期数据
+   * const cachedData = await cacheUtil.getWrappedDataAsync('stale_data', {
+   *   allowExpired: true
+   * });
+   *
+   * @example
+   * // 异步使用loadDataFn加载数据
+   * const data = await cacheUtil.getWrappedDataAsync('dynamic_data', {
+   *   loadDataFn: async () => {
+   *     // 异步加载数据的逻辑
+   *     return { value: '异步加载的数据' };
+   *   }
+   * });
+   *
+   * @usageScenario
+   * - 在支持异步操作的环境中使用缓存
+   * - 需要通过网络请求等异步操作加载数据的场景
+   * - 不希望阻塞事件循环的高并发场景
+   * 
+   * @limitation
+   * - 必须在异步函数中使用await关键字
+   * - 文件操作失败时会记录错误并返回null
+   */
+  async getWrappedDataAsync(key, options = {}) {
+    if (!USE_CACHE) return null;
+    const now = Date.now();
+    const safeKey = this._getSafeKey(key);
+
+    // 1. 尝试从内存缓存获取（同步）
+    const memoryItem = this.memoryCache.get(safeKey);
+    if (memoryItem) {
+      const isExpired = memoryItem.ttl !== 0 && now > memoryItem.timestamp + memoryItem.ttl;
+
+      if (!isExpired || options.allowExpired) {
+        return {
+          data: memoryItem.data,
+          timestamp: memoryItem.timestamp,
+          expired: isExpired,
+          permanent: !!memoryItem.permanent
+        };
+      }
+    }
+
+    // 2. 尝试从文件缓存获取 (同步)
+    let fileData;
+
+    if (options.sourceFile) {
+      fileData = this._loadFromSourceFile(safeKey, options, now);
+    } else {
+      fileData = this._loadFromDefaultCache(safeKey, options, now);
+    }
+
+    if (fileData) {
+      return fileData;
+    }
+
+    // 3. 尝试使用自定义同步数据加载函数
+    if (options.loadDataFn && typeof options.loadDataFn === 'function') {
+      const customData = await this._loadFromCustomLoaderAsync(safeKey, options);
+      if (customData) {
+        return customData;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 同步设置缓存数据（默认）
    * @param {string} key 缓存键
    * @param {*} data 要缓存的原始数据
    * @param {Object} options 选项
    * @param {number} options.ttl 过期时间（毫秒），0表示永不过期
    * @param {boolean} options.permanent 是否为永久数据（用户配置类型的数据）
-   * @returns {Promise<boolean>} 是否设置成功
+   * @returns {boolean} 是否设置成功
    */
-  async setData(key, data, options = {}) {
+  setData(key, data, options = {}) {
     if (!USE_CACHE) return false;
-
-    this._log('debug', `开始设置缓存数据: key=${key}`);
+    const safeKey = this._getSafeKey(key);
+    this._log('debug', `开始设置缓存数据: key=${safeKey}`);
 
     try {
       const cacheItem = this._createCacheItem(data, options);
-      return await this._saveCacheItem(key, cacheItem);
+      return this._saveCacheItem(safeKey, cacheItem);
     } catch (error) {
-      this._log('error', `设置缓存数据时发生错误: key=${key}`, { error });
+      this._log('error', `设置缓存数据时发生错误: key=${safeKey}`, { error });
       return false;
     }
   }
-
   /**
-   * 异步删除缓存
+   * 同步删除缓存（默认）
    * @param {string} key 缓存键
-   * @returns {Promise<boolean>} 是否删除成功
+   * @returns {boolean} 是否删除成功
    */
-  async delete(key) {
+  delete(key) {
+    const safeKey = this._getSafeKey(key);
+    this._log('debug', `开始删除缓存数据: key=${safeKey}`);
     try {
       // 1. 从内存缓存删除
-      this.memoryCache.delete(key);
+      this.memoryCache.delete(safeKey);
 
       // 2. 从文件缓存删除
-      const filePath = this._getFilePath(key);
-      await fs.promises.unlink(filePath).catch(err => {
-        // 如果文件不存在，忽略错误
-        if (err.code !== 'ENOENT') throw err;
-      });
+      const filePath = this._getFilePath(safeKey);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
 
       return true;
     } catch (error) {
-      this._log('error', `删除缓存失败: key=${key}`, { error });
+      this._log('error', `删除缓存失败: key=${safeKey}`, { error });
       return false;
     }
   }
 
   /**
-   * 异步检查缓存是否存在且未过期
+   * 同步检查缓存是否存在且未过期（默认）
    * @param {string} key 缓存键
-   * @returns {Promise<boolean>} 是否存在且未过期
+   * @returns {boolean} 是否存在且未过期
    */
-  async has(key) {
-    const wrappedData = await this.getWrappedData(key, { allowExpired: false });
+  has(key) {
+    const wrappedData = this.getWrappedData(key, { allowExpired: false });
     return wrappedData !== null && !wrappedData.expired;
   }
-
 }
 
 // 创建并导出默认缓存工具实例
