@@ -222,13 +222,9 @@ export function handleFilterChange(filterId) {
     // 检查是否选中了"全部"选项
     const hasSelectedAll = selectedValues.includes('all');
     
-    if (hasSelectedAll) {
-        // 如果选中了"全部"选项，取消其他所有选择
-        if (selectedValues.length > 1) {
-            filterElement.value = ['all'];
-        }
-    } else if (selectedValues.length === 0) {
-        // 当没有选择任何选项时，自动选择"全部"选项
+    // 移除多选限制，允许用户同时选择"全部"和其他选项
+    // 只在没有选择任何选项时，自动选择"全部"选项
+    if (selectedValues.length === 0) {
         filterElement.value = ['all'];
     }
 }

@@ -311,208 +311,145 @@ export async function renderTaskList(tasks) {
 }
 
 // 初始化项目和上下文筛选下拉框
-export function initProjectAndContextFilters() {
+// 初始化筛选器事件监听器的公共函数
+function initFilterEventListeners(filterElement) {
+    if (filterElement && !filterElement.hasAttribute('data-event-added')) {
+        filterElement.setAttribute('data-event-added', 'true');
+        
+        // 只在选项改变时调用handleFilterChange，不触发筛选
+        filterElement.addEventListener('change', function() {
+            handleFilterChange(this.id);
+        });
+        
+        // 控制下拉框展开/折叠，并处理点击区域限制
+        filterElement.addEventListener('click', function(e) {
+            // 防止事件冒泡导致失焦
+            e.stopPropagation();
+            
+            // 检查点击是否发生在option元素上
+            let target = e.target;
+            if (target.tagName === 'OPTION') {
+                // 获取鼠标点击位置
+                const rect = target.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                
+                // 如果点击在勾选框区域外（假设勾选框宽度为24px），阻止默认行为
+                if (clickX > 24) {
+                    e.preventDefault();
+                    return; // 直接返回，不执行展开/折叠逻辑
+                }
+            } else {
+                // 不是点击在option上，控制下拉框展开/折叠
+                this.classList.toggle('expanded');
+                // 同时切换容器的expanded类以控制箭头旋转
+                this.parentElement.classList.toggle('expanded');
+            }
+        });
+        
+        // 失焦时折叠下拉框，但不触发筛选
+        filterElement.addEventListener('blur', function() {
+            this.classList.remove('expanded');
+            // 同时移除容器的expanded类
+            this.parentElement.classList.remove('expanded');
+        });
+    }
+}
+
+// 更新筛选器选项的公共函数
+function updateFilterOptions(filterElement, options, selectedValues = []) {
+    if (!filterElement) return;
     
-    // 获取所有唯一的项目
+    // 保存"全部"选项
+    const allOption = filterElement.querySelector('option[value="all"]');
+    
+    // 清空筛选器
+    filterElement.innerHTML = '';
+    
+    // 添加"全部"选项
+    if (allOption) {
+        filterElement.appendChild(allOption);
+    } else {
+        const option = document.createElement('option');
+        option.value = 'all';
+        option.textContent = '全部';
+        option.selected = true;
+        filterElement.appendChild(option);
+    }
+    
+    // 添加新选项
+    options.forEach(optionValue => {
+        const option = document.createElement('option');
+        option.value = optionValue;
+        option.textContent = optionValue;
+        filterElement.appendChild(option);
+    });
+    
+    // 恢复选中的值
+    if (selectedValues.length > 0) {
+        selectedValues.forEach(value => {
+            const option = filterElement.querySelector(`option[value="${value}"]`);
+            if (option) {
+                option.selected = true;
+            }
+        });
+    }
+}
+
+export function initProjectAndContextFilters() {
+    // 初始化项目筛选器
     const projects = [...new Set(tasks.map(task => task.project).filter(project => project))];
     const projectFilter = document.getElementById('project-filter');
     if (projectFilter) {
         // 保存当前选中的值
         const selectedProjects = Array.from(projectFilter.selectedOptions).map(option => option.value);
         
-        // 清空除了"全部"选项外的所有选项
-        const allOption = projectFilter.querySelector('option[value="all"]');
-        projectFilter.innerHTML = '';
-        if (allOption) {
-            projectFilter.appendChild(allOption);
-        } else {
-            const option = document.createElement('option');
-            option.value = 'all';
-            option.textContent = '全部';
-            option.selected = true;
-            projectFilter.appendChild(option);
-        }
+        // 更新选项
+        updateFilterOptions(projectFilter, projects, selectedProjects);
         
-        // 添加项目选项
-        projects.forEach(project => {
-            const option = document.createElement('option');
-            option.value = project;
-            option.textContent = project;
-            projectFilter.appendChild(option);
-        });
-        
-        // 恢复选中的值
-        if (selectedProjects.length > 0) {
-            selectedProjects.forEach(value => {
-                const option = projectFilter.querySelector(`option[value="${value}"]`);
-                if (option) {
-                    option.selected = true;
-                }
-            });
-        }
-        
-        // 添加事件监听器
-        if (!projectFilter.hasAttribute('data-event-added')) {
-            projectFilter.setAttribute('data-event-added', 'true');
-            projectFilter.addEventListener('change', function() {
-                handleFilterChange(this.id);
-            });
-            projectFilter.addEventListener('click', function(e) {
-                // 防止事件冒泡导致失焦
-                e.stopPropagation();
-                this.classList.toggle('expanded');
-                // 同时切换容器的expanded类以控制箭头旋转
-                this.parentElement.classList.toggle('expanded');
-            });
-            projectFilter.addEventListener('blur', function() {
-                // 失焦时折叠下拉框并触发筛选
-                this.classList.remove('expanded');
-                // 同时移除容器的expanded类
-                this.parentElement.classList.remove('expanded');
-            });
-        }
+        // 初始化事件监听器
+        initFilterEventListeners(projectFilter);
     }
     
-    // 获取所有唯一的上下文
+    // 初始化上下文筛选器
     const contexts = [...new Set(tasks.map(task => task.context).filter(context => context))];
     const contextFilter = document.getElementById('context-filter');
     if (contextFilter) {
         // 保存当前选中的值
         const selectedContexts = Array.from(contextFilter.selectedOptions).map(option => option.value);
         
-        // 清空除了"全部"选项外的所有选项
-        const allOption = contextFilter.querySelector('option[value="all"]');
-        contextFilter.innerHTML = '';
-        if (allOption) {
-            contextFilter.appendChild(allOption);
-        } else {
-            const option = document.createElement('option');
-            option.value = 'all';
-            option.textContent = '全部';
-            option.selected = true;
-            contextFilter.appendChild(option);
-        }
+        // 更新选项
+        updateFilterOptions(contextFilter, contexts, selectedContexts);
         
-        // 添加上下文选项
-        contexts.forEach(context => {
-            const option = document.createElement('option');
-            option.value = context;
-            option.textContent = context;
-            contextFilter.appendChild(option);
-        });
-        
-        // 恢复选中的值
-        if (selectedContexts.length > 0) {
-            selectedContexts.forEach(value => {
-                const option = contextFilter.querySelector(`option[value="${value}"]`);
-                if (option) {
-                    option.selected = true;
-                }
-            });
-        }
-        
-        // 添加事件监听器
-    if (!contextFilter.hasAttribute('data-event-added')) {
-        contextFilter.setAttribute('data-event-added', 'true');
-        contextFilter.addEventListener('change', function() {
-            handleFilterChange(this.id);
-        });
-        contextFilter.addEventListener('click', function(e) {
-            // 防止事件冒泡导致失焦
-            e.stopPropagation();
-            this.classList.toggle('expanded');
-            // 同时切换容器的expanded类以控制箭头旋转
-            this.parentElement.classList.toggle('expanded');
-        });
-        contextFilter.addEventListener('blur', function() {
-            // 失焦时折叠下拉框并触发筛选
-            this.classList.remove('expanded');
-            // 同时移除容器的expanded类
-            this.parentElement.classList.remove('expanded');
-        });
-    }
+        // 初始化事件监听器
+        initFilterEventListeners(contextFilter);
     }
     
-    // 添加状态筛选器事件监听器
+    // 初始化状态筛选器事件监听器
     const statusFilter = document.getElementById('status-filter');
-    if (statusFilter && !statusFilter.hasAttribute('data-event-added')) {
-        statusFilter.setAttribute('data-event-added', 'true');
-        statusFilter.addEventListener('change', function() {
-            handleFilterChange(this.id);
-        });
-        statusFilter.addEventListener('click', function(e) {
-            // 防止事件冒泡导致失焦
-            e.stopPropagation();
-            this.classList.toggle('expanded');
-            // 同时切换容器的expanded类以控制箭头旋转
-            this.parentElement.classList.toggle('expanded');
-        });
-        statusFilter.addEventListener('blur', function() {
-            // 失焦时折叠下拉框并触发筛选
-            this.classList.remove('expanded');
-            // 同时移除容器的expanded类
-            this.parentElement.classList.remove('expanded');
-        });
-    }
+    initFilterEventListeners(statusFilter);
     
-    // 添加时间筛选器事件监听器
+    // 初始化时间筛选器事件监听器
     const dateFilter = document.getElementById('date-filter');
-    if (dateFilter && !dateFilter.hasAttribute('data-event-added')) {
-        dateFilter.setAttribute('data-event-added', 'true');
-        dateFilter.addEventListener('change', function() {
-            handleFilterChange(this.id);
-        });
-        dateFilter.addEventListener('click', function(e) {
-            // 防止事件冒泡导致失焦
-            e.stopPropagation();
-            this.classList.toggle('expanded');
-            // 同时切换容器的expanded类以控制箭头旋转
-            this.parentElement.classList.toggle('expanded');
-        });
-        dateFilter.addEventListener('blur', function() {
-            // 失焦时折叠下拉框并触发筛选
-            this.classList.remove('expanded');
-            // 同时移除容器的expanded类
-            this.parentElement.classList.remove('expanded');
-        });
-    }
+    initFilterEventListeners(dateFilter);
     
-    // 添加优先级筛选器事件监听器
+    // 初始化优先级筛选器事件监听器
     const priorityFilter = document.getElementById('priority-filter');
-    if (priorityFilter && !priorityFilter.hasAttribute('data-event-added')) {
-        priorityFilter.setAttribute('data-event-added', 'true');
-        priorityFilter.addEventListener('change', function() {
-            handleFilterChange(this.id);
-        });
-        priorityFilter.addEventListener('click', function(e) {
-            // 防止事件冒泡导致失焦
-            e.stopPropagation();
-            this.classList.toggle('expanded');
-            // 同时切换容器的expanded类以控制箭头旋转
-            this.parentElement.classList.toggle('expanded');
-        });
-        priorityFilter.addEventListener('blur', function() {
-            // 失焦时折叠下拉框并触发筛选
-            this.classList.remove('expanded');
-            // 同时移除容器的expanded类
-            this.parentElement.classList.remove('expanded');
-        });
-    }
-    
-    // 添加搜索框事件监听器
-    const searchInput = document.getElementById('search-input');
-    if (searchInput && !searchInput.hasAttribute('data-event-added')) {
-        searchInput.setAttribute('data-event-added', 'true');
-        // 移除实时筛选，改为由查询按钮触发
-        // searchInput.addEventListener('input', () => renderTaskList(tasks));
-    }
+    initFilterEventListeners(priorityFilter);
+}
 
-    // 添加查询按钮事件监听器
-    const filterSearchBtn = document.getElementById('filter-search-btn');
-    if (filterSearchBtn && !filterSearchBtn.hasAttribute('data-event-added')) {
-        filterSearchBtn.setAttribute('data-event-added', 'true');
-        filterSearchBtn.addEventListener('click', performFiltering);
-    }
+// 添加搜索框事件监听器
+const searchInput = document.getElementById('search-input');
+if (searchInput && !searchInput.hasAttribute('data-event-added')) {
+    searchInput.setAttribute('data-event-added', 'true');
+    // 移除实时筛选，改为由查询按钮触发
+    // searchInput.addEventListener('input', () => renderTaskList(tasks));
+}
+
+// 添加查询按钮事件监听器
+const filterSearchBtn = document.getElementById('filter-search-btn');
+if (filterSearchBtn && !filterSearchBtn.hasAttribute('data-event-added')) {
+    filterSearchBtn.setAttribute('data-event-added', 'true');
+    filterSearchBtn.addEventListener('click', performFiltering);
 }
 
 // 筛选任务
