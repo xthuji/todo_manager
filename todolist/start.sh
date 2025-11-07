@@ -44,5 +44,15 @@ function openUrlInBrowser(){
 }
 # 启动应用
 echo "正在启动待办事项管理系统..."
-# openUrlInBrowser & pnpm start
-pnpm start
+# 判断当前运行环境是否为 macOS 终端类 App（Terminal.app / iTerm.app / Alacritty 等）
+case "$TERM_PROGRAM" in
+    "Apple_Terminal"|"iTerm"|"Alacritty"|"Hyper"|"WezTerm")
+        # 属于常见终端 App，启动服务并自动打开浏览器
+        openUrlInBrowser & pnpm start
+        ;;
+    *)
+        # 其他环境（如 VS Code 内置终端、CI、SSH 等）仅启动服务
+        echo "当前环境 $TERM_PROGRAM 不是常见终端 App，跳过打开浏览器。"
+        pnpm start
+        ;;
+esac
