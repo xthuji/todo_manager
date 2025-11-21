@@ -725,7 +725,7 @@ function showDetailedGuide() {
 1. 在应用程序的「实用工具」中打开终端
 2. 执行命令： ${FULL_START_COMMAND}
 
-服务启动后，访问 http://localhost:3000 即可使用系统！`;
+服务启动后，访问 http://localhost:${localStorage.getItem('serverPort') || 3000} 即可使用系统！`;
     
     alert(guideMessage);
 }

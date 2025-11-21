@@ -5,32 +5,43 @@
   "preload": "preload.js",
   "version": "1.0.0",
   "description": "一个集任务管理、节日管理、日历视图和天气查询于一体的综合性管理系统",
-  "author": "Your Name",
+  "author": "xthuji",
   "homepage": "https://github.com/yourusername/utools_todolist",
   "features": [
     {
+      "code": "todolist",
+      "explain": "任务和节假日管理",
+      "cmds": ["todolist"],
+      "icon": "assets/img/todolist.png",
+      "page": "pages/index.html"
+    },
+    {
       "code": "todo",
-      "explain": "任务管理器",
+      "explain": "任务管理",
       "cmds": ["todo", "任务", "待办"],
-      "icon": "assets/img/todo-icon.png"
+      "icon": "assets/img/todo-icon.png",
+      "page": "pages/todo_manager.html"
     },
     {
       "code": "festival", 
       "explain": "节日管理",
       "cmds": ["festival", "节日", "节假日"],
-      "icon": "assets/img/festival-icon.png"
+      "icon": "assets/img/festival-icon.png",
+      "page": "pages/festival_manager.html"
     },
     {
       "code": "calendar",
       "explain": "日历视图", 
-      "cmds": ["calendar", "日历", "cal"],
-      "icon": "assets/img/calendar-icon.png"
+      "cmds": ["calendar", "日历"],
+      "icon": "assets/img/calendar-icon.png",
+      "page": "pages/calendar_view.html"
     },
     {
       "code": "weather",
       "explain": "天气查询",
-      "cmds": ["weather", "天气", "气温"],
-      "icon": "assets/img/weather-icon.png"
+      "cmds": ["weather", "天气"],
+      "icon": "assets/img/weather-icon.png",
+      "page": "pages/weather_view.html"
     }
   ],
   "pluginSetting": {
