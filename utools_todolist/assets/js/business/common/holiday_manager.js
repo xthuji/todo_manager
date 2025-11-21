@@ -15,6 +15,9 @@
  * - 与lunar_utils.js配合，为calendar_view.js提供完整的日历数据支持
  */
 
+// 引入API配置模块
+import { buildApiUrl } from '../../config/api.js';
+
 // 全局变量
 let holidayData = null; // 节假日数据
 // 内部转换后的数据格式，用于日历显示
@@ -40,9 +43,12 @@ function resetHolidayData() {
 async function getHolidayData(apiUrl = null) {
     try {
         // 构建请求URL，添加apiUrl参数
-        const requestUrl = new URL('/api/holiday/cache', window.location.origin);
+        let requestUrl = buildApiUrl('/api/holiday/cache');
         if (typeof apiUrl === 'string' && apiUrl.trim()) {
-            requestUrl.searchParams.append('apiUrl', apiUrl.trim());
+            // 手动添加查询参数
+            const url = new URL(requestUrl);
+            url.searchParams.append('apiUrl', apiUrl.trim());
+            requestUrl = url.toString();
         }
         
         // 仅从服务器接口获取节假日数据
@@ -256,7 +262,7 @@ async function refreshHolidayCache(apiUrl = null) {
         }
 
         // 调用服务端接口完成缓存刷新
-        const response = await fetch('/api/holiday/refresh-cache', {
+        const response = await fetch(buildApiUrl('/api/holiday/refresh-cache'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

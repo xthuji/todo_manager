@@ -1,0 +1,352 @@
+{
+  "festivals": [
+    {
+      "dateType": "solar",
+      "name": "元旦",
+      "type": "chinese_common",
+      "date": "01-01"
+    },
+    {
+      "dateType": "solar",
+      "name": "妇女节",
+      "type": "chinese_common",
+      "date": "03-08"
+    },
+    {
+      "dateType": "solar",
+      "name": "植树节",
+      "type": "chinese_common",
+      "date": "03-12"
+    },
+    {
+      "dateType": "solar",
+      "name": "愚人节",
+      "type": "chinese_common",
+      "date": "04-01"
+    },
+    {
+      "dateType": "solar",
+      "name": "劳动节",
+      "type": "chinese_common",
+      "date": "05-01"
+    },
+    {
+      "dateType": "solar",
+      "name": "青年节",
+      "type": "chinese_common",
+      "date": "05-04"
+    },
+    {
+      "dateType": "solar",
+      "name": "儿童节",
+      "type": "chinese_common",
+      "date": "06-01"
+    },
+    {
+      "dateType": "solar",
+      "name": "建党节",
+      "type": "chinese_common",
+      "date": "07-01"
+    },
+    {
+      "dateType": "solar",
+      "name": "建军节",
+      "type": "chinese_common",
+      "date": "08-01"
+    },
+    {
+      "dateType": "solar",
+      "name": "教师节",
+      "type": "chinese_common",
+      "date": "09-10"
+    },
+    {
+      "dateType": "solar",
+      "name": "国庆节",
+      "type": "chinese_common",
+      "date": "10-01"
+    },
+    {
+      "dateType": "solar",
+      "name": "情人节",
+      "type": "foreign",
+      "date": "02-14"
+    },
+    {
+      "dateType": "solar",
+      "name": "万圣节前夜",
+      "type": "foreign",
+      "date": "10-31"
+    },
+    {
+      "dateType": "solar",
+      "name": "万圣节",
+      "type": "foreign",
+      "date": "11-01"
+    },
+    {
+      "dateType": "solar",
+      "name": "平安夜",
+      "type": "foreign",
+      "date": "12-24"
+    },
+    {
+      "dateType": "solar",
+      "name": "圣诞节",
+      "type": "foreign",
+      "date": "12-25"
+    },
+    {
+      "dateType": "solar",
+      "name": "520",
+      "type": "custom",
+      "date": "05-20"
+    },
+    {
+      "dateType": "solar",
+      "name": "618",
+      "type": "custom",
+      "date": "06-18"
+    },
+    {
+      "name": "双11",
+      "alias": "",
+      "type": "custom",
+      "dateType": "solar",
+      "date": "11-11"
+    },
+    {
+      "dateType": "solar",
+      "name": "程序员节",
+      "type": "custom",
+      "date": "10-24"
+    },
+    {
+      "name": "阳历A",
+      "alias": "",
+      "type": "custom",
+      "dateType": "solar",
+      "date": "10-02"
+    },
+    {
+      "dateType": "week",
+      "name": "母亲节",
+      "type": "foreign",
+      "date": "5-2-0"
+    },
+    {
+      "dateType": "week",
+      "name": "父亲节",
+      "type": "foreign",
+      "date": "6-3-0"
+    },
+    {
+      "dateType": "week",
+      "name": "感恩节",
+      "type": "foreign",
+      "date": "11-4-4"
+    },
+    {
+      "name": "阳历星期B",
+      "alias": "",
+      "type": "custom",
+      "dateType": "week",
+      "date": "9-3-5"
+    },
+    {
+      "dateType": "lunar",
+      "name": "除夕",
+      "type": "chinese_traditional",
+      "date": "12-30"
+    },
+    {
+      "dateType": "lunar",
+      "name": "春节",
+      "type": "chinese_traditional",
+      "date": "01-01"
+    },
+    {
+      "dateType": "lunar",
+      "name": "元宵节",
+      "type": "chinese_traditional",
+      "date": "01-15"
+    },
+    {
+      "dateType": "lunar",
+      "name": "龙头节",
+      "type": "chinese_traditional",
+      "alias": "龙抬头",
+      "date": "02-02"
+    },
+    {
+      "dateType": "lunar",
+      "name": "端午节",
+      "type": "chinese_traditional",
+      "date": "05-05"
+    },
+    {
+      "dateType": "lunar",
+      "name": "七夕节",
+      "type": "chinese_traditional",
+      "date": "07-07"
+    },
+    {
+      "dateType": "lunar",
+      "name": "中元节",
+      "type": "chinese_traditional",
+      "date": "07-15"
+    },
+    {
+      "dateType": "lunar",
+      "name": "中秋节",
+      "type": "chinese_traditional",
+      "date": "08-15"
+    },
+    {
+      "dateType": "lunar",
+      "name": "重阳节",
+      "type": "chinese_traditional",
+      "date": "09-09"
+    },
+    {
+      "dateType": "lunar",
+      "name": "腊八节",
+      "type": "chinese_traditional",
+      "date": "12-08"
+    },
+    {
+      "name": "农历A",
+      "alias": "",
+      "type": "custom",
+      "dateType": "lunar",
+      "date": "08-10"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "立春",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "雨水",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "惊蛰",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "春分",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "清明",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "谷雨",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "立夏",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "小满",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "芒种",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "夏至",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "小暑",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "大暑",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "立秋",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "处暑",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "白露",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "秋分",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "寒露",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "霜降",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "立冬",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "小雪",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "大雪",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "冬至",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "小寒",
+      "type": "solar_terms"
+    },
+    {
+      "dateType": "solarTerms",
+      "name": "大寒",
+      "type": "solar_terms"
+    },
+    {
+      "name": "双12",
+      "alias": "",
+      "type": "custom",
+      "dateType": "solar",
+      "date": "12-12"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "任务和节日管理系统",
+  "logo": "logo.png",
+  "main": "index.html",
+  "preload": "preload.js",
+  "version": "1.0.0",
+  "description": "一个集任务管理、节日管理、日历视图和天气查询于一体的综合性管理系统",
+  "author": "Your Name",
+  "homepage": "https://github.com/yourusername/utools_todolist",
+  "features": [
+    {
+      "code": "todo",
+      "explain": "任务管理器",
+      "cmds": ["todo", "任务", "待办"],
+      "icon": "assets/img/todo-icon.png"
+    },
+    {
+      "code": "festival", 
+      "explain": "节日管理",
+      "cmds": ["festival", "节日", "节假日"],
+      "icon": "assets/img/festival-icon.png"
+    },
+    {
+      "code": "calendar",
+      "explain": "日历视图", 
+      "cmds": ["calendar", "日历", "cal"],
+      "icon": "assets/img/calendar-icon.png"
+    },
+    {
+      "code": "weather",
+      "explain": "天气查询",
+      "cmds": ["weather", "天气", "气温"],
+      "icon": "assets/img/weather-icon.png"
+    }
+  ],
+  "pluginSetting": {
+    "height": 600,
+    "width": 900,
+    "minHeight": 400,
+    "minWidth": 600
+  },
+  "development": {
+    "main": "index.html"
+  }
+}

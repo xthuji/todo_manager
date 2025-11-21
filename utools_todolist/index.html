@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务和节日管理系统 - uTools插件</title>
+    <link rel="icon" type="image/png" href="./assets/img/favicon.png">
+    <script src="./assets/js/third_party/tailwindcss.js"></script>
+    <link href="./assets/css/font-awesome.min.css" rel="stylesheet">
+    <script src="./assets/js/browser-init.js"></script>
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        accent: '#6366f1',
+                        dark: '#1e293b',
+                        light: '#f1f5f9'
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .sidebar-btn {
+                @apply flex items-center h-16 mt-1 mb-1 mx-auto rounded-r-lg transition-all duration-300 ease-linear cursor-pointer shadow-md overflow-hidden relative;
+                /* 默认折叠状态 - 调整为更窄的宽度，仅显示图标 */
+                width: 14px;
+                justify-content: flex-start;
+                padding-left: 1px;
+            }
+            .sidebar-btn.todo {
+                @apply bg-blue-500 hover:bg-blue-600;
+            }
+            .sidebar-btn.weather {
+                @apply bg-sky-500 hover:bg-sky-600;
+            }
+            .sidebar-btn.festival {
+                @apply bg-green-500 hover:bg-green-600;
+            }
+            .sidebar-btn.calendar {
+                @apply bg-purple-500 hover:bg-purple-600;
+            }
+            .sidebar-btn.active {
+                /* 激活状态依然保持折叠，只有在悬停时才展开 */
+                width: 14px;
+                box-shadow: 0 0 0 1px white, 0 0 0 3px currentColor;
+                color: inherit;
+            }
+            .sidebar-btn:hover {
+                @apply w-28;
+            }
+            .sidebar-btn i {
+                @apply flex-shrink-0 text-white text-xs;
+            }
+            .sidebar-btn-text {
+                @apply ml-2 text-white font-medium text-sm whitespace-nowrap opacity-0 transition-opacity duration-300;
+            }
+            .sidebar-btn:hover .sidebar-btn-text {
+                @apply opacity-100;
+            }
+            .sidebar {
+                @apply fixed top-0 left-0 h-full flex flex-col bg-gray-100 z-40;
+                /* 侧边栏宽度改为14px以匹配按钮默认宽度 */
+                width: 14px;
+            }
+            .main-content {
+                @apply flex justify-center transition-all duration-300 ease-in-out;
+            }
+            .content-container {
+                @apply w-full h-full overflow-auto;
+            }
+            .page-content {
+                @apply w-full min-h-screen hidden;
+            }
+            .page-content.active {
+                @apply block;
+            }
+
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 侧边栏 -->
+        <div id="sidebar" class="sidebar">
+            <!-- 任务管理器按钮 -->
+            <div class="sidebar-btn todo page-button active" data-page="todo">
+                <i class="fa fa-tasks text-white"></i>
+                <span class="sidebar-btn-text">任务管理器</span>
+            </div>
+            
+            <!-- 天气页面按钮 -->
+            <div class="sidebar-btn weather page-button" data-page="weather">
+                <i class="fa fa-cloud text-white"></i>
+                <span class="sidebar-btn-text">天气查询</span>
+            </div>
+            
+            <!-- 日历视图按钮 -->
+            <div class="sidebar-btn calendar page-button" data-page="calendar">
+                <i class="fa fa-calendar text-white"></i>
+                <span class="sidebar-btn-text">日历视图</span>
+            </div>
+            
+            <!-- 节日管理按钮 -->
+            <div class="sidebar-btn festival page-button" data-page="festival">
+                <i class="fa fa-calendar-plus-o text-white"></i>
+                <span class="sidebar-btn-text">节日管理</span>
+            </div>
+        </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 加载提示 -->
+        <div id="loading-indicator" class="fixed inset-0 bg-gray-50 flex items-center justify-center z-50">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                <p class="text-gray-600 text-lg">正在启动服务端...</p>
+                <p class="text-gray-400 text-sm mt-2">请稍候，页面将在服务就绪后自动加载</p>
+            </div>
+        </div>
+
+        <!-- 内容容器 -->
+        <div class="content-container" style="display: none;">
+            <!-- 任务管理器页面 -->
+            <div class="page-content active" id="page-todo">
+                <!-- 使用iframe加载todo_manager.html -->
+                <iframe 
+                    id="todo-manager-iframe"
+                    src="" 
+                    class="w-full h-screen border-0"
+                    title="任务管理器"
+                    onload="onIframeLoaded('todo')"
+                ></iframe>
+            </div>
+            
+            <!-- 节日管理页面 -->
+            <div class="page-content" id="page-festival">
+                <!-- 使用iframe加载festival_manager.html -->
+                <iframe 
+                    id="festival-manager-iframe"
+                    src="" 
+                    class="w-full h-screen border-0"
+                    title="节日管理"
+                    onload="onIframeLoaded('festival')"
+                ></iframe>
+            </div>
+            
+            <!-- 日历视图页面 -->
+            <div class="page-content" id="page-calendar">
+                <!-- 使用iframe加载calendar_view.html -->
+                <iframe 
+                    id="calendar-view-iframe"
+                    src="" 
+                    class="w-full h-screen border-0"
+                    title="日历视图"
+                    onload="onIframeLoaded('calendar')"
+                ></iframe>
+            </div>
+            
+            <!-- 天气查询页面 -->
+            <div class="page-content" id="page-weather">
+                <!-- 使用iframe加载weather_view.html -->
+                <iframe 
+                    id="weather-view-iframe"
+                    src="" 
+                    class="w-full h-screen border-0"
+                    title="天气查询"
+                    onload="onIframeLoaded('weather')"
+                ></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 逻辑 -->
+    <script>
+        // iframe加载完成事件处理
+        function onIframeLoaded(pageType) {
+            try {
+                let iframe;
+                
+                if (pageType === 'todo') {
+                    iframe = document.getElementById('todo-manager-iframe');
+                } else if (pageType === 'festival') {
+                    iframe = document.getElementById('festival-manager-iframe');
+                } else if (pageType === 'calendar') {
+                    iframe = document.getElementById('calendar-view-iframe');
+                } else if (pageType === 'weather') {
+                    iframe = document.getElementById('weather-view-iframe');
+                }
+                
+                if (iframe && iframe.contentWindow && iframe.contentWindow.postMessage) {
+                    // 向iframe发送消息，通知它DOM已完全加载
+                    iframe.contentWindow.postMessage('DOMContentLoaded', '*');
+                }
+            } catch (error) {
+                console.error(`iframe加载完成事件处理失败 (${pageType}):`, error);
+            }
+        }
+        
+        // 初始化函数
+        async function init() {
+            // 添加页面切换事件监听器
+            const pageButtons = document.querySelectorAll('.page-button');
+            const pageContents = document.querySelectorAll('.page-content');
+            
+            pageButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetPage = button.getAttribute('data-page');
+                    
+                    // 移除所有活动状态
+                    pageButtons.forEach(btn => btn.classList.remove('active'));
+                    pageContents.forEach(content => content.classList.remove('active'));
+                    
+                    // 添加活动状态到当前选中的页面
+                    button.classList.add('active');
+                    document.getElementById(`page-${targetPage}`).classList.add('active');
+                });
+            });
+            
+            // 检查是否在uTools环境中
+            if (typeof utools !== 'undefined') {
+                console.log('运行在uTools环境中');
+                
+                // 设置uTools插件窗口
+                if (utools.setExpendHeight) {
+                    utools.setExpendHeight(800);
+                }
+                if (utools.setExpendWidth) {
+                    utools.setExpendWidth(1200);
+                }
+                
+                // 监听来自preload.js的服务器状态消息
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type === 'server-ready') {
+                        console.log('收到服务器就绪通知:', event.data.status);
+                        if (event.data.status === 'success' || event.data.status === 'already-running') {
+                            console.log('服务器已就绪，开始加载页面内容');
+                            loadPageContent();
+                        } else if (event.data.status === 'failed') {
+                            console.error('服务器启动失败:', event.data.error);
+                            showServerStartFailed();
+                        }
+                    }
+                });
+                
+                // 等待服务器就绪通知，不主动检查
+                console.log('等待服务器启动完成...');
+                
+                // 设置超时机制，30秒后自动加载内容
+                setTimeout(() => {
+                    const loadingIndicator = document.getElementById('loading-indicator');
+                    if (loadingIndicator && loadingIndicator.style.display !== 'none') {
+                        console.log('等待服务器超时，强制加载页面内容');
+                        loadPageContent();
+                    }
+                }, 30000); // 30秒超时
+                
+            } else {
+                console.log('运行在浏览器环境中');
+                // 浏览器环境中直接加载内容
+                loadPageContent();
+            }
+        }
+        
+        // 加载页面内容
+        function loadPageContent() {
+            // 隐藏加载提示
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+            
+            // 显示内容容器
+            const contentContainer = document.querySelector('.content-container');
+            if (contentContainer) {
+                contentContainer.style.display = 'block';
+            }
+            
+            // 设置iframe的src属性，开始加载页面内容
+            const iframes = [
+                { id: 'todo-manager-iframe', src: './pages/todo_manager.html' },
+                { id: 'festival-manager-iframe', src: './pages/festival_manager.html' },
+                { id: 'calendar-view-iframe', src: './pages/calendar_view.html' },
+                { id: 'weather-view-iframe', src: './pages/weather_view.html' }
+            ];
+            
+            iframes.forEach(iframe => {
+                const element = document.getElementById(iframe.id);
+                if (element) {
+                    element.src = iframe.src;
+                }
+            });
+        }
+        
+        // 显示服务器启动失败提示
+        function showServerStartFailed() {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.innerHTML = `
+                    <div class="text-center">
+                        <div class="text-red-500 text-6xl mb-4">⚠️</div>
+                        <p class="text-red-600 text-lg font-semibold">服务器启动失败</p>
+                        <p class="text-gray-400 text-sm mt-2">请检查网络连接或重启插件</p>
+                        <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                            重新加载
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

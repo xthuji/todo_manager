@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>节日日历视图</title>
+    <script src="../assets/js/third_party/tailwindcss.js"></script>
+    <script src="../assets/js/third_party/lunar.js"></script>
+    <!-- 引入日历视图业务逻辑 -->
+    <script type="module" src="../assets/js/business/calendar_view.js"></script>
+    <link href="../assets/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // 日期类型图例
+                        calendar: {
+                            weekday: '#ffffff',      // 白色 - 工作日
+                            weekend: '#dcfce7',      // 浅绿色 - 周六日
+                            holiday: '#fecdd9',      // 浅红色 - 节假日
+                            workday: '#efd8f6',      // 浅紫色 - 补班
+                            other_month: '#f3f4f6'   // 浅灰色 - 非本月日期
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            /* 节日类型背景样式 */
+            .bg-festival-traditional { @apply bg-red-400; } /* 传统节日：浅红色 */
+            .bg-festival-common { @apply bg-red-500; } /* 常用节日：红色 */
+            .bg-festival-foreign { @apply bg-purple-500; } /* 国外节日：紫色 */
+            .bg-festival-terms { @apply bg-green-500; } /* 节气：绿色 */
+            .bg-festival-custom { @apply bg-blue-500; } /* 自定义节日：蓝色 */
+
+            
+            /* 日历核心样式 */
+            .calendar-day {
+                @apply relative min-h-[107px] border border-gray-200 p-1 overflow-hidden;
+            }
+            .calendar-day-content {
+                @apply w-full h-full flex flex-col justify-start;
+            }
+            .calendar-day-weekday {
+                @apply bg-calendar-weekday;
+            }
+            .calendar-day-weekend {
+                @apply bg-calendar-weekend;
+            }
+            .calendar-day-holiday {
+                @apply bg-calendar-holiday;
+            }
+            .calendar-day-workday {
+                @apply bg-calendar-workday;
+            }
+            .calendar-day-other_month {
+                @apply bg-calendar-other_month;
+            }
+            .calendar-day-today {
+                @apply border-2 border-blue-400 font-medium;
+            }
+            .calendar-day-number {
+                @apply text-gray-800 text-sm font-medium;
+            }
+            .calendar-day-number-other_month {
+                @apply text-gray-400;
+            }
+            /* 节日标签样式 - 全局统一 */
+            .festival-tag {
+                @apply text-xs px-1 py-0.5 rounded text-white whitespace-nowrap;
+            }
+            .btn-primary {
+                @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors;
+            }
+            .btn-secondary {
+                @apply bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors;
+            }
+            .btn-action {
+                @apply p-1.5 rounded hover:bg-gray-200 transition-colors duration-150 flex items-center;
+            }
+            /* 图例样式 */
+            .legend-color {
+                @apply w-3.5 h-3.5 rounded-full mr-1.5;
+            }
+            .legend-item {
+                @apply flex items-center mb-1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- 页面标题和图例区域 -->
+        <header class="mb-8 flex flex-col md:flex-row items-start md:items-center">
+            <div class="flex-1 flex flex-col justify-center items-center md:items-left mb-4 md:mb-0">
+                <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-gray-800 mb-2">日历</h1>
+                <p class="text-gray-600 text-center md:text-left">查看日历上的节日和节气信息</p>
+            </div>
+            
+            <!-- 图例区域 - 按类别并排显示，支持水平滚动 -->
+            <div class="mt-4 md:mt-0 bg-white p-2 rounded-lg shadow-sm border border-gray-100 legend-container inline-block">
+                <h3 class="text-xs font-semibold text-gray-700 mb-1">图例</h3>
+                <div class="flex overflow-x-auto pb-1 gap-5 no-scrollbar whitespace-nowrap">
+                            
+                            <!-- 节日类型图例 -->
+                            <div class="flex flex-col legend-item-group">
+                                <p class="text-[10px] text-gray-500 mb-1">节日类型</p>
+                                <div class="space-y-1">
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-festival-traditional text-white text-center text-[10px] leading-3"></div>
+                                        <span class="text-[10px]">传统节日</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-festival-common text-white text-center text-[10px] leading-3"></div>
+                                        <span class="text-[10px]">常用节日</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-festival-terms text-white text-center text-[10px] leading-3"></div>
+                                        <span class="text-[10px]">节气</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-festival-foreign text-white text-center text-[10px] leading-3"></div>
+                                        <span class="text-[10px]">外国节日</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-festival-custom text-white text-center text-[10px] leading-3"></div>
+                                        <span class="text-[10px]">自定义节日</span>
+                                    </div>
+
+                                </div>
+                            </div>
+                            
+                            <!-- 日历图例 -->
+                            <div class="flex flex-col legend-item-group">
+                                <p class="text-[10px] text-gray-500 mb-1">日期类型</p>
+                                <div class="space-y-1">
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-calendar-weekday border border-gray-200"></div>
+                                        <span class="text-[10px]">工作日</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-calendar-weekend"></div>
+                                        <span class="text-[10px]">周六日</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-calendar-holiday"></div>
+                                        <span class="text-[10px]">节假日</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-calendar-workday"></div>
+                                        <span class="text-[10px]">补班</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color bg-calendar-other_month"></div>
+                                        <span class="text-[10px]">非本月日期</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+        </header>
+
+        <!-- 日历视图 -->
+        <div id="calendar-view" class="bg-white rounded-lg shadow-md p-4 mb-6 overflow-x-auto">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex gap-2">
+                        <select id="year-selector" class="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-gray-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer">
+                            <!-- 年份选项将通过JS动态生成 -->
+                        </select>
+                        <select id="month-selector" class="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 pr-8 text-gray-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer">
+                            <option value="0">1月</option>
+                            <option value="1">2月</option>
+                            <option value="2">3月</option>
+                            <option value="3">4月</option>
+                            <option value="4">5月</option>
+                            <option value="5">6月</option>
+                            <option value="6">7月</option>
+                            <option value="7">8月</option>
+                            <option value="8">9月</option>
+                            <option value="9">10月</option>
+                            <option value="10">11月</option>
+                            <option value="11">12月</option>
+                        </select>
+                    </div>
+                <div class="flex gap-2">
+                    <button id="prev-month" class="btn-action">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <button id="btn-today" class="btn-action px-2 text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors">
+                        <i class="fa fa-calendar-o mr-1"></i> 今天
+                    </button>
+                    <button id="next-month" class="btn-action">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 星期标题 -->
+            <div class="grid grid-cols-7 mb-2 text-center min-w-[768px]">
+                <div class="font-medium text-gray-500">周一</div>
+                <div class="font-medium text-gray-500">周二</div>
+                <div class="font-medium text-gray-500">周三</div>
+                <div class="font-medium text-gray-500">周四</div>
+                <div class="font-medium text-gray-500">周五</div>
+                <div class="font-medium text-gray-500">周六</div>
+                <div class="font-medium text-gray-500">周日</div>
+            </div>
+            
+            <!-- 日历网格 -->
+            <div id="calendar-grid" class="grid grid-cols-7 gap-0 min-w-[768px]">
+                <!-- 日历天数将通过JS动态生成 -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>
