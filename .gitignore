@@ -123,3 +123,4 @@ dist
 
 # TodoList cache directory
 /todolist/data/cache/
+/utools_todolist/data/cache/
