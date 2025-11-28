@@ -52,9 +52,13 @@
             background: var(--bg-card);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-medium);
-            padding: 48px 32px;
+            padding: 32px 32px 20px;
             position: relative;
             overflow: hidden;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
         
         /* 装饰元素 */
@@ -88,11 +92,14 @@
         .app-content {
             position: relative;
             z-index: 1;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
         }
         
         /* Logo 区域 */
         .app-logo {
-            margin-bottom: 32px;
+            margin-bottom: 16px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -100,7 +107,7 @@
         
         /* 标题样式 */
         .app-title {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
             color: var(--text-primary);
             margin-bottom: 16px;
@@ -116,14 +123,14 @@
         
         /* 加载状态区域 */
         .loading-section {
-            margin: 32px 0;
+            margin: 16px 0;
         }
         
         /* 加载动画 */
         .loading-animation {
             width: 64px;
             height: 64px;
-            margin: 0 auto 24px;
+            margin: 0 auto 16px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -160,16 +167,7 @@
             to { transform: rotate(360deg); }
         }
         
-        /* 状态文本 */
-        .status-message {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-            min-height: 24px;
-        }
-        
-        /* 进度条 */
+        /* 增强进度条效果 */
         .progress-wrapper {
             width: 100%;
             height: 10px;
@@ -187,19 +185,52 @@
             transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
                         background-color 0.3s ease;
             position: relative;
+            /* 添加流动光效 */
+            background-size: 200% 100%;
+            animation: progressFlow 1.5s infinite;
         }
         
-        /* 详细状态信息 */
+        @keyframes progressFlow {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+        
+        /* 改进状态消息显示 */
+        .status-message {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            min-height: 24px;
+            opacity: 0;
+            transform: translateY(5px);
+            animation: fadeInUp 0.3s ease-out forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 详细状态信息改进 */
         .status-details {
             font-size: 14px;
             color: var(--text-secondary);
             line-height: 1.6;
             min-height: 40px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-out 0.2s forwards;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
         
         /* 手动跳转按钮 */
         .action-section {
-            margin-top: 32px;
+            margin-top: 16px;
         }
         
         .primary-button {
@@ -260,8 +291,8 @@
                 <img src="./logo.png" width="48" height="48" alt="ToDo List Logo">
             </div>
             <div class="app-title">
-                <h1>ToDo List 应用</h1>
-                <p>高效管理任务，轻松规划生活</p>
+                <h1>ToDo List 任务管理</h1>
+                <p>高效组织，轻松管理，专注每一天</p>
             </div>
             
             <!-- 加载状态区域 -->
@@ -273,7 +304,7 @@
                     </div>
                 </div>
                 
-                <div id="loading-status" class="status-message">欢迎使用任务管理系统，正在为您准备...</div>
+                <div id="loading-status" class="status-message">正在为您准备任务管理系统...</div>
                 
                 <div class="progress-wrapper">
                     <div id="loading-progress" class="progress-bar" style="width: 0%;"></div>
@@ -436,17 +467,40 @@
             }
         }
         
-        // 简化的更新状态显示函数
+        // 优化的更新状态函数，添加动画效果
         function updateStatus(message, details = '') {
             const statusElement = document.getElementById('loading-status');
             if (statusElement) {
+                // 移除动画类
+                statusElement.classList.remove('status-updated');
+                
+                // 强制重绘
+                void statusElement.offsetWidth;
+                
+                // 更新内容
                 statusElement.textContent = message;
                 console.log(`状态更新: ${message}`);
+                
+                // 重新添加动画类
+                setTimeout(() => {
+                    statusElement.style.opacity = 0;
+                    statusElement.style.transform = 'translateY(5px)';
+                    setTimeout(() => {
+                        statusElement.style.opacity = 1;
+                        statusElement.style.transform = 'translateY(0)';
+                    }, 50);
+                }, 10);
             }
             
             const detailsElement = document.getElementById('status-details');
             if (detailsElement && details) {
                 detailsElement.textContent = details;
+                detailsElement.style.opacity = 0;
+                setTimeout(() => {
+                    detailsElement.style.opacity = 1;
+                }, 50);
+            } else if (detailsElement && !details) {
+                detailsElement.textContent = '';
             }
         }
 
@@ -520,7 +574,6 @@
             } catch (error) {
                 console.error('跳转时发生严重错误:', error);
                 updateStatus('跳转失败，请检查网络连接或稍后重试', '错误: ' + (error.message || '未知错误'));
-                enableManualButton();
                 
                 // 自动重试机制 - 使用正确的异步函数语法和setTimeout调用
                 setTimeout(async function() {
@@ -600,14 +653,14 @@
             // 定时显示手动跳转按钮
             const manualButtonTimer = setTimeout(() => {
                 console.log('引导时间到期，更新状态');
-                updateStatusAndProgress('系统准备中，请稍候...');
+                updateStatusAndProgress('系统初始化中，即将完成...');
             }, APP_CONFIG.manualButtonShowTime);
 
             // 总超时处理
             const timeoutTimer = setTimeout(() => {
                 console.log('检查超时，尝试直接跳转');
                 clearInterval(pollingInterval);
-                updateStatusAndProgress('正在尝试直接连接应用...');
+                updateStatusAndProgress('正在为您建立应用连接...');
                 setTimeout(redirectToApp, 1000);
             }, APP_CONFIG.maxCheckTime);
 
@@ -632,7 +685,7 @@
                         setTimeout(redirectToApp, 500);
                     } else if (checkCount % 5 === 0) {
                         // 每5次尝试更新一次状态，避免频繁更新
-                        updateStatusAndProgress(`正在连接服务器，请稍候...`);
+                        updateStatusAndProgress(`连接中，请稍候...`);
                     }
                 } catch (error) {
                     console.error('轮询过程中发生错误:', error);
@@ -662,7 +715,7 @@
         // 全局错误处理
         window.onerror = function(message, source, lineno) {
             console.error(`JavaScript错误 [${lineno}]:`, message);
-            updateStatus('遇到技术问题，系统正在自动恢复', `行: ${lineno}`);
+            updateStatus('系统遇到技术问题，正在自动恢复', `请稍候，系统正在尝试修复`);
             return true;
         };
 
