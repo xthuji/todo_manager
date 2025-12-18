@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# 加载环境变量。为了保证使用 supervisor 服务启动时，不会因环境变量的问题导致无法正常启动
+source $HOME/.bash_profile
+
 # 设置脚本在出错时退出
 export NODE_ENV=development
 
