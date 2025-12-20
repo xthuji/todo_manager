@@ -403,7 +403,6 @@ window.WeatherModule.View = {
      * @param {Array} hourlyData - 24小时数据
      */
     updateHourlySummary: function(hourlyData) {
-        // ... (原 updateHourlyWeatherSummary 逻辑)
         const container = document.getElementById('hourly-weather-summary');
         const hourlyWeatherSection = container ? container.closest('[id$="hourly-weather-section"]') || container.closest('.hourly-weather-section') : null;
 
@@ -417,7 +416,6 @@ window.WeatherModule.View = {
         container.style.display = 'block';
         container.style.display = 'flex';
         container.style.overflowX = 'auto';
-        // ... (其余样式设置)
         container.style.whiteSpace = 'nowrap';
         container.style.scrollbarWidth = 'thin';
         container.style.marginBottom = '0';
@@ -425,7 +423,7 @@ window.WeatherModule.View = {
         container.style.userSelect = 'none';
         container.innerHTML = '';
 
-        // ... (滚动同步逻辑)
+        // 滚动同步逻辑
         container.addEventListener('scroll', () => {
             const chartContainer = document.getElementById('24hour-chart-container');
             if (chartContainer) chartContainer.scrollLeft = container.scrollLeft;
@@ -441,25 +439,56 @@ window.WeatherModule.View = {
 
         const currentHour = new Date().getHours();
 
-        hourlyData.forEach((hourData, index) => {
-            // ... (原 hourlyData 循环逻辑)
-            if (!hourData) return;
+        // 查找前半部分的当前小时匹配
+        let currentHourMatchIndex = -1;
+        const halfLength = hourlyData.length / 2;
+        
+        // 只在前半部分查找当前小时的匹配
+        for (let i = 0; i < halfLength; i++) {
+            const item = hourlyData[i];
+            if (!item) continue;
+            
             let hourValue = null;
-            if (hourData.hour !== undefined) hourValue = parseInt(hourData.hour);
-            else if (hourData.time) {
-                const timeStr = String(hourData.time);
+            if (item.hour !== undefined) hourValue = parseInt(item.hour);
+            else if (item.time) {
+                const timeStr = String(item.time);
                 const hourMatch = timeStr.match(/^(\d{1,2})/);
                 if (hourMatch) hourValue = parseInt(hourMatch[1]);
             }
+            
+            if (hourValue === currentHour) {
+                currentHourMatchIndex = i;
+                break;
+            }
+        }
+        
+        // 如果列表长度大于20且前半部分没有找到当前小时，使用第一个条目
+        const useFirstAsCurrent = hourlyData.length > 20 && currentHourMatchIndex === -1;
+        
+        hourlyData.forEach((hourData, index) => {
+            if (!hourData) return;
+            
+            // 简化的当前小时判断逻辑
             let isCurrentHour = false;
-            if (hourValue !== null) isCurrentHour = hourValue === currentHour;
-            else if (index === 0) isCurrentHour = true;
+            
+            // 如果在前半部分找到了匹配的索引
+            if (index === currentHourMatchIndex) {
+                isCurrentHour = true;
+            }
+            // 或者使用第一个条目作为当前小时
+            else if (index === 0 && useFirstAsCurrent) {
+                isCurrentHour = true;
+            }
+            // 默认为第一个条目（当没有找到匹配时）
+            else if (index === 0 && currentHourMatchIndex === -1) {
+                isCurrentHour = true;
+            }
 
             const hourElement = document.createElement('div');
             const baseClasses = 'inline-flex flex-col items-center justify-center p-1 bg-gray-50 rounded-lg text-center min-w-[70px] max-w-[70px]';
             hourElement.className = isCurrentHour ? `${baseClasses} border-2 border-blue-400 bg-blue-50` : baseClasses;
 
-            // ... (自动滚动逻辑)
+            // 自动滚动逻辑
             setTimeout(() => {
                 if (hourElement && isCurrentHour) {
                     console.log('自动滚动到当前时段数据');
@@ -820,7 +849,8 @@ window.WeatherModule.View = {
                     </div>`;
                     td.title = `${weather} ${minTemp} / ${maxTemp}°C`;
                 } else if (cellIndex === 2) {
-                    td.innerHTML = `<div class="text-xs truncate max-w-[60px]">${cellData.replace(/[\s<>]+/g, '')}</div>`;
+                    // 将有'转'字的内容换行显示
+                    td.innerHTML = `<div class="text-xs truncate max-w-[60px]">${cellData.replace(/[\s<>]+/g, '').replace(/转/g, '<br>转')}</div>`;
                     td.classList.add('text-gray-600');
                     td.classList.remove('border-r');
                 }
