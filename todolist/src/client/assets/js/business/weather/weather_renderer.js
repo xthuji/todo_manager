@@ -29,6 +29,39 @@ if (typeof window.WeatherModule === 'undefined') {
     window.WeatherModule = {};
 }
 
+/**
+ * 天气图标辅助功能
+ */
+window.WeatherModule.WeatherIconHelper = {
+    /**
+     * 根据天气文字获取对应的emoji图标
+     * @param {string} weatherText - 天气文字描述
+     * @returns {string} 对应的emoji图标
+     */
+    getWeatherIcon: function(weatherText) {
+        if (!weatherText || typeof weatherText !== 'string') {
+            return '⛅'; // 默认多云图标
+        }
+        
+        const weather = weatherText.toLowerCase();
+        
+        // 更精确的天气图标匹配逻辑
+        if (weather.includes('暴雨') || weather.includes('大雨')) return '🌧️';
+        else if (weather.includes('中雨')) return '🌧️';
+        else if (weather.includes('小雨') || weather.includes('阵雨')) return '🌧️';
+        else if (weather.includes('雷阵雨') || weather.includes('雷')) return '⚡';
+        else if (weather.includes('雾') || weather.includes('霾')) return '🌫️';
+        else if (weather.includes('多云') || weather.includes('晴间多云')) return '⛅';
+        else if (weather.includes('晴')) return '☀️';
+        else if (weather.includes('阴') || weather.includes('阴天')) return '☁️';
+        else if (weather.includes('雪')) return '❄️';
+        else if (weather.includes('雨')) return '🌧️';
+        else if (weather.includes('云')) return '☁️';
+        
+        return '⛅'; // 默认多云图标
+    }
+};
+
 // 常量定义
 const WEATHER_API = {
     WEATHER_INFO: '/api/weather/weather-info',
@@ -234,7 +267,6 @@ window.WeatherModule.View = {
             return;
         }
 
-        // ... (原 updateTodayWeather 逻辑)
         // 注意：内部调用 helpers
         const safeUpdate = this.safeUpdate; // 使用 this.safeUpdate
 
@@ -303,17 +335,16 @@ window.WeatherModule.View = {
             <div class="extra-info-item"><div class="extra-info-label">今日提示</div><div class="extra-info-value">${(todayWeather.tips || '暂无提示')}</div></div>
         `;
 
-        // ... (天气图标逻辑)
         const weatherIcon = document.getElementById('weather-icon');
         if (weatherIcon && (todayWeather.weather || '--')) {
-            let iconClass = 'default-weather-icon';
-            const condition = (todayWeather.weather || '--').toLowerCase();
-            if (condition.includes('晴')) iconClass = 'sunny-icon';
-            else if (condition.includes('云')) iconClass = 'cloudy-icon';
-            else if (condition.includes('雨')) iconClass = 'rainy-icon';
-            else if (condition.includes('雪')) iconClass = 'snowy-icon';
-            else if (condition.includes('阴')) iconClass = 'overcast-icon';
-            weatherIcon.className = iconClass;
+            // 使用公共的getWeatherIcon函数获取emoji图标
+            const emojiIcon = WeatherModule.WeatherIconHelper.getWeatherIcon(todayWeather.weather);
+            
+            // 直接设置innerHTML为emoji图标，移除FontAwesome相关逻辑
+            weatherIcon.innerHTML = emojiIcon;
+            
+            // 保留基础样式类
+            weatherIcon.className = 'text-6xl mb-2';
         }
 
         const todayWeatherSection = document.getElementById('today-weather-section');
@@ -457,18 +488,14 @@ window.WeatherModule.View = {
             time.textContent = hourData.hour ? `${hourData.hour}时` : (hourData.time || '').replace(':', '时');
 
             const icon = document.createElement('div');
-            icon.className = 'text-xl my-1';
-            let iconText = '☀️';
-            const weather = hourData.weather || '';
-            if (weather.includes('雨')) iconText = '🌧️';
-            else if (weather.includes('云')) iconText = '☁️';
-            else if (weather.includes('阴')) iconText = '☁️';
-            else if (weather.includes('雪')) iconText = '❄️';
+            icon.className = 'text-xl my-1 text-center';
+            // 使用公共的getWeatherIcon函数获取emoji图标
+            const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(hourData.weather);
             icon.textContent = iconText;
 
             const condition = document.createElement('div');
             condition.className = 'text-[10px] text-gray-600 mb-1 truncate';
-            condition.textContent = weather || '--';
+            condition.textContent = hourData.weather || '--';
 
             const wind = document.createElement('div');
             wind.className = 'text-[9px] text-gray-500 mb-1';
@@ -661,13 +688,8 @@ window.WeatherModule.View = {
                     if (shortWeather.length > 2 && shortWeather.includes('转')) shortWeather = shortWeather.split('转')[0];
                     const icon = document.createElement('div');
                     icon.className = 'text-xl my-1 text-center';
-                    let iconText = '☁️';
-                    if (shortWeather.includes('雨')) iconText = '🌧️';
-                    else if (shortWeather.includes('阴')) iconText = '☁️';
-                    else if (shortWeather.includes('多云')) iconText = '⛅';
-                    else if (shortWeather.includes('雪')) iconText = '❄️';
-                    else if (shortWeather.includes('晴')) iconText = '☀️';
-                    else if (shortWeather.includes('雷')) iconText = '⚡';
+                    // 使用公共的getWeatherIcon函数获取emoji图标
+                    const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(shortWeather);
                     icon.textContent = iconText;
                     cell.appendChild(icon);
 
@@ -786,18 +808,11 @@ window.WeatherModule.View = {
                     td.textContent = cellData;
                     td.classList.add('text-gray-700', 'font-semibold');
                 } else if (cellIndex === 1) {
-                    let iconText = '☀️';
-                    const weather = cellData.weather || '';
+                    // 使用公共的getWeatherIcon函数获取emoji图标
+                    const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(cellData.weather);
                     const minTemp = cellData.minTemp || '--';
                     const maxTemp = cellData.maxTemp || '--';
-
-                    if (weather.includes('暴雨') || weather.includes('大雨')) iconText = '⛈️';
-                    else if (weather.includes('中雨')) iconText = '🌧️';
-                    else if (weather.includes('小雨') || weather.includes('阵雨')) iconText = '🌦️';
-                    else if (weather.includes('多云') || weather.includes('晴间多云')) iconText = '⛅';
-                    else if (weather.includes('阴') || weather.includes('阴天')) iconText = '☁️';
-                    else if (weather.includes('雪')) iconText = '❄️';
-                    else if (weather.includes('雾') || weather.includes('霾')) iconText = '🌫️';
+                    const weather = cellData.weather || '';
 
                     td.innerHTML = `<div class="flex flex-col items-center">
                         <div class="flex items-center space-x-2 mb-1"><div class="text-sm">${iconText}</div><div class="text-sx truncate">${weather}</div></div>
