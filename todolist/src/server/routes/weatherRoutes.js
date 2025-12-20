@@ -26,8 +26,10 @@ router.get('/ip-location', async (req, res) => {
     try {
         // 获取客户端IP地址
         const clientIp = getClientIp(req);
-        console.log('接收到IP位置信息请求，客户端IP:', clientIp);
-        let addressData = await getLocation(clientIp);
+        // 获取forceRefresh参数
+        const forceRefresh = req.query.forceRefresh === 'true';
+        console.log('接收到IP位置信息请求，客户端IP:', clientIp, '，是否强制刷新:', forceRefresh);
+        let addressData = await getLocation(clientIp, forceRefresh);
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.status(200).json(addressData);
     } catch (error) {

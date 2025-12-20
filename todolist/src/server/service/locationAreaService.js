@@ -157,7 +157,7 @@ async function getLocation2() {
 // 根据IP地址获取位置信息 - 综合多个API获取准确的城市地区信息
 // http://ip-api.com/json/?lang=zh-CN
 // https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=${ipAddress}
-async function getCurrLocation() {
+async function getCurrLocation(forceRefresh) {
     console.log('正在调用接口获取位置信息...');
 
     // 位置数据
@@ -165,7 +165,8 @@ async function getCurrLocation() {
     const promises = [];
     promises.push(getLocation1(), getLocation2());
     const [addressData1, addressData2] = await Promise.all(promises);
-    const addressData = {...(addressData2 || addressData1)};
+    // 强制刷新时，优先使用ip-api的数据，否则优先使用美团的数据
+    const addressData = forceRefresh ? {...(addressData1 || addressData2)} : {...(addressData2 || addressData1)};
     if (PRINT_DATA_LOG) {
         console.log(`接口获取位置信息结果1: ${JSON.stringify(addressData1)}`);
         console.log(`接口获取位置信息结果2: ${JSON.stringify(addressData2)}`);
@@ -191,7 +192,7 @@ async function getCurrLocation() {
 }
 
 // https://weather.cma.cn/api/weather/view
-async function getLocation(clientIp) {
+async function getLocation(clientIp, forceRefresh = false) {
     try {
         if (USE_MOCK) {
             return cacheUtil.getWrappedData('mock_ip_area', {
@@ -201,10 +202,19 @@ async function getLocation(clientIp) {
             })
         }
 
+        // 如果强制刷新，则直接获取新数据，不使用缓存
+        if (forceRefresh) {
+            console.log('强制刷新位置信息，跳过缓存');
+            const newData = await getCurrLocation(forceRefresh);
+            // 更新缓存，但仍使用forceRefresh参数标记此次请求
+            cacheUtil.setData(`ip_${clientIp}`, newData, { ttl: 60 * 60 * 1000 });
+            // 不能直接返回 newData ，需要返回包装之后的缓存对象
+        }
+
         return cacheUtil.getWrappedDataAsync(`ip_${clientIp}`, {
             allowExpired: true,
             ttl: 60 * 60 * 1000,
-            loadDataFn: async () => await getCurrLocation()
+            loadDataFn: async () => await getCurrLocation(forceRefresh)
         });
     } catch (error) {
         console.error('获取位置信息失败:', error.message);

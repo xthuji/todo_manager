@@ -188,10 +188,18 @@ const WEATHER_API = {
 
         /**
          * [内部] 实际执行获取IP定位数据的函数
+         * @param {boolean} forceRefresh - 是否强制刷新定位数据
          */
-        _getLocationDataInternal: async function () {
+        _getLocationDataInternal: async function (forceRefresh = false) {
             this._log('发送请求获取位置信息');
-            const response = await fetch(WEATHER_API.IP_LOCATION, { cache: 'no-store' });
+            const url = new URL(WEATHER_API.IP_LOCATION, window.location.origin);
+            
+            // 只有在需要强制刷新时才添加参数
+            if (forceRefresh) {
+                url.searchParams.append('forceRefresh', 'true');
+            }
+            
+            const response = await fetch(url.toString(), { cache: 'no-store' });
 
             if (!response.ok) {
                 throw new Error(`API请求失败: ${response.status}`);
@@ -213,10 +221,11 @@ const WEATHER_API = {
         /**
          * [公共] 通过IP获取位置数据
          * @param {boolean} forceReloadAreaData - 是否强制重新加载省市县数据
+         * @param {boolean} forceRefresh - 是否强制刷新定位数据
          */
-        getIpLocation: async function (forceReloadAreaData = false) {
+        getIpLocation: async function (forceReloadAreaData = false, forceRefresh = false) {
             this.dataCache.lastLocationSource = 'ip';
-            const { locationData, weatherAreaCodes } = await this._getLocationDataInternal();
+            const { locationData, weatherAreaCodes } = await this._getLocationDataInternal(forceRefresh);
             this._log(`提取到的位置信息: 省=${locationData.province}, 市=${locationData.city}, 区=${locationData.district}`);
 
             // 如果IP API返回了最新的区域数据，或者需要强制刷新，或者数据为空
@@ -639,8 +648,8 @@ const WEATHER_API = {
             this.uiManager.updateCityDisplay({ name: '正在重新定位...', code: '...' });
 
             try {
-                // 快速重新定位，不强制刷新区域数据
-                const locationData = await this.dataManager.getIpLocation(false);
+                // 快速重新定位，不强制刷新区域数据，但强制刷新定位数据
+                const locationData = await this.dataManager.getIpLocation(false, true);
                 await this.matchLocation(locationData, true);
             } catch (error) {
                 this._log(`重新定位失败: ${error.message}`);
