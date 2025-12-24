@@ -267,6 +267,7 @@ function getDistrictAreaCodes(areaCode) {
                                 nmcApiCode: leaf.nmcCode,
                                 nmcAreaCode: leaf.nmcNameCode ? `${item.nmcCode}/${leaf.nmcNameCode}` : null,
                                 cmaAreaCode: leaf.cmaCode,
+                                areaName: leaf.name,
                             };
                         });
                     } else {
@@ -275,6 +276,7 @@ function getDistrictAreaCodes(areaCode) {
                             mojiAreaCode: child.mojiCode,
                             nmcAreaCode: child.nmcCode,
                             cmaAreaCode: child.cmaCode,
+                            areaName: child.name,
                         };
                     }
                 });
@@ -284,6 +286,7 @@ function getDistrictAreaCodes(areaCode) {
                     mojiAreaCode: item.mojiCode,
                     nmcAreaCode: item.nmcCode,
                     cmaAreaCode: item.cmaCode,
+                    areaName: item.name,
                 };
             }
         });

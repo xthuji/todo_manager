@@ -11,6 +11,9 @@ const festivalRoutes = require('./routes/festivalRoutes');
 const { router: statusRoutes, setServerInstance } = require('./routes/statusRoutes');
 const weatherProxyRoutes = require('./routes/weatherRoutes');
 
+// 导入自动天气通知服务
+const autoWeatherNotify = require('./service/autoWeatherNotifyService');
+
 // 中间件
 app.use(express.json());
 
@@ -51,6 +54,12 @@ app.use('/api/weather', weatherProxyRoutes);
 // 启动服务器
 const server = app.listen(port, () => {
   console.log(`待办事项管理系统已启动，访问 http://localhost:${port}`);
+  
+  // 启动天气通知定时器（使用setTimeout避免阻塞服务器启动）
+  setTimeout(() => {
+    console.log('初始化天气通知定时器（crontab格式）...');
+    autoWeatherNotify.startWeatherNotifyTimer();
+  }, 5000); // 延迟5秒执行，确保其他服务已完全启动
 });
 
 // 注入服务器实例到状态路由模块
