@@ -8,7 +8,7 @@
     "notifyEnabled": true,
     "notifyTypes": ["sms", "wechat"],
     "timerEnabled": true,
-    "startupNotifyEnabled": true,
-    "cronExpression": "40 8 * * *"
+    "startupNotifyEnabled": false,
+    "cronExpression": "40 8,18 * * *"
   }
 }

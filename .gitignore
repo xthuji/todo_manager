@@ -122,4 +122,5 @@ dist
 .codebuddy
 
 # TodoList cache directory
-*/cache/
+cache/
+

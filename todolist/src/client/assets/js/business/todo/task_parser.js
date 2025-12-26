@@ -417,6 +417,13 @@ export async function saveTasksToFile(tasks, filename = 'todo.txt') {
             return true;
         }
         
+        // 额外的文件名验证，确保符合服务器规则
+        if (!filename.startsWith('todo') || !filename.endsWith('.txt')) {
+            console.error('文件名不符合规则:', filename);
+            alert('文件名必须以"todo"开头并以".txt"结尾');
+            return false;
+        }
+        
         // 转换为todo.txt格式
         const content = convertTasksToTodoTxtFormat(tasks);
         
@@ -430,11 +437,32 @@ export async function saveTasksToFile(tasks, filename = 'todo.txt') {
         });
         
         if (response.ok) {
-            const responseData = await response.json();
-            // 只处理服务端返回的固定{data, timestamp}格式
-            return responseData.data && responseData.data.success;
+            try {
+                const responseData = await response.json();
+                // 兼容三种格式：
+                // 1. {data, timestamp} - 标准缓存包装格式
+                // 2. {success, message} - 直接返回格式
+                // 3. 其他可能的成功格式
+                if (responseData.data) {
+                    // 标准格式 {data, timestamp}
+                    return Boolean(responseData.data.success);
+                } else if (typeof responseData.success !== 'undefined') {
+                    // 直接返回的格式
+                    return Boolean(responseData.success);
+                } else {
+                    // 其他格式，默认认为成功
+                    console.warn('未预期的响应格式，默认认为保存成功:', responseData);
+                    return true;
+                }
+            } catch (jsonError) {
+                // JSON解析失败，可能返回的是纯文本
+                console.error('解析响应JSON失败:', jsonError);
+                // 由于服务器返回200 OK，我们默认认为保存成功
+                return true;
+            }
+        } else {
+            throw new Error('保存失败，服务器返回非成功状态');
         }
-        throw new Error('保存失败，服务器返回非成功状态');
     } catch (error) {
         console.error('保存任务失败:', error);
         alert('保存任务文件失败: ' + error.message);

@@ -21,7 +21,7 @@
  */
 // 导入各功能模块
 
-import { loadTasksFromFile, saveTasksToFile, calculateTaskDisplayStatus } from './todo/task_parser.js';
+import { loadTasksFromFile, saveTasksToFile, calculateTaskDisplayStatus, convertTasksToTodoTxtFormat, parseTodoTxtFormat } from './todo/task_parser.js';
 import { getHolidayData, holidayDataTimestamp } from './common/holiday_manager.js';
 import { renderCalendar } from './todo/calendar_renderer.js';
 import { renderTaskList, performFiltering, initProjectAndContextFilters, setAllFiltersToDefault, filterTasks } from './todo/task_list_renderer.js';
@@ -30,6 +30,9 @@ import { renderTaskList, performFiltering, initProjectAndContextFilters, setAllF
 export let tasks = []; // 任务数据
 export let currentDate = new Date(); // 当前日期
 const defaultFileName = 'todo.txt'; // 默认文件名
+
+// 临时存储导入的任务数据，用于模态框确认后保存
+let importedTasksForNewFile = null;
 
 
 // 启动脚本相关常量
@@ -242,84 +245,51 @@ export function saveCurrentFilters() {
 
 // 添加事件监听器
 function addEventListeners() {
-    // 添加任务按钮
-    document.getElementById('btn-add-task')?.addEventListener('click', openAddTaskModal);
-    
-    // 扫描文件按钮
-    document.getElementById('btn-scan-files')?.addEventListener('click', scanAndUpdateFiles);
-    
-    // 文件下拉框
-    document.getElementById('todo-file-select')?.addEventListener('change', async () => {
-        const fileDropdown = document.getElementById('todo-file-select');
-        const loadedTasks = await loadTasksFromFile(fileDropdown.value);
-        tasks = loadedTasks;
-        // 使用筛选后的任务数据渲染日历
-        const filteredTasks = filterTasks(tasks);
-        await renderCalendar(currentDate, filteredTasks);
-        renderTaskList(tasks);
-        // 切换文件后更新显示
-        updateCurrentTodoFileDisplay();
-    });
-    
-    // 保存任务表单
-    document.getElementById('task-form')?.addEventListener('submit', saveTask);
-    
-    // 取消任务按钮
-    document.getElementById('cancel-task')?.addEventListener('click', closeTaskModal);
-    
-    // 下一月按钮
-    document.getElementById('next-month')?.addEventListener('click', () => {
-        // 创建新的Date对象而不是修改原对象，避免引用问题
-        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-        // 使用筛选后的任务数据渲染日历
-        const filteredTasks = filterTasks(tasks);
-        renderCalendar(currentDate, filteredTasks);
-    });
-    
-    // 上一月按钮
-    document.getElementById('prev-month')?.addEventListener('click', () => {
-        // 创建新的Date对象而不是修改原对象，避免引用问题
-        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-        // 使用筛选后的任务数据渲染日历
-        const filteredTasks = filterTasks(tasks);
-        renderCalendar(currentDate, filteredTasks);
-    });
-    
-    // 今天按钮
-    document.getElementById('btn-today')?.addEventListener('click', async () => {
-        currentDate = new Date();
-        await renderCalendar(currentDate, tasks); // 确保日历显示正确更新到今天
-        performFiltering(); // 使用performFiltering确保应用筛选条件
-    });
-    
-    // 加载文件按钮
-    document.getElementById('btn-load-file')?.addEventListener('click', async () => {
-        const fileDropdown = document.getElementById('todo-file-select');
-        const loadedTasks = await loadTasksFromFile(fileDropdown.value);
-        tasks = loadedTasks;
+    // 定义事件监听器配置
+    const eventListeners = [
+        // 任务相关
+        { id: 'btn-add-task', event: 'click', handler: openAddTaskModal },
+        { id: 'task-form', event: 'submit', handler: saveTask },
+        { id: 'cancel-task', event: 'click', handler: closeTaskModal },
         
-        // 重新初始化项目和上下文筛选下拉框
-        initProjectAndContextFilters();
+        // 文件相关
+        { id: 'btn-scan-files', event: 'click', handler: scanAndUpdateFiles },
+        { id: 'todo-file-select', event: 'change', handler: handleTodoFileChange },
+        { id: 'btn-load-file', event: 'click', handler: handleLoadFileClick },
+        { id: 'btn-new-file', event: 'click', handler: newFile },
+        { id: 'btn-export-file', event: 'click', handler: exportFile },
+        { id: 'btn-import-file', event: 'click', handler: importFile },
+        { id: 'import-file', event: 'change', handler: handleFileImport },
         
-        // 重置所有筛选参数为默认勾选值
-        setAllFiltersToDefault();
+        // 新建文件模态框
+        { id: 'confirm-new-file', event: 'click', handler: handleNewFileConfirm },
+        { id: 'cancel-new-file', event: 'click', handler: closeNewFileModal },
         
-        // 给足够的时间让所有setTimeout执行完毕
-        setTimeout(async () => {
-            // 重新渲染日历和任务列表
-            await renderCalendar(currentDate, tasks);
-            renderTaskList(tasks);
-            
-            // 加载后更新显示
-            updateCurrentTodoFileDisplay();
-            
-            // 执行筛选操作，确保筛选项参数正确应用
-            performFiltering();
-        }, 200); // 比setTimeout中的100ms稍长
-    });
+        // 日历导航
+        { id: 'next-month', event: 'click', handler: handleNextMonthClick },
+        { id: 'prev-month', event: 'click', handler: handlePrevMonthClick },
+        { id: 'btn-today', event: 'click', handler: handleTodayClick },
+        
+        // UI相关
+        { id: 'toggle-detail-panel', event: 'click', handler: toggleDetailPanel },
+        
+        // 全局事件
+        { id: 'document', event: 'keydown', handler: handleDocumentKeydown },
+        
+        // 服务器控制相关
+        { id: 'btn-server-control', event: 'click', handler: handleServerControlClick },
+        { id: 'confirm-shutdown', event: 'click', handler: handleConfirmShutdownClick },
+        { id: 'cancel-shutdown', event: 'click', handler: hideShutdownModal },
+        { id: 'shutdown-modal', event: 'click', handler: handleShutdownModalClick }
+    ];
     
-    // 折叠浮层详情按钮
-    document.getElementById('toggle-detail-panel')?.addEventListener('click', toggleDetailPanel);
+    // 批量注册事件监听器
+    eventListeners.forEach(({ id, event, handler }) => {
+        const element = id === 'document' ? document : document.getElementById(id);
+        if (element) {
+            element.addEventListener(event, handler);
+        }
+    });
     
     // 初始化显示当前任务文件名和节假日缓存时间
     updateCurrentTodoFileDisplay();
@@ -340,6 +310,13 @@ async function scanAndUpdateFiles() {
         updateCurrentTodoFileDisplay();
     } catch (error) {
         console.error('扫描文件并加载任务失败:', error);
+    }
+}
+
+// 处理文档全局键盘事件
+function handleDocumentKeydown(e) {
+    if (e.key === 'Escape' && !document.getElementById('task-modal')?.classList.contains('hidden')) {
+        closeTaskModal();
     }
 }
 
@@ -365,17 +342,362 @@ export function openAddTaskModal() {
     taskModal.classList.remove('hidden');
 }
 
+// 新建文件功能
+function newFile() {
+    // 显示自定义的新建文件模态对话框
+    const modal = document.getElementById('new-file-modal');
+    const fileNameInput = document.getElementById('new-file-name');
+    
+    if (modal && fileNameInput) {
+        // 设置默认值
+        fileNameInput.value = 'todo_new.txt';
+        // 显示模态框
+        modal.classList.remove('hidden');
+        // 自动聚焦输入框
+        fileNameInput.focus();
+        fileNameInput.select();
+    }
+}
+
+// 处理新建文件确认
+async function handleNewFileConfirm() {
+    try {
+        const fileNameInput = document.getElementById('new-file-name');
+        if (!fileNameInput) return;
+        
+        const newFileName = fileNameInput.value.trim();
+        
+        // 检查用户是否取消了输入
+        if (!newFileName) {
+            closeNewFileModal();
+            return;
+        }
+        
+        // 验证文件名格式
+        if (!newFileName.endsWith('.txt')) {
+            alert('文件名必须以.txt结尾');
+            return;
+        }
+        
+        if (!newFileName.startsWith('todo')) {
+            alert('文件名必须以"todo"开头');
+            return;
+        }
+        
+        if (newFileName.trim() === '.txt') {
+            alert('文件名不能为空');
+            return;
+        }
+        
+        let success;
+        let successMessage;
+        
+        // 检查是否有导入的任务数据
+        if (importedTasksForNewFile) {
+            // 使用导入的任务数据创建文件
+            success = await saveTasksToFile(importedTasksForNewFile, newFileName);
+            successMessage = '文件导入成功';
+            
+            // 清空导入任务数据
+            importedTasksForNewFile = null;
+        } else {
+            // 创建空的任务数组
+            const emptyTasks = [];
+            
+            // 保存空文件到服务器
+            success = await saveTasksToFile(emptyTasks, newFileName);
+            successMessage = '文件创建成功';
+        }
+        
+        if (success) {
+            // 关闭模态框
+            closeNewFileModal();
+            
+            // 刷新文件列表
+            await updateFileDropdown();
+            
+            // 选择新创建的文件
+            const fileDropdown = document.getElementById('todo-file-select');
+            if (fileDropdown) {
+                fileDropdown.value = newFileName;
+            } else {
+                console.error('未找到文件下拉框元素');
+            }
+            
+            // 加载新文件
+            if (importedTasksForNewFile) {
+                tasks = importedTasksForNewFile;
+                importedTasksForNewFile = null;
+            } else {
+                tasks = [];
+            }
+            
+            // 确保所有UI更新操作都正确执行
+            try {
+                await renderCalendar(currentDate, tasks);
+                renderTaskList(tasks);
+                updateCurrentTodoFileDisplay();
+            } catch (uiError) {
+                console.error('更新UI时出错:', uiError);
+            }
+            
+            // 显示成功消息 - 确保showNotification函数存在
+            try {
+                if (typeof showNotification === 'function') {
+                    showNotification(successMessage);
+                } else {
+                    alert(successMessage);
+                }
+            } catch (notificationError) {
+                console.error('显示通知时出错:', notificationError);
+                alert(successMessage);
+            }
+        } else {
+            alert('文件操作失败');
+            
+            // 清空导入任务数据
+            importedTasksForNewFile = null;
+        }
+    } catch (error) {
+        console.error('新建文件失败:', error);
+        alert('文件创建失败: ' + error.message);
+        
+        // 关闭模态框
+        closeNewFileModal();
+        
+        // 清空导入任务数据
+        importedTasksForNewFile = null;
+        // 确保模态框总是被关闭
+        try {
+            closeNewFileModal();
+        } catch (modalError) {
+            console.error('关闭模态框时出错:', modalError);
+        }
+    }
+}
+
+// 关闭新建文件模态框
+function closeNewFileModal() {
+    const modal = document.getElementById('new-file-modal');
+    const modalTitle = modal?.querySelector('h3');
+    const modalDescription = modal?.querySelector('p');
+    const confirmButton = document.getElementById('confirm-new-file');
+    const fileNameInput = document.getElementById('new-file-name');
+    
+    if (modal) {
+        modal.classList.add('hidden');
+        
+        // 恢复模态框默认状态
+        if (modalTitle) modalTitle.textContent = '新建文件';
+        if (modalDescription) modalDescription.textContent = '请输入新的任务文件名（必须以"todo"开头并以.txt结尾）';
+        if (confirmButton) confirmButton.textContent = '创建';
+        if (fileNameInput) fileNameInput.value = 'todo_new.txt';
+        
+        // 清空导入任务数据（如果有的话）
+        importedTasksForNewFile = null;
+    }
+}
+
+// 导出文件功能
+function exportFile() {
+    try {
+        const currentFileName = getCurrentFileName();
+        
+        // 将任务转换为todo.txt格式
+        const content = convertTasksToTodoTxtFormat(tasks);
+        
+        // 创建下载链接
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = currentFileName;
+        
+        // 触发下载
+        document.body.appendChild(link);
+        link.click();
+        
+        // 清理
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        // 显示成功消息
+        showNotification('文件导出成功');
+    } catch (error) {
+        console.error('导出文件失败:', error);
+        alert('文件导出失败: ' + error.message);
+    }
+}
+
+// 导入文件功能
+function importFile() {
+    // 触发文件选择对话框
+    document.getElementById('import-file').click();
+}
+
+// 处理文件导入
+async function handleFileImport(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+        
+        // 检查文件类型
+        if (!file.name.endsWith('.txt')) {
+            alert('请选择.txt格式的文件');
+            return;
+        }
+        
+        // 读取文件内容
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const content = e.target.result;
+                
+                // 解析文件内容为任务
+                const importedTasks = parseTodoTxtFormat(content);
+                
+                // 提示用户选择是否覆盖当前文件或创建新文件
+                const option = confirm('是否要覆盖当前文件？\n\n点击"确定"覆盖当前文件，点击"取消"创建新文件。');
+                
+                if (option) {
+                    // 覆盖当前文件
+                    const currentFileName = getCurrentFileName();
+                    await saveTasksToFile(importedTasks, currentFileName);
+                    
+                    // 重新加载文件
+                    tasks = await loadTasksFromFile(currentFileName);
+                } else {
+                    // 创建新文件 - 使用自定义模态框
+                    importedTasksForNewFile = importedTasks;
+                    const modal = document.getElementById('new-file-modal');
+                    const fileNameInput = document.getElementById('new-file-name');
+                    const modalTitle = modal.querySelector('h3');
+                    const modalDescription = modal.querySelector('p');
+                    const confirmButton = document.getElementById('confirm-new-file');
+                    
+                    if (modal && fileNameInput) {
+                        // 修改模态框标题和描述以适配导入场景
+                        if (modalTitle) modalTitle.textContent = '导入文件';
+                        if (modalDescription) modalDescription.textContent = '请输入新的任务文件名（必须以"todo"开头并以.txt结尾）';
+                        if (confirmButton) confirmButton.textContent = '导入';
+                        
+                        // 设置默认值
+                        fileNameInput.value = 'todo_imported.txt';
+                        
+                        // 显示模态框
+                        modal.classList.remove('hidden');
+                        
+                        // 自动聚焦输入框
+                        fileNameInput.focus();
+                        fileNameInput.select();
+                    }
+                    return;
+                }
+            } catch (error) {
+                console.error('导入文件内容失败:', error);
+                alert('导入文件内容失败: ' + error.message);
+            }
+        };
+        
+        reader.onerror = () => {
+            alert('读取文件失败');
+        };
+        
+        reader.readAsText(file, 'utf-8');
+        
+        // 清空文件输入，以便下次可以选择同一个文件
+        event.target.value = '';
+    } catch (error) {
+        console.error('导入文件失败:', error);
+        alert('文件导入失败: ' + error.message);
+    }
+}
+
+
+
 // 关闭任务模态框
 function closeTaskModal() {
     document.getElementById('task-modal')?.classList.add('hidden');
 }
 
-// 添加ESC快捷键关闭模态框功能
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !document.getElementById('task-modal')?.classList.contains('hidden')) {
-        closeTaskModal();
+// 处理文件选择变化
+async function handleTodoFileChange() {
+    const fileDropdown = document.getElementById('todo-file-select');
+    const loadedTasks = await loadTasksFromFile(fileDropdown.value);
+    tasks = loadedTasks;
+    // 使用筛选后的任务数据渲染日历
+    const filteredTasks = filterTasks(tasks);
+    await renderCalendar(currentDate, filteredTasks);
+    renderTaskList(tasks);
+    // 切换文件后更新显示
+    updateCurrentTodoFileDisplay();
+}
+
+// 处理加载文件点击事件
+async function handleLoadFileClick() {
+    const fileDropdown = document.getElementById('todo-file-select');
+    const loadedTasks = await loadTasksFromFile(fileDropdown.value);
+    tasks = loadedTasks;
+    
+    // 重新初始化项目和上下文筛选下拉框
+    initProjectAndContextFilters();
+    
+    // 重置所有筛选参数为默认勾选值
+    setAllFiltersToDefault();
+    
+    // 给足够的时间让所有setTimeout执行完毕
+    setTimeout(async () => {
+        // 重新渲染日历和任务列表
+        await renderCalendar(currentDate, tasks);
+        renderTaskList(tasks);
+        
+        // 加载后更新显示
+        updateCurrentTodoFileDisplay();
+        
+        // 执行筛选操作，确保筛选项参数正确应用
+        performFiltering();
+    }, 200); // 比setTimeout中的100ms稍长
+}
+
+// 处理下一个月点击事件
+function handleNextMonthClick() {
+    // 创建新的Date对象而不是修改原对象，避免引用问题
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    // 使用筛选后的任务数据渲染日历
+    const filteredTasks = filterTasks(tasks);
+    renderCalendar(currentDate, filteredTasks);
+}
+
+// 处理上一个月点击事件
+function handlePrevMonthClick() {
+    // 创建新的Date对象而不是修改原对象，避免引用问题
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    // 使用筛选后的任务数据渲染日历
+    const filteredTasks = filterTasks(tasks);
+    renderCalendar(currentDate, filteredTasks);
+}
+
+// 处理返回今天点击事件
+async function handleTodayClick() {
+    currentDate = new Date();
+    await renderCalendar(currentDate, tasks); // 确保日历显示正确更新到今天
+    performFiltering(); // 使用performFiltering确保应用筛选条件
+}
+
+// 处理关闭模态框背景点击事件
+function handleShutdownModalClick(e) {
+    if (e.target === e.currentTarget) {
+        hideShutdownModal();
     }
-});
+}
+
+// 处理确认关闭服务器点击事件
+function handleConfirmShutdownClick() {
+    hideShutdownModal();
+    performServerShutdown();
+}
 
 // 保存任务
 async function saveTask(e) {
@@ -742,6 +1064,9 @@ if (typeof window !== 'undefined') {
             isServerRunning = false;
         }
         
+        // 绑定所有事件监听器，无论服务器是否运行
+        addEventListeners();
+        
         // 根据服务状态初始化应用
         if (isServerRunning) {
             // 服务正在运行，初始化完整应用
@@ -764,37 +1089,6 @@ if (typeof window !== 'undefined') {
         
         // 更新服务器控制按钮状态
         updateServerControlButton(isServerRunning);
-        
-        // 添加服务器控制按钮的事件监听器
-        const serverControlButton = document.getElementById('btn-server-control');
-        if (serverControlButton) {
-            serverControlButton.addEventListener('click', handleServerControlClick);
-        }
-        
-        // 添加关闭服务模态框按钮的事件监听器
-        const confirmShutdownButton = document.getElementById('confirm-shutdown');
-        const cancelShutdownButton = document.getElementById('cancel-shutdown');
-        const shutdownModal = document.getElementById('shutdown-modal');
-        
-        if (confirmShutdownButton) {
-            confirmShutdownButton.addEventListener('click', () => {
-                hideShutdownModal();
-                performServerShutdown();
-            });
-        }
-        
-        if (cancelShutdownButton) {
-            cancelShutdownButton.addEventListener('click', hideShutdownModal);
-        }
-        
-        // 点击模态框背景关闭模态框
-        if (shutdownModal) {
-            shutdownModal.addEventListener('click', (e) => {
-                if (e.target === shutdownModal) {
-                    hideShutdownModal();
-                }
-            });
-        }
     });
 }
 

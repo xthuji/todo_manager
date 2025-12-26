@@ -662,8 +662,18 @@
                         <select id="todo-file-select" class="border border-gray-300 rounded px-2 py-1.5 text-sm w-40 h-7">
                             <option value="todo.txt">todo.txt</option>
                         </select>
-                        <button id="btn-load-file" class="bg-gray-200 px-3 py-1.5 rounded hover:bg-gray-300 transition-colors text-sm flex items-center h-7">
+                        <button id="btn-load-file" class="bg-gray-300 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-400 transition-colors text-sm flex items-center h-7">
                             <i class="fa fa-refresh mr-1"></i> 加载
+                        </button>
+                        <button id="btn-export-file" class="bg-sky-500 text-white px-3 py-1.5 rounded hover:bg-sky-600 transition-colors text-sm flex items-center h-7 ml-2">
+                            <i class="fa fa-upload mr-1"></i> 导出
+                        </button>
+                        <button id="btn-new-file" class="bg-emerald-500 text-white px-3 py-1.5 rounded hover:bg-emerald-600 transition-colors text-sm flex items-center h-7 ml-2">
+                            <i class="fa fa-file-o mr-1"></i> 新建
+                        </button>
+                        <input type="file" id="import-file" accept=".txt" class="hidden" />
+                        <button id="btn-import-file" class="bg-indigo-500 text-white px-3 py-1.5 rounded hover:bg-indigo-600 transition-colors text-sm flex items-center h-7 ml-2">
+                            <i class="fa fa-download mr-1"></i> 导入
                         </button>
                     </div>
                     
@@ -942,6 +952,21 @@
             <div class="flex justify-end gap-3">
                 <button id="cancel-shutdown" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors">取消</button>
                 <button id="confirm-shutdown" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">关闭服务</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 新建文件模态对话框 -->
+    <div id="new-file-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">新建文件</h3>
+            <p class="text-gray-600 mb-4">请输入新的任务文件名（必须以"todo"开头并以.txt结尾）</p>
+            <div class="mb-6">
+                <input type="text" id="new-file-name" class="w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="todo_new.txt">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button id="cancel-new-file" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors">取消</button>
+                <button id="confirm-new-file" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">创建</button>
             </div>
         </div>
     </div>
