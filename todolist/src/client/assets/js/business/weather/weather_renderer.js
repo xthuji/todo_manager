@@ -1209,6 +1209,14 @@ window.WeatherModule.Charts = {
         // ... (日期格式化)
         function formatDate(dateStr) {
             if (!dateStr || typeof dateStr !== 'string') return dateStr;
+            
+            // 获取今天的日期并格式化为YYYYMMDD形式
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+            
+            // 检查是否是今天
+            if (dateStr === todayStr) return '今天';
+            
             if (dateStr.length === 8) return `${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
             if (dateStr.includes('-')) {
                 const parts = dateStr.split('-');
