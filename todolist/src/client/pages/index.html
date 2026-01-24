@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>任务和节日管理系统</title>
     <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+    <script src="/assets/js/third_party/jquery.min.js"></script>
     <script src="/assets/js/third_party/tailwindcss.js"></script>
     <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
     <script>
@@ -173,17 +174,7 @@
         // iframe加载完成事件处理
         function onIframeLoaded(pageType) {
             try {
-                let iframe;
-                
-                if (pageType === 'todo') {
-                    iframe = document.getElementById('todo-manager-iframe');
-                } else if (pageType === 'festival') {
-                    iframe = document.getElementById('festival-manager-iframe');
-                } else if (pageType === 'calendar') {
-                    iframe = document.getElementById('calendar-view-iframe');
-                } else if (pageType === 'weather') {
-                    iframe = document.getElementById('weather-view-iframe');
-                }
+                let iframe = $(`#${pageType}-manager-iframe, #${pageType}-view-iframe`)[0];
                 
                 if (iframe && iframe.contentWindow && iframe.contentWindow.postMessage) {
                     // 向iframe发送消息，通知它DOM已完全加载
@@ -202,45 +193,29 @@
         
         // 设置页面切换监听器
         function setupPageSwitchListeners() {
-            const pageButtons = document.querySelectorAll('.page-button');
-            pageButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const pageId = button.getAttribute('data-page');
-                    switchPage(pageId);
-                });
+            $('.page-button').on('click', function() {
+                const pageId = $(this).data('page');
+                switchPage(pageId);
             });
         }
         
         // 切换页面显示
         function switchPage(pageId) {
             // 隐藏所有页面
-            const allPages = document.querySelectorAll('.page-content');
-            allPages.forEach(page => {
-                page.classList.remove('active');
-            });
+            $('.page-content').removeClass('active');
             
             // 移除所有按钮的激活状态
-            const allButtons = document.querySelectorAll('.page-button');
-            allButtons.forEach(button => {
-                button.classList.remove('active');
-            });
+            $('.page-button').removeClass('active');
             
             // 显示选中的页面
-            const selectedPage = document.getElementById(`page-${pageId}`);
-            if (selectedPage) {
-                selectedPage.classList.add('active');
-            }
+            $(`#page-${pageId}`).addClass('active');
             
             // 激活对应的按钮
-            const selectedButton = document.querySelector(`.page-button[data-page="${pageId}"]`);
-            if (selectedButton) {
-                selectedButton.classList.add('active');
-            }
+            $(`.page-button[data-page="${pageId}"]`).addClass('active');
         }
         
-        
         // 等待DOM加载完成后初始化
-        document.addEventListener('DOMContentLoaded', init);
+        $(document).ready(init);
     </script>
 </body>
 </html>
