@@ -211,6 +211,26 @@
                 <div class="font-medium text-gray-500">周日</div>
             </div>
             
+            <!-- 日历日期模板 -->
+            <template id="calendar-day-template">
+                <div class="calendar-day">
+                    <div class="calendar-day-content">
+                        <div class="flex items-center mb-0.5">
+                            <span class="calendar-day-number"></span>
+                            <span class="text-xs text-gray-500 ml-1 lunar-date"></span>
+                        </div>
+                        <div class="festival-container flex flex-col items-end gap-0.5 w-full">
+                            <!-- 节日标签将通过JS动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </template>
+            
+            <!-- 节日标签模板 -->
+            <template id="festival-tag-template">
+                <div class="festival-tag w-full text-center"></div>
+            </template>
+            
             <!-- 日历网格 -->
             <div id="calendar-grid" class="grid grid-cols-7 gap-0 min-w-[768px]">
                 <!-- 日历天数将通过JS动态生成 -->

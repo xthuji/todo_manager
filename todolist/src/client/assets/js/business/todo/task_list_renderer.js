@@ -158,121 +158,179 @@ export async function renderTaskList(tasks) {
         return a.id - b.id;
     });
     
+    // 获取任务元素模板
+    const taskTemplate = document.getElementById('task-item-template');
+    const useTemplate = !!taskTemplate;
+
     sortedTasks.forEach(task => {
-        const taskElement = document.createElement('div');
+        let taskElement;
+        
+        // 使用模板渲染
+        if (useTemplate) {
+            taskElement = taskTemplate.content.cloneNode(true).firstElementChild;
+        } else {
+            // 回退到原来的创建方式
+            taskElement = document.createElement('div');
+            taskElement.classList.add('p-4', 'border-2', 'rounded-lg', 'mb-2', 'hover:bg-gray-50', 'transition-colors');
+        }
         
         // 使用预计算的displayStatus字段作为状态颜色类
         const displayStatus = task.displayStatus || 'pending';
         
         // 添加彩色边框，使用任务状态颜色
-        taskElement.classList.add('p-4', 'border-2', `border-status-${displayStatus}`, 'rounded-lg', 'mb-2', 'hover:bg-gray-50', 'transition-colors');
+        taskElement.className = 'p-4 border-2 border-status-' + displayStatus + ' rounded-lg mb-2 hover:bg-gray-50 transition-colors';
 
-        taskElement.innerHTML = `
-            <div class="flex items-start justify-between">
-                <div class="flex items-start flex-1">
-                    <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : ''}">
-                            #${task.id} ${task.title}
-                        </h3>
-                        <div class="mt-2 flex items-center flex-wrap gap-2">
-                            ${task.priority !== 'none' ? `
-                                <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-priority-${task.priority} text-white">
-                                    优先级 ${task.priority}
-                                </span>
-                            ` : ''}
-                            ${task.dueDate ? `
-                                <span class="inline-flex items-center text-sm text-gray-600">
-                                    <i class="fa fa-calendar-o mr-1"></i>
-                                    ${task.startDate && task.startDate !== task.dueDate ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}` : formatDate(task.dueDate)}
-                                    ${(() => {
-                                        if (task.startDate && task.dueDate) {
-                                            const startDate = new Date(task.startDate);
-                                            const dueDate = new Date(task.dueDate);
-                                            let totalWorkDays = 0;
-                                            
-                                            // 检查任务是否是专门针对节假日的
-                                            // 方法：检查任务期间是否所有日期都是节假日或周末
-                                            let isHolidaySpecialTask = true;
-                                            const checkDate = new Date(startDate);
-                                            while (checkDate <= dueDate) {
-                                                const dateType = getDateType(checkDate);
-                                                if (dateType !== 'holiday' && dateType !== 'weekend') {
-                                                    isHolidaySpecialTask = false;
-                                                    break;
-                                                }
-                                                checkDate.setDate(checkDate.getDate() + 1);
-                                            }
-                                            
-                                            // 计算工作天数
-                                            const tempDate = new Date(startDate);
-                                            while (tempDate <= dueDate) {
-                                                if (isHolidaySpecialTask) {
-                                                    // 如果是专门针对节假日的任务，所有日期都计入工作天数
-                                                    totalWorkDays++;
-                                                } else {
-                                                    // 否则，只统计工作日和补班天数
-                                                   
+        // 填充任务数据
+        const titleElement = taskElement.querySelector('h3');
+        if (titleElement) {
+            titleElement.textContent = `#${task.id} ${task.title}`;
+            if (task.status === 'completed') {
+                titleElement.classList.add('line-through', 'text-gray-500');
+            }
+        }
 
-                                                    const dateType = getDateType(tempDate);
-                                                    if (dateType === 'weekday' || dateType === 'workday') {
-                                                        totalWorkDays++;
-                                                    }
-                                                }
-                                                tempDate.setDate(tempDate.getDate() + 1);
-                                            }
-                                            
-                                            return `<span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded font-bold">${totalWorkDays}天</span>`;
-                                        } else if (task.dueDate) {
-                                            // 对于单个日期的任务，始终显示天数
-                                            return '<span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded font-bold">1天</span>';
-                                        }
-                                        return '';
-                                    })()}
-                                </span>
-                            ` : ''}
-                            ${task.project ? `
-                                <span class="inline-flex items-center text-sm text-gray-600">
-                                    <i class="fa fa-folder-o mr-1"></i>
-                                    ${task.project}
-                                </span>
-                            ` : ''}
-                            ${task.context ? `
-                                <span class="inline-flex items-center text-sm text-gray-600">
-                                    <i class="fa fa-tags mr-1"></i>
-                                    ${task.context}
-                                </span>
-                            ` : ''}
-                        </div>
-                        ${task.note ? `
-                            <p class="mt-2 text-gray-600 text-sm">${task.note}</p>
-                        ` : ''}
-                    </div>
-                </div>
-                <div class="flex-shrink-0 ml-4 space-y-1">
-                    <!-- 操作按钮左侧添加任务状态信息，使用状态颜色作为背景色 -->
-                    <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-status-${displayStatus || 'pending'} text-white mb-1">
-                        ${getStatusText(displayStatus)}
-                    </span>
-                    <!-- 添加新的操作按钮：跳转到日历中对应的任务 -->
-                    <button class="go-to-calendar p-2 text-gray-500 hover:text-purple-500" data-id="${task.id}" data-date="${task.dueDate || ''}" title="查看日历">
-                        <i class="fa fa-calendar"></i>
-                    </button>
-                    <!-- 添加新的操作按钮：设置任务状态为已完成或重新开始 -->
-                    <button class="toggle-status p-2 text-gray-500 hover:text-green-500" data-id="${task.id}" data-status="${task.status}" title="${task.status === 'completed' ? '重新开始任务' : '标记为已完成'}">
-                        ${task.status === 'completed' ? '<i class="fa fa-refresh"></i>' : '<i class="fa fa-check-circle"></i>'}
-                    </button>
-                    <button class="edit-task p-2 text-gray-500 hover:text-blue-500" data-id="${task.id}" title="编辑任务">
-                        <i class="fa fa-pencil"></i>
-                    </button>
-                    <button class="delete-task p-2 text-gray-500 hover:text-red-500" data-id="${task.id}" title="删除任务">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
+        // 优先级标签
+        const priorityElement = taskElement.querySelector('.bg-priority-none');
+        if (priorityElement) {
+            if (task.priority !== 'none') {
+                priorityElement.className = 'inline-block px-2 py-1 text-xs font-medium rounded-full bg-priority-' + task.priority + ' text-white';
+                priorityElement.textContent = '优先级 ' + task.priority;
+            } else {
+                priorityElement.style.display = 'none';
+            }
+        }
 
-        // 添加事件监听器 - 必须在设置innerHTML之后添加
+        // 日期标签
+        const dateContainer = taskElement.querySelector('.inline-flex.items-center.text-sm.text-gray-600');
+        if (dateContainer) {
+            if (task.dueDate) {
+                const dateTextElement = dateContainer.querySelector('.date-text');
+                const daysCountElement = dateContainer.querySelector('.days-count');
+                
+                if (dateTextElement) {
+                    dateTextElement.textContent = task.startDate && task.startDate !== task.dueDate ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}` : formatDate(task.dueDate);
+                }
+                
+                if (daysCountElement) {
+                    if (task.startDate && task.dueDate) {
+                        const startDate = new Date(task.startDate);
+                        const dueDate = new Date(task.dueDate);
+                        let totalWorkDays = 0;
+                        
+                        // 检查任务是否是专门针对节假日的
+                        let isHolidaySpecialTask = true;
+                        const checkDate = new Date(startDate);
+                        while (checkDate <= dueDate) {
+                            const dateType = getDateType(checkDate);
+                            if (dateType !== 'holiday' && dateType !== 'weekend') {
+                                isHolidaySpecialTask = false;
+                                break;
+                            }
+                            checkDate.setDate(checkDate.getDate() + 1);
+                        }
+                        
+                        // 计算工作天数
+                        const tempDate = new Date(startDate);
+                        while (tempDate <= dueDate) {
+                            if (isHolidaySpecialTask) {
+                                // 如果是专门针对节假日的任务，所有日期都计入工作天数
+                                totalWorkDays++;
+                            } else {
+                                // 否则，只统计工作日和补班天数
+                                const dateType = getDateType(tempDate);
+                                if (dateType === 'weekday' || dateType === 'workday') {
+                                    totalWorkDays++;
+                                }
+                            }
+                            tempDate.setDate(tempDate.getDate() + 1);
+                        }
+                        
+                        daysCountElement.className = 'ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded font-bold';
+                        daysCountElement.textContent = totalWorkDays + '天';
+                    } else if (task.dueDate) {
+                        // 对于单个日期的任务，始终显示天数
+                        daysCountElement.className = 'ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded font-bold';
+                        daysCountElement.textContent = '1天';
+                    }
+                }
+            } else {
+                dateContainer.style.display = 'none';
+            }
+        }
+
+        // 项目标签
+        const projectContainer = taskElement.querySelectorAll('.inline-flex.items-center.text-sm.text-gray-600')[1];
+        if (projectContainer) {
+            const projectTextElement = projectContainer.querySelector('.project-text');
+            if (projectTextElement) {
+                if (task.project) {
+                    projectTextElement.textContent = task.project;
+                } else {
+                    projectContainer.style.display = 'none';
+                }
+            }
+        }
+
+        // 上下文标签
+        const contextContainer = taskElement.querySelectorAll('.inline-flex.items-center.text-sm.text-gray-600')[2];
+        if (contextContainer) {
+            const contextTextElement = contextContainer.querySelector('.context-text');
+            if (contextTextElement) {
+                if (task.context) {
+                    contextTextElement.textContent = task.context;
+                } else {
+                    contextContainer.style.display = 'none';
+                }
+            }
+        }
+
+        // 备注
+        const noteElement = taskElement.querySelector('p');
+        if (noteElement) {
+            if (task.note) {
+                noteElement.textContent = task.note;
+            } else {
+                noteElement.style.display = 'none';
+            }
+        }
+
+        // 任务状态信息
+        const statusElement = taskElement.querySelector('.bg-status-pending');
+        if (statusElement) {
+            statusElement.className = 'inline-block px-2 py-1 text-xs font-medium rounded-full bg-status-' + (displayStatus || 'pending') + ' text-white mb-1';
+            statusElement.textContent = getStatusText(displayStatus);
+        }
+
+        // 操作按钮
+        const goToCalendarButton = taskElement.querySelector('.go-to-calendar');
+        if (goToCalendarButton) {
+            goToCalendarButton.setAttribute('data-id', task.id);
+            goToCalendarButton.setAttribute('data-date', task.dueDate || '');
+        }
+
+        const toggleStatusButton = taskElement.querySelector('.toggle-status');
+        if (toggleStatusButton) {
+            toggleStatusButton.setAttribute('data-id', task.id);
+            toggleStatusButton.setAttribute('data-status', task.status);
+            toggleStatusButton.setAttribute('title', task.status === 'completed' ? '重新开始任务' : '标记为已完成');
+            
+            const toggleStatusIcon = toggleStatusButton.querySelector('i');
+            if (toggleStatusIcon) {
+                toggleStatusIcon.className = task.status === 'completed' ? 'fa fa-refresh' : 'fa fa-check-circle';
+            }
+        }
+
         const editButton = taskElement.querySelector('.edit-task');
+        if (editButton) {
+            editButton.setAttribute('data-id', task.id);
+        }
+
+        const deleteButton = taskElement.querySelector('.delete-task');
+        if (deleteButton) {
+            deleteButton.setAttribute('data-id', task.id);
+        }
+
+        // 添加事件监听器
         if (editButton) {
             editButton.addEventListener('click', function() {
                 const taskId = parseInt(this.getAttribute('data-id'));
@@ -280,7 +338,6 @@ export async function renderTaskList(tasks) {
             });
         }
 
-        const deleteButton = taskElement.querySelector('.delete-task');
         if (deleteButton) {
             deleteButton.addEventListener('click', function() {
                 const taskId = parseInt(this.getAttribute('data-id'));
@@ -288,7 +345,6 @@ export async function renderTaskList(tasks) {
             });
         }
 
-        const goToCalendarButton = taskElement.querySelector('.go-to-calendar');
         if (goToCalendarButton) {
             goToCalendarButton.addEventListener('click', function() {
                 const taskId = parseInt(this.getAttribute('data-id'));
@@ -297,7 +353,6 @@ export async function renderTaskList(tasks) {
             });
         }
 
-        const toggleStatusButton = taskElement.querySelector('.toggle-status');
         if (toggleStatusButton) {
             toggleStatusButton.addEventListener('click', function() {
                 const taskId = parseInt(this.getAttribute('data-id'));

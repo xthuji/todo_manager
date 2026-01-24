@@ -455,64 +455,78 @@ import './common/lunar_utils.js';
             // 2. [重构] 调用逻辑函数获取 CSS 类
             const dayClasses = this._buildDayClasses(info, dayData.isCurrentMonth);
 
-            // 3. --- 开始纯 DOM 创建 ---
-            const dayContainer = document.createElement('div');
+            // 3. 使用日历日期模板
+            const dayTemplate = document.getElementById('calendar-day-template');
+            if (!dayTemplate) {
+                console.error('日历日期模板不存在');
+                // 回退到原来的创建方式
+                const dayContainer = document.createElement('div');
+                dayContainer.className = dayClasses.join(' ');
+                return dayContainer;
+            }
+
+            // 克隆模板内容
+            const dayContainer = dayTemplate.content.cloneNode(true).firstElementChild;
             dayContainer.className = dayClasses.join(' ');
 
-            const dayContent = document.createElement('div');
-            dayContent.className = 'calendar-day-content';
+            // 4. 填充日期数字
+            const dayNumber = dayContainer.querySelector('.calendar-day-number');
+            if (dayNumber) {
+                if (!dayData.isCurrentMonth) {
+                    dayNumber.classList.add('calendar-day-number-other_month');
+                }
+                
+                // 简化样式逻辑
+                if (info.isHoliday || (info.isWeekend && !info.isWorkday)) {
+                    dayNumber.style.color = '#dc2626'; // 红色
+                } else {
+                    dayNumber.style.color = '#111827'; // 黑色
+                }
 
-            const dateContentContainer = document.createElement('div');
-            dateContentContainer.className = 'flex items-center mb-0.5';
-
-            const dayNumber = document.createElement('span');
-            dayNumber.className = 'calendar-day-number';
-            if (!dayData.isCurrentMonth) {
-                dayNumber.className += ' calendar-day-number-other_month';
+                if (info.isToday) {
+                    dayNumber.classList.add('text-sm', 'border-2', 'border-blue-500', 'w-6', 'h-6', 'inline-flex', 'items-center', 'justify-center', 'rounded-full');
+                }
+                dayNumber.textContent = info.dayNum;
             }
 
-            // [重构] 简化样式逻辑
-            if (info.isHoliday || (info.isWeekend && !info.isWorkday)) {
-                dayNumber.style.color = '#dc2626'; // 红色
-            } else {
-                dayNumber.style.color = '#111827'; // 黑色
+            // 5. 填充农历日期
+            const lunarDateElement = dayContainer.querySelector('.lunar-date');
+            if (lunarDateElement) {
+                if (info.lunarDate) {
+                    lunarDateElement.textContent = info.lunarDate;
+                } else {
+                    lunarDateElement.style.display = 'none';
+                }
             }
 
-            if (info.isToday) {
-                dayNumber.className += 'text-sm border-2 border-blue-500 w-6 h-6 inline-flex items-center justify-center rounded-full';
-            }
-            dayNumber.textContent = info.dayNum;
-
-            dateContentContainer.appendChild(dayNumber);
-
-            // 农历
-            if (info.lunarDate) {
-                const lunarElement = document.createElement('span');
-                lunarElement.className = 'text-xs text-gray-500 ml-1';
-                lunarElement.textContent = info.lunarDate;
-                dateContentContainer.appendChild(lunarElement);
-            }
-
-            dayContent.appendChild(dateContentContainer);
-
-            // 节日
-            const festivalContainer = document.createElement('div');
-            festivalContainer.className = 'festival-container flex flex-col items-end gap-0.5 w-full';
-
-            if (info.festivals.length > 0) {
-                info.festivals.forEach(festival => {
-                    const festivalTag = document.createElement('div');
-                    // 假设 lunarUtils 在 window 上
-                    festivalTag.className = `festival-tag ${window.lunarUtils.getFestivalTypeClass(festival.type)} w-full text-center`;
-                    festivalTag.textContent = festival.name;
-                    festivalContainer.appendChild(festivalTag);
-                });
+            // 6. 填充节日标签
+            const festivalContainer = dayContainer.querySelector('.festival-container');
+            if (festivalContainer) {
+                // 清空节日容器
+                festivalContainer.innerHTML = '';
+                
+                if (info.festivals.length > 0) {
+                    const festivalTagTemplate = document.getElementById('festival-tag-template');
+                    
+                    info.festivals.forEach(festival => {
+                        if (festivalTagTemplate) {
+                            // 使用节日标签模板
+                            const festivalTag = festivalTagTemplate.content.cloneNode(true).firstElementChild;
+                            festivalTag.className = `festival-tag ${window.lunarUtils.getFestivalTypeClass(festival.type)} w-full text-center`;
+                            festivalTag.textContent = festival.name;
+                            festivalContainer.appendChild(festivalTag);
+                        } else {
+                            // 回退到原来的创建方式
+                            const festivalTag = document.createElement('div');
+                            festivalTag.className = `festival-tag ${window.lunarUtils.getFestivalTypeClass(festival.type)} w-full text-center`;
+                            festivalTag.textContent = festival.name;
+                            festivalContainer.appendChild(festivalTag);
+                        }
+                    });
+                }
             }
 
-            dayContent.appendChild(festivalContainer);
-            dayContainer.appendChild(dayContent);
-
-            // 添加点击事件
+            // 7. 添加点击事件
             dayContainer.addEventListener('click', function() {
                 console.log('点击了日期:', info.date);
             });

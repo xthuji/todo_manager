@@ -99,7 +99,19 @@ async function loadHolidayData() {
         return;
     }
     
-    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">加载中...</td></tr>';
+    // 使用空状态模板显示加载中
+    const emptyTemplate = document.getElementById('holiday-empty-template');
+    if (emptyTemplate) {
+        const loadingRow = emptyTemplate.content.cloneNode(true);
+        const loadingCell = loadingRow.querySelector('td');
+        if (loadingCell) {
+            loadingCell.textContent = '加载中...';
+        }
+        tbody.innerHTML = '';
+        tbody.appendChild(loadingRow);
+    } else {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">加载中...</td></tr>';
+    }
 
     try {
         // 主动调用getHolidayData获取最新的节假日数据
@@ -120,11 +132,33 @@ async function loadHolidayData() {
                 }
             }
         } else if (!holidayData) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">未找到节假日缓存数据，请先刷新节假日缓存</td></tr>';
+            // 使用空状态模板显示错误信息
+            if (emptyTemplate) {
+                const errorRow = emptyTemplate.content.cloneNode(true);
+                const errorCell = errorRow.querySelector('td');
+                if (errorCell) {
+                    errorCell.textContent = '未找到节假日缓存数据，请先刷新节假日缓存';
+                }
+                tbody.innerHTML = '';
+                tbody.appendChild(errorRow);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">未找到节假日缓存数据，请先刷新节假日缓存</td></tr>';
+            }
             return;
         } else {
             console.warn('未知的节假日数据格式:', holidayData);
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">节假日数据格式未知，请检查数据来源</td></tr>';
+            // 使用空状态模板显示错误信息
+            if (emptyTemplate) {
+                const errorRow = emptyTemplate.content.cloneNode(true);
+                const errorCell = errorRow.querySelector('td');
+                if (errorCell) {
+                    errorCell.textContent = '节假日数据格式未知，请检查数据来源';
+                }
+                tbody.innerHTML = '';
+                tbody.appendChild(errorRow);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">节假日数据格式未知，请检查数据来源</td></tr>';
+            }
             return;
         }
 
@@ -137,32 +171,73 @@ async function loadHolidayData() {
 
         // 生成表格内容
         if (allHolidays.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无节假日数据</td></tr>';
+            // 使用空状态模板显示空数据信息
+            if (emptyTemplate) {
+                const emptyRow = emptyTemplate.content.cloneNode(true);
+                const emptyCell = emptyRow.querySelector('td');
+                if (emptyCell) {
+                    emptyCell.textContent = '暂无节假日数据';
+                }
+                tbody.innerHTML = '';
+                tbody.appendChild(emptyRow);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无节假日数据</td></tr>';
+            }
             return;
         }
 
-        let html = '';
-        allHolidays.forEach(holiday => {
-            const compDaysHtml = holiday.CompDays && Array.isArray(holiday.CompDays) && holiday.CompDays.length > 0 
-                ? holiday.CompDays.join('<br>') 
-                : '-';
-            
-            html += `
-                <tr class="hover:bg-gray-50">
-                    <td class="w-[20%] px-6 py-4 text-sm font-medium text-gray-900 truncate">${holiday.Name || holiday.name || '-'}</td>
-                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate">${holiday.StartDate || '-'}</td>
-                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate">${holiday.EndDate || '-'}</td>
-                    <td class="w-[10%] px-6 py-4 text-sm text-gray-500 truncate">${holiday.Duration || '-'}</td>
-                    <td class="w-[25%] px-6 py-4 text-sm text-gray-500">${compDaysHtml}</td>
-                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate">${holiday.Year || (holiday.StartDate ? new Date(holiday.StartDate).getFullYear() : '-')}</td>
-                </tr>
-            `;
-        });
+        // 使用节假日项模板
+        const holidayTemplate = document.getElementById('holiday-item-template');
+        if (!holidayTemplate) {
+            console.error('节假日项模板不存在');
+            return;
+        }
 
-        tbody.innerHTML = html;
+        tbody.innerHTML = '';
+        allHolidays.forEach(holiday => {
+            const holidayItem = holidayTemplate.content.cloneNode(true);
+            const cells = holidayItem.querySelectorAll('td');
+            
+            if (cells.length >= 6) {
+                // 填充节日名称
+                cells[0].textContent = holiday.Name || holiday.name || '-';
+                
+                // 填充开始日期
+                cells[1].textContent = holiday.StartDate || '-';
+                
+                // 填充结束日期
+                cells[2].textContent = holiday.EndDate || '-';
+                
+                // 填充持续天数
+                cells[3].textContent = holiday.Duration || '-';
+                
+                // 填充补班日期
+                const compDaysHtml = holiday.CompDays && Array.isArray(holiday.CompDays) && holiday.CompDays.length > 0 
+                    ? holiday.CompDays.join('<br>') 
+                    : '-';
+                cells[4].innerHTML = compDaysHtml;
+                
+                // 填充年份
+                cells[5].textContent = holiday.Year || (holiday.StartDate ? new Date(holiday.StartDate).getFullYear() : '-');
+            }
+            
+            tbody.appendChild(holidayItem);
+        });
     } catch (error) {
         console.error('解析节假日数据失败:', error);
-        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">解析节假日数据失败: ${error.message}</td></tr>`;
+        // 使用空状态模板显示错误信息
+        if (emptyTemplate) {
+            const errorRow = emptyTemplate.content.cloneNode(true);
+            const errorCell = errorRow.querySelector('td');
+            if (errorCell) {
+                errorCell.textContent = `解析节假日数据失败: ${error.message}`;
+                errorCell.className = 'px-6 py-4 text-center text-red-500';
+            }
+            tbody.innerHTML = '';
+            tbody.appendChild(errorRow);
+        } else {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">解析节假日数据失败: ${error.message}</td></tr>`;
+        }
     }
 }
 
@@ -205,43 +280,78 @@ function renderFestivalList(festivals) {
     }
     
     if (!festivals || festivals.length === 0) {
-        // 显示空状态
-        const emptyState = document.createElement('div');
-        emptyState.className = 'col-span-5 py-10 text-center text-gray-500';
-        emptyState.innerHTML = `<i class="fa fa-calendar-o text-3xl mb-2"></i><br>暂无节日数据`;
-        innerContainer.appendChild(emptyState);
+        // 使用空状态模板
+        const emptyTemplate = document.getElementById('empty-state-template');
+        if (emptyTemplate) {
+            const emptyState = emptyTemplate.content.cloneNode(true);
+            innerContainer.appendChild(emptyState);
+        }
+        return;
+    }
+    
+    // 使用节日项模板
+    const festivalTemplate = document.getElementById('festival-item-template');
+    if (!festivalTemplate) {
+        console.error('节日项模板不存在');
         return;
     }
     
     // 创建每个节日项
     for (let i = 0; i < festivals.length; i++) {
         const festival = festivals[i];
-        const festivalItem = document.createElement('div');
-        festivalItem.className = 'grid grid-cols-5 gap-3 p-1 border-2 border-gray-100 hover:bg-gray-50 rounded-lg transition-colors';
-        festivalItem.innerHTML = `
-            <!-- 节日名称 -->
-            <div class="col-span-2 font-medium flex items-center">
-                ${festival.name}${festival.alias ? ` (${festival.alias})` : ''}
-            </div>
-            <!-- 节日类型 -->
-            <div class="col-span-1 text-sm flex items-center">
-                <span class="${window.lunarUtils.getFestivalTypeClass(festival.type)} festival-tag text-white px-1 py-0.5 rounded text-xs whitespace-nowrap">${window.lunarUtils.getFestivalTypeName(festival.type)}</span>
-            </div>
-            <!-- 日期类型 -->
-            <div class="col-span-1 text-sm text-gray-600 flex items-center">
-                ${festival.dateType === 'solar' ? '公历' : festival.dateType === 'lunar' ? '农历' : festival.dateType === 'week' ? '星期' : '节气'}
-                ${festival.date && festival.date.trim() !== '' ? ` ${festival.date}` : ''}
-            </div>
-            <!-- 操作按钮 -->
-            <div class="col-span-1 flex justify-end items-center space-x-2">
-                <button class="btn-action" onclick="editFestival('${festival.id}')">
-                    <i class="fa fa-pencil text-blue-500"></i>
-                </button>
-                <button class="btn-action" onclick="deleteFestivalConfirm('${festival.id}', '${festival.name}')">
-                    <i class="fa fa-trash text-red-500"></i>
-                </button>
-            </div>
-        `;
+        const festivalItem = festivalTemplate.content.cloneNode(true);
+        
+        // 填充节日名称
+        const nameElement = festivalItem.querySelector('.col-span-2');
+        if (nameElement) {
+            nameElement.textContent = festival.name;
+            if (festival.alias) {
+                nameElement.textContent += ` (${festival.alias})`;
+            }
+        }
+        
+        // 填充节日类型
+        const typeElement = festivalItem.querySelector('.col-span-1:nth-child(2)');
+        if (typeElement) {
+            const typeClass = window.lunarUtils.getFestivalTypeClass(festival.type);
+            const typeName = window.lunarUtils.getFestivalTypeName(festival.type);
+            typeElement.innerHTML = `<span class="${typeClass} festival-tag text-white px-1 py-0.5 rounded text-xs whitespace-nowrap">${typeName}</span>`;
+        }
+        
+        // 填充日期类型
+        const dateElement = festivalItem.querySelector('.col-span-1:nth-child(3)');
+        if (dateElement) {
+            let dateTypeText = '';
+            switch (festival.dateType) {
+                case 'solar':
+                    dateTypeText = '公历';
+                    break;
+                case 'lunar':
+                    dateTypeText = '农历';
+                    break;
+                case 'week':
+                    dateTypeText = '星期';
+                    break;
+                default:
+                    dateTypeText = '节气';
+            }
+            if (festival.date && festival.date.trim() !== '') {
+                dateTypeText += ` ${festival.date}`;
+            }
+            dateElement.textContent = dateTypeText;
+        }
+        
+        // 绑定事件
+        const editBtn = festivalItem.querySelector('.edit-btn');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => editFestival(festival.id));
+        }
+        
+        const deleteBtn = festivalItem.querySelector('.delete-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => deleteFestivalConfirm(festival.id, festival.name));
+        }
+        
         innerContainer.appendChild(festivalItem);
     }
 }

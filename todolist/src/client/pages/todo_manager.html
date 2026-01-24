@@ -816,6 +816,58 @@
                 </div>
             </div>
         </div>
+        
+        <!-- 任务元素模板 -->
+        <template id="task-item-template">
+            <div class="p-4 border-2 border-status-pending rounded-lg mb-2 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start flex-1">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-medium"></h3>
+                            <div class="mt-2 flex items-center flex-wrap gap-2">
+                                <!-- 优先级标签 -->
+                                <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-priority-none text-white"></span>
+                                <!-- 日期标签 -->
+                                <span class="inline-flex items-center text-sm text-gray-600">
+                                    <i class="fa fa-calendar-o mr-1"></i>
+                                    <span class="date-text"></span>
+                                    <span class="days-count"></span>
+                                </span>
+                                <!-- 项目标签 -->
+                                <span class="inline-flex items-center text-sm text-gray-600">
+                                    <i class="fa fa-folder-o mr-1"></i>
+                                    <span class="project-text"></span>
+                                </span>
+                                <!-- 上下文标签 -->
+                                <span class="inline-flex items-center text-sm text-gray-600">
+                                    <i class="fa fa-tags mr-1"></i>
+                                    <span class="context-text"></span>
+                                </span>
+                            </div>
+                            <!-- 备注 -->
+                            <p class="mt-2 text-gray-600 text-sm"></p>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 ml-4 space-y-1">
+                        <!-- 任务状态信息 -->
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full bg-status-pending text-white mb-1"></span>
+                        <!-- 操作按钮 -->
+                        <button class="go-to-calendar p-2 text-gray-500 hover:text-purple-500" data-id="" data-date="" title="查看日历">
+                            <i class="fa fa-calendar"></i>
+                        </button>
+                        <button class="toggle-status p-2 text-gray-500 hover:text-green-500" data-id="" data-status="" title="标记为已完成">
+                            <i class="fa fa-check-circle"></i>
+                        </button>
+                        <button class="edit-task p-2 text-gray-500 hover:text-blue-500" data-id="" title="编辑任务">
+                            <i class="fa fa-pencil"></i>
+                        </button>
+                        <button class="delete-task p-2 text-gray-500 hover:text-red-500" data-id="" title="删除任务">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
     </div>
 
     <script>

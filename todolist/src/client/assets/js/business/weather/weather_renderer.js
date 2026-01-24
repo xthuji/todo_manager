@@ -358,7 +358,8 @@ window.WeatherModule.View = {
 
         const weatherArea = document.querySelector('#weather-area');
         if (weatherArea) {
-            weatherArea.className = weatherArea.className.replace(/bg-[\w-]+/g, '').trim();
+            // 清除所有背景相关的类名，包括渐变类
+            weatherArea.className = weatherArea.className.replace(/(bg-[\w-]+|from-[\w-]+|to-[\w-]+)/g, '').trim();
             weatherArea.className += ' ' + this.getBgColor(todayWeather.weather || '--'); // 调用 this.getBgColor
         }
     },
@@ -377,23 +378,53 @@ window.WeatherModule.View = {
         const lifeHelperIcons = { '紫外线': 'fa-sun-o', '感冒': 'fa-stethoscope', '穿衣': 'fa-shopping-bag', '洗车': 'fa-car', '运动': 'fa-soccer-ball-o', '空气污染扩散': 'fa-plus-circle' };
         const lifeHelperColors = { '优': 'text-green-600', '良': 'text-blue-600', '中等': 'text-yellow-600', '较易发': 'text-orange-600', '适宜': 'text-green-600', '不适宜': 'text-red-600', '较舒适': 'text-blue-600' };
 
+        // 使用模板渲染
+        const lifeHelperTemplate = document.getElementById('life-helper-item-template');
+        const useTemplate = !!lifeHelperTemplate;
+
         lifeHelperData.forEach(item => {
-            const lifeHelperItem = document.createElement('div');
-            lifeHelperItem.className = 'bg-white p-3 rounded-lg shadow-sm flex flex-col justify-between';
-            lifeHelperItem.style.height = '100%';
-            lifeHelperItem.title = item.desc;
-            const iconClass = lifeHelperIcons[item.title] || 'fa-question-circle';
-            const colorClass = lifeHelperColors[item.value] || 'text-gray-600';
-            lifeHelperItem.innerHTML = `
-                <div class="flex items-center justify-between mb-1">
-                    <div class="flex items-center">
-                        <i class="fa ${iconClass} text-primary w-3 mr-2"></i>
-                        <span class="text-sm font-medium text-gray-700">${item.title}</span>
+            let lifeHelperItem;
+            if (useTemplate) {
+                // 使用模板克隆
+                lifeHelperItem = lifeHelperTemplate.content.cloneNode(true).firstElementChild;
+                lifeHelperItem.style.height = '100%';
+                lifeHelperItem.title = item.desc;
+                
+                // 填充数据
+                const iconElement = lifeHelperItem.querySelector('i');
+                const titleElement = lifeHelperItem.querySelector('span.text-sm.font-medium');
+                const valueElement = lifeHelperItem.querySelector('span.text-sm.font-semibold');
+                const descElement = lifeHelperItem.querySelector('div.text-xs.text-gray-500');
+                
+                const iconClass = lifeHelperIcons[item.title] || 'fa-question-circle';
+                const colorClass = lifeHelperColors[item.value] || 'text-gray-600';
+                
+                if (iconElement) iconElement.className = `fa ${iconClass} text-primary w-3 mr-2`;
+                if (titleElement) titleElement.textContent = item.title;
+                if (valueElement) {
+                    valueElement.textContent = item.value;
+                    valueElement.className = `text-sm font-semibold ${colorClass}`;
+                }
+                if (descElement) descElement.textContent = item.desc;
+            } else {
+                // 回退到原来的创建方式
+                lifeHelperItem = document.createElement('div');
+                lifeHelperItem.className = 'bg-white p-3 rounded-lg shadow-sm flex flex-col justify-between';
+                lifeHelperItem.style.height = '100%';
+                lifeHelperItem.title = item.desc;
+                const iconClass = lifeHelperIcons[item.title] || 'fa-question-circle';
+                const colorClass = lifeHelperColors[item.value] || 'text-gray-600';
+                lifeHelperItem.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center">
+                            <i class="fa ${iconClass} text-primary w-3 mr-2"></i>
+                            <span class="text-sm font-medium text-gray-700">${item.title}</span>
+                        </div>
+                        <span class="text-sm font-semibold ${colorClass}">${item.value}</span>
                     </div>
-                    <span class="text-sm font-semibold ${colorClass}">${item.value}</span>
-                </div>
-                <div class="text-xs text-gray-500 break-all">${item.desc}</div>
-            `;
+                    <div class="text-xs text-gray-500 break-all">${item.desc}</div>
+                `;
+            }
             container.appendChild(lifeHelperItem);
         });
     },
@@ -484,9 +515,69 @@ window.WeatherModule.View = {
                 isCurrentHour = true;
             }
 
-            const hourElement = document.createElement('div');
-            const baseClasses = 'inline-flex flex-col items-center justify-center p-1 bg-gray-50 rounded-lg text-center min-w-[70px] max-w-[70px]';
-            hourElement.className = isCurrentHour ? `${baseClasses} border-2 border-blue-400 bg-blue-50` : baseClasses;
+            let hourElement;
+            // 使用模板渲染
+            const hourlyTemplate = document.getElementById('hourly-weather-item-template');
+            const useTemplate = !!hourlyTemplate;
+
+            if (useTemplate) {
+                // 使用模板克隆
+                hourElement = hourlyTemplate.content.cloneNode(true).firstElementChild;
+                const baseClasses = 'inline-flex flex-col items-center justify-center p-1 bg-gray-50 rounded-lg text-center min-w-[70px] max-w-[70px]';
+                hourElement.className = isCurrentHour ? `${baseClasses} border-2 border-blue-400 bg-blue-50` : baseClasses;
+                
+                // 填充数据
+                const timeElement = hourElement.querySelector('div.text-xs.font-medium');
+                const iconElement = hourElement.querySelector('div.text-xl');
+                const conditionElement = hourElement.querySelector('div.text-gray-600');
+                const windElement = hourElement.querySelector('div.text-gray-500');
+                const tempElement = hourElement.querySelector('div.text-sm.font-medium');
+                
+                if (timeElement) timeElement.textContent = hourData.hour ? `${hourData.hour}时` : (hourData.time || '').replace(':', '时');
+                
+                // 使用公共的getWeatherIcon函数获取emoji图标
+                const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(hourData.weather);
+                if (iconElement) iconElement.textContent = iconText;
+                
+                if (conditionElement) conditionElement.textContent = hourData.weather || '--';
+                if (windElement) windElement.textContent = (hourData.wind || '--').trim().replace(/[\s<>]+/g, '');
+                if (tempElement) tempElement.textContent = `${hourData.temperature || '--'}°C`;
+            } else {
+                // 回退到原来的创建方式
+                hourElement = document.createElement('div');
+                const baseClasses = 'inline-flex flex-col items-center justify-center p-1 bg-gray-50 rounded-lg text-center min-w-[70px] max-w-[70px]';
+                hourElement.className = isCurrentHour ? `${baseClasses} border-2 border-blue-400 bg-blue-50` : baseClasses;
+
+                const time = document.createElement('div');
+                time.className = 'text-xs font-medium text-gray-700 mb-1';
+                time.textContent = hourData.hour ? `${hourData.hour}时` : (hourData.time || '').replace(':', '时');
+
+                const icon = document.createElement('div');
+                icon.className = 'text-xl my-1 text-center';
+                // 使用公共的getWeatherIcon函数获取emoji图标
+                const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(hourData.weather);
+                icon.textContent = iconText;
+
+                const condition = document.createElement('div');
+                condition.className = 'text-[10px] text-gray-600 mb-1 truncate';
+                condition.textContent = hourData.weather || '--';
+
+                const wind = document.createElement('div');
+                wind.className = 'text-[9px] text-gray-500 mb-1';
+                wind.textContent = (hourData.wind || '--').trim().replace(/[\s<>]+/g, '');
+
+                const temp = document.createElement('div');
+                temp.className = 'text-sm font-medium text-gray-800';
+                temp.textContent = `${hourData.temperature}°C`;
+
+                hourElement.appendChild(time);
+                hourElement.appendChild(icon);
+                hourElement.appendChild(condition);
+                hourElement.appendChild(wind);
+                hourElement.appendChild(temp);
+            }
+
+            hourElement.style.width = '75px'; // 确保宽度
 
             // 自动滚动逻辑
             setTimeout(() => {
@@ -510,35 +601,6 @@ window.WeatherModule.View = {
                 }
             }, 500);
 
-            hourElement.style.width = '75px'; // 确保宽度
-
-            const time = document.createElement('div');
-            time.className = 'text-xs font-medium text-gray-700 mb-1';
-            time.textContent = hourData.hour ? `${hourData.hour}时` : (hourData.time || '').replace(':', '时');
-
-            const icon = document.createElement('div');
-            icon.className = 'text-xl my-1 text-center';
-            // 使用公共的getWeatherIcon函数获取emoji图标
-            const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(hourData.weather);
-            icon.textContent = iconText;
-
-            const condition = document.createElement('div');
-            condition.className = 'text-[10px] text-gray-600 mb-1 truncate';
-            condition.textContent = hourData.weather || '--';
-
-            const wind = document.createElement('div');
-            wind.className = 'text-[9px] text-gray-500 mb-1';
-            wind.textContent = (hourData.wind || '--').trim().replace(/[\s<>]+/g, '');
-
-            const temp = document.createElement('div');
-            temp.className = 'text-sm font-medium text-gray-800';
-            temp.textContent = `${hourData.temperature}°C`;
-
-            hourElement.appendChild(time);
-            hourElement.appendChild(icon);
-            hourElement.appendChild(condition);
-            hourElement.appendChild(wind);
-            hourElement.appendChild(temp);
             container.appendChild(hourElement);
         });
     },
@@ -640,14 +702,39 @@ window.WeatherModule.View = {
 
         // ... (填充日历网格)
         for (let cellIndex = 0; cellIndex < totalCells; cellIndex++) {
-            const cell = document.createElement('div');
-            cell.className = 'min-h-[100px] p-1 border border-gray-200 rounded';
+            let cell;
+            // 使用模板渲染
+            const calendarTemplate = document.getElementById('weather-calendar-item-template');
+            const useTemplate = !!calendarTemplate;
+
+            if (useTemplate) {
+                // 使用模板克隆
+                cell = calendarTemplate.content.cloneNode(true).firstElementChild;
+            } else {
+                // 回退到原来的创建方式
+                cell = document.createElement('div');
+                cell.className = 'min-h-[100px] p-1 border border-gray-200 rounded';
+            }
+
             const dateOffset = cellIndex - leadingEmptyCells;
             const isCurrentMonth = dateOffset >= 0 && dateOffset < daysInMonth;
             const isWeekend = cellIndex % 7 === 5 || cellIndex % 7 === 6;
 
             if (!isCurrentMonth) {
                 cell.style.backgroundColor = '#f8f8f8';
+                // 非本月日期显示为空
+                if (useTemplate) {
+                    // 清空模板中的所有内容
+                    const dateElements = cell.querySelectorAll('div.text-sm, div.text-xl, div.text-xs');
+                    dateElements.forEach(el => {
+                        if (el) el.textContent = '';
+                    });
+                } else {
+                    // 创建一个空的日期元素
+                    const emptyDate = document.createElement('div');
+                    emptyDate.className = 'text-sm';
+                    cell.appendChild(emptyDate);
+                }
             } else {
                 const currentDate = new Date(firstDateOfMonth);
                 currentDate.setDate(currentDate.getDate() + dateOffset);
@@ -659,8 +746,36 @@ window.WeatherModule.View = {
                 if (isToday) cell.className = 'min-h-[100px] p-1 border-2 border-blue-400 rounded bg-blue-50';
                 else if (isWeekend) cell.style.backgroundColor = '#e0f2fe';
 
-                const dateAndFestivalContainer = document.createElement('div');
-                dateAndFestivalContainer.className = 'flex items-center justify-between w-full';
+                let dateAndFestivalContainer, dateNumber, festivalContainer;
+                if (useTemplate) {
+                    dateAndFestivalContainer = cell.querySelector('div.flex.items-center');
+                    if (dateAndFestivalContainer) {
+                        dateNumber = dateAndFestivalContainer.querySelector('div.text-sm');
+                        festivalContainer = dateAndFestivalContainer.querySelector('div.whitespace-nowrap');
+                    } else {
+                        // 如果模板中没有找到元素，创建新的元素
+                        dateAndFestivalContainer = document.createElement('div');
+                        dateAndFestivalContainer.className = 'flex items-center justify-between w-full';
+                        dateNumber = document.createElement('div');
+                        dateNumber.className = 'text-sm';
+                        festivalContainer = document.createElement('div');
+                        festivalContainer.className = 'whitespace-nowrap';
+                        dateAndFestivalContainer.appendChild(dateNumber);
+                        dateAndFestivalContainer.appendChild(festivalContainer);
+                        cell.appendChild(dateAndFestivalContainer);
+                    }
+                } else {
+                    dateAndFestivalContainer = document.createElement('div');
+                    dateAndFestivalContainer.className = 'flex items-center justify-between w-full';
+                    dateNumber = document.createElement('div');
+                    dateNumber.className = 'text-sm';
+                    festivalContainer = document.createElement('div');
+                    festivalContainer.className = 'whitespace-nowrap';
+                    dateAndFestivalContainer.appendChild(dateNumber);
+                    dateAndFestivalContainer.appendChild(festivalContainer);
+                    cell.appendChild(dateAndFestivalContainer);
+                }
+
                 // 根据日期类型设置字体颜色
                 // 获取日期类型信息（参考calendar_view.js的逻辑）
                 let isHoliday = false;
@@ -674,40 +789,38 @@ window.WeatherModule.View = {
                 } catch (error) { console.error('获取日期类型失败:', error); }
                 
                 // 设置日期数字样式和颜色
-                const dateNumber = document.createElement('div');
-                // 应用字体颜色逻辑：节假日或非补班周末设为红色，否则设为黑色
-                dateNumber.className = 'text-sm';
-                if (isToday) {
-                    dateNumber.className = 'text-sm border-2 border-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-blue-600 font-bold';
+                if (dateNumber) {
+                    if (isToday) {
+                        dateNumber.className = 'text-sm border-2 border-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-blue-600 font-bold';
+                    }
+                    // 关键逻辑：放假的日期（节假日或非补班周末）设为红色，工作的日期设为黑色
+                    if (isHoliday || (isWeekend && !isWorkday)) {
+                        dateNumber.style.color = '#dc2626'; // 红色
+                    } else {
+                        dateNumber.style.color = '#111827'; // 黑色
+                    }
+                    dateNumber.textContent = dayCount;
                 }
-                // 关键逻辑：放假的日期（节假日或非补班周末）设为红色，工作的日期设为黑色
-                if (isHoliday || (isWeekend && !isWorkday)) {
-                    dateNumber.style.color = '#dc2626'; // 红色
-                } else {
-                    dateNumber.style.color = '#111827'; // 黑色
-                }
-                dateNumber.textContent = dayCount;
-                dateAndFestivalContainer.appendChild(dateNumber);
-                const festivalContainer = document.createElement('div');
-                festivalContainer.className = 'whitespace-nowrap';
-                dateAndFestivalContainer.appendChild(festivalContainer);
-                cell.appendChild(dateAndFestivalContainer);
 
                 // ... (节日标记)
                 try {
-                    festivalContainer.innerHTML = '';
-                    // 假设 lunarUtils 已在全局 window 上
-                    const festivalsForDay = window.lunarUtils.getFestivalsSync(dayData.dateObj, 1);
-                    if (festivalsForDay && Array.isArray(festivalsForDay) && festivalsForDay.length > 0) {
-                        festivalsForDay.forEach(festival => {
-                            if (festival && festival.name) {
-                                const festivalTag = document.createElement('div');
-                                let festivalTypeClass = window.lunarUtils.getFestivalTypeClass(festival.type);
-                                festivalTag.className = `festival-tag ${festivalTypeClass}`;
-                                festivalTag.textContent = festival.name;
-                                festivalContainer.appendChild(festivalTag);
+                    if (festivalContainer) {
+                        festivalContainer.innerHTML = '';
+                        // 假设 lunarUtils 已在全局 window 上
+                        if (dayData && dayData.dateObj && window.lunarUtils) {
+                            const festivalsForDay = window.lunarUtils.getFestivalsSync(dayData.dateObj, 1);
+                            if (festivalsForDay && Array.isArray(festivalsForDay) && festivalsForDay.length > 0) {
+                                festivalsForDay.forEach(festival => {
+                                    if (festival && festival.name) {
+                                        const festivalTag = document.createElement('div');
+                                        let festivalTypeClass = window.lunarUtils.getFestivalTypeClass(festival.type);
+                                        festivalTag.className = `festival-tag ${festivalTypeClass}`;
+                                        festivalTag.textContent = festival.name;
+                                        festivalContainer.appendChild(festivalTag);
+                                    }
+                                });
                             }
-                        });
+                        }
                     }
                 } catch (error) { console.error('获取节日信息失败:', error); }
 
@@ -715,36 +828,103 @@ window.WeatherModule.View = {
                 if (dayData) {
                     let shortWeather = dayData.weather || '--';
                     if (shortWeather.length > 2 && shortWeather.includes('转')) shortWeather = shortWeather.split('转')[0];
-                    const icon = document.createElement('div');
-                    icon.className = 'text-xl my-1 text-center';
+                    
+                    let iconElement, weatherElement, windElement, tempRangeElement;
+                    if (useTemplate) {
+                        // 更精确地选择元素，避免选择到错误的元素
+                        iconElement = cell.querySelector('div.text-xl');
+                        weatherElement = cell.querySelector('div.text-xs.text-gray-600');
+                        windElement = cell.querySelector('div.text-xs.text-gray-600');
+                        tempRangeElement = cell.querySelector('div.text-xs:not(.text-gray-600)');
+                        
+                        // 确保每个元素都是唯一的
+                        if (weatherElement && windElement && weatherElement === windElement) {
+                            // 如果weatherElement和windElement是同一个元素，只保留一个
+                            windElement = null;
+                        }
+                        
+                        // 如果模板中没有找到元素，创建新的元素
+                        if (!iconElement) {
+                            iconElement = document.createElement('div');
+                            iconElement.className = 'text-xl my-1 text-center';
+                            cell.appendChild(iconElement);
+                        }
+                        if (!weatherElement) {
+                            weatherElement = document.createElement('div');
+                            weatherElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
+                            cell.appendChild(weatherElement);
+                        }
+                        if (!windElement) {
+                            windElement = document.createElement('div');
+                            windElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
+                            cell.appendChild(windElement);
+                        }
+                        if (!tempRangeElement) {
+                            tempRangeElement = document.createElement('div');
+                            tempRangeElement.className = 'text-xs';
+                            cell.appendChild(tempRangeElement);
+                        }
+                    } else {
+                        iconElement = document.createElement('div');
+                        iconElement.className = 'text-xl my-1 text-center';
+                        weatherElement = document.createElement('div');
+                        weatherElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
+                        windElement = document.createElement('div');
+                        windElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
+                        tempRangeElement = document.createElement('div');
+                        tempRangeElement.className = 'text-xs';
+                    }
+                    
                     // 使用公共的getWeatherIcon函数获取emoji图标
                     const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(shortWeather);
-                    icon.textContent = iconText;
-                    cell.appendChild(icon);
-
-                    const weatherElement = document.createElement('div');
-                    weatherElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
-                    weatherElement.textContent = shortWeather;
-                    cell.appendChild(weatherElement);
-
-                    if (dayData.wind) {
-                        const windElement = document.createElement('div');
-                        windElement.className = 'text-xs text-gray-600 mb-1 text-center truncate';
+                    if (iconElement) iconElement.textContent = iconText;
+                    
+                    if (weatherElement) weatherElement.textContent = shortWeather;
+                    
+                    if (windElement && dayData.wind) {
                         windElement.textContent = dayData.wind || '--';
-                        cell.appendChild(windElement);
                     }
-
-                    const tempRange = document.createElement('div');
-                    tempRange.className = 'text-xs';
+                    
                     const maxTemp = dayData.tempMax || dayData.realTempMax || '--';
                     const minTemp = dayData.tempMin || dayData.realTempMin || '--';
-                    tempRange.innerHTML = `<span class="text-gray-700">${minTemp}</span> / <span class="text-gray-900">${maxTemp}°C</span>`;
-                    cell.appendChild(tempRange);
+                    
+                    if (tempRangeElement) {
+                        if (useTemplate) {
+                            let minTempElement = tempRangeElement.querySelector('span.text-gray-700');
+                            let maxTempElement = tempRangeElement.querySelector('span.text-gray-900');
+                            
+                            // 如果模板中没有找到温度元素，创建新的元素
+                            if (!minTempElement || !maxTempElement) {
+                                // 清空现有的内容
+                                tempRangeElement.innerHTML = '';
+                                
+                                // 创建新的温度范围HTML
+                                tempRangeElement.innerHTML = `<span class="text-gray-700">${minTemp}</span> / <span class="text-gray-900">${maxTemp}°C</span>`;
+                            } else {
+                                // 使用现有的元素
+                                minTempElement.textContent = minTemp;
+                                maxTempElement.textContent = `${maxTemp}°C`;
+                            }
+                        } else {
+                            tempRangeElement.innerHTML = `<span class="text-gray-700">${minTemp}</span> / <span class="text-gray-900">${maxTemp}°C</span>`;
+                        }
+                    }
+
+                    if (!useTemplate) {
+                        if (iconElement) cell.appendChild(iconElement);
+                        if (weatherElement) cell.appendChild(weatherElement);
+                        if (windElement && dayData.wind) {
+                            cell.appendChild(windElement);
+                        }
+                        if (tempRangeElement) cell.appendChild(tempRangeElement);
+                    }
                 } else {
-                    const noData = document.createElement('div');
-                    noData.className = 'text-[10px] text-gray-400 text-center';
-                    noData.textContent = '暂无数据';
-                    cell.appendChild(noData);
+                    if (!useTemplate) {
+                        const noData = document.createElement('div');
+                        noData.className = 'text-[10px] text-gray-400 text-center';
+                        noData.textContent = '暂无数据';
+                        cell.appendChild(noData);
+                    }
                 }
             }
             gridContainer.appendChild(cell);
@@ -814,48 +994,92 @@ window.WeatherModule.View = {
 
         // ... (填充表格行)
         recentDaysWeather.forEach((dayData, index) => {
-            const row = document.createElement('tr');
-            const isToday = index === 0;
-            row.className = 'h-7' + (isToday ? ' bg-blue-50' : '');
+            let row;
+            // 使用模板渲染
+            const recentDaysTemplate = document.getElementById('recent-days-weather-item-template');
+            const useTemplate = !!recentDaysTemplate;
+
+            if (useTemplate) {
+                // 使用模板克隆
+                row = recentDaysTemplate.content.cloneNode(true).firstElementChild;
+                const isToday = index === 0;
+                row.className = 'h-7' + (isToday ? ' bg-blue-50' : '');
+            } else {
+                // 回退到原来的创建方式
+                row = document.createElement('tr');
+                const isToday = index === 0;
+                row.className = 'h-7' + (isToday ? ' bg-blue-50' : '');
+            }
 
             let dateStr = dayData.date || '';
             if (dateStr.length === 8) {
                 dateStr = `${dateStr.substring(4, 6).replace(/^0/, '')}/${dateStr.substring(6, 8).replace(/^0/, '')}`;
             }
 
-            const dataCells = [
-                dateStr,
-                { weather: dayData.weather || '--', minTemp: dayData.tempMin || '--', maxTemp: dayData.tempMax || '--' },
-                dayData.wind || '--'
-            ];
+            if (useTemplate) {
+                // 填充数据
+                const dateCell = row.querySelector('td:first-child');
+                const weatherCell = row.querySelector('td:nth-child(2)');
+                const windCell = row.querySelector('td:nth-child(3)');
+                
+                if (dateCell) dateCell.textContent = dateStr;
+                
+                // 使用公共的getWeatherIcon函数获取emoji图标
+                const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(dayData.weather);
+                const minTemp = dayData.tempMin || '--';
+                const maxTemp = dayData.tempMax || '--';
+                const weather = dayData.weather || '';
 
-            dataCells.forEach((cellData, cellIndex) => {
-                const td = document.createElement('td');
-                td.className = 'text-xs font-medium text-center p-0.5 border-b border-gray-200';
+                const iconElement = weatherCell ? weatherCell.querySelector('div.text-sm') : null;
+                const weatherElement = weatherCell ? weatherCell.querySelector('div.text-xs') : null;
+                const minTempElement = weatherCell ? weatherCell.querySelector('div.text-blue-500') : null;
+                const maxTempElement = weatherCell ? weatherCell.querySelector('div.text-red-500') : null;
+                
+                if (iconElement) iconElement.textContent = iconText;
+                if (weatherElement) weatherElement.textContent = weather;
+                if (minTempElement) minTempElement.textContent = minTemp;
+                if (maxTempElement) maxTempElement.textContent = `${maxTemp}°C`;
+                
+                if (weatherCell) weatherCell.title = `${weather} ${minTemp} / ${maxTemp}°C`;
+                
+                // 将有'转'字的内容换行显示
+                const windElement = windCell ? windCell.querySelector('div.text-xs') : null;
+                if (windElement) windElement.innerHTML = (dayData.wind || '--').replace(/[\s<>]+/g, '').replace(/转/g, '<br>转');
+            } else {
+                const dataCells = [
+                    dateStr,
+                    { weather: dayData.weather || '--', minTemp: dayData.tempMin || '--', maxTemp: dayData.tempMax || '--' },
+                    dayData.wind || '--'
+                ];
 
-                if (cellIndex === 0) {
-                    td.textContent = cellData;
-                    td.classList.add('text-gray-700', 'font-semibold');
-                } else if (cellIndex === 1) {
-                    // 使用公共的getWeatherIcon函数获取emoji图标
-                    const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(cellData.weather);
-                    const minTemp = cellData.minTemp || '--';
-                    const maxTemp = cellData.maxTemp || '--';
-                    const weather = cellData.weather || '';
+                dataCells.forEach((cellData, cellIndex) => {
+                    const td = document.createElement('td');
+                    td.className = 'text-xs font-medium text-center p-0.5 border-b border-gray-200';
 
-                    td.innerHTML = `<div class="flex flex-col items-center">
-                        <div class="flex items-center space-x-2 mb-1"><div class="text-sm">${iconText}</div><div class="text-sx truncate">${weather}</div></div>
-                        <div class="flex items-center space-x-2 text-sx"><div class="text-blue-500">${minTemp}</div><div>/</div><div class="text-red-500">${maxTemp}°C</div></div>
-                    </div>`;
-                    td.title = `${weather} ${minTemp} / ${maxTemp}°C`;
-                } else if (cellIndex === 2) {
-                    // 将有'转'字的内容换行显示
-                    td.innerHTML = `<div class="text-xs truncate max-w-[60px]">${cellData.replace(/[\s<>]+/g, '').replace(/转/g, '<br>转')}</div>`;
-                    td.classList.add('text-gray-600');
-                    td.classList.remove('border-r');
-                }
-                row.appendChild(td);
-            });
+                    if (cellIndex === 0) {
+                        td.textContent = cellData;
+                        td.classList.add('text-gray-700', 'font-semibold');
+                    } else if (cellIndex === 1) {
+                        // 使用公共的getWeatherIcon函数获取emoji图标
+                        const iconText = WeatherModule.WeatherIconHelper.getWeatherIcon(cellData.weather);
+                        const minTemp = cellData.minTemp || '--';
+                        const maxTemp = cellData.maxTemp || '--';
+                        const weather = cellData.weather || '';
+
+                        td.innerHTML = `<div class="flex flex-col items-center">
+                            <div class="flex items-center space-x-2 mb-1"><div class="text-sm">${iconText}</div><div class="text-sx truncate">${weather}</div></div>
+                            <div class="flex items-center space-x-2 text-sx"><div class="text-blue-500">${minTemp}</div><div>/</div><div class="text-red-500">${maxTemp}°C</div></div>
+                        </div>`;
+                        td.title = `${weather} ${minTemp} / ${maxTemp}°C`;
+                    } else if (cellIndex === 2) {
+                        // 将有'转'字的内容换行显示
+                        td.innerHTML = `<div class="text-xs truncate max-w-[60px]">${cellData.replace(/[\s<>]+/g, '').replace(/转/g, '<br>转')}</div>`;
+                        td.classList.add('text-gray-600');
+                        td.classList.remove('border-r');
+                    }
+                    row.appendChild(td);
+                });
+            }
             tbody.appendChild(row);
         });
 

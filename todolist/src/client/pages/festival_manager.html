@@ -138,9 +138,37 @@
                 <div class="col-span-1 flex items-center justify-end">操作</div>
             </div>
             
+            <!-- 节日列表模板 -->
+            <template id="festival-item-template">
+                <div class="grid grid-cols-5 gap-3 p-1 border-2 border-gray-100 hover:bg-gray-50 rounded-lg transition-colors">
+                    <!-- 节日名称 -->
+                    <div class="col-span-2 font-medium flex items-center"></div>
+                    <!-- 节日类型 -->
+                    <div class="col-span-1 text-sm flex items-center"></div>
+                    <!-- 日期类型 -->
+                    <div class="col-span-1 text-sm text-gray-600 flex items-center"></div>
+                    <!-- 操作按钮 -->
+                    <div class="col-span-1 flex justify-end items-center space-x-2">
+                        <button class="btn-action edit-btn">
+                            <i class="fa fa-pencil text-blue-500"></i>
+                        </button>
+                        <button class="btn-action delete-btn">
+                            <i class="fa fa-trash text-red-500"></i>
+                        </button>
+                    </div>
+                </div>
+            </template>
+            
+            <!-- 空状态模板 -->
+            <template id="empty-state-template">
+                <div class="col-span-5 py-10 text-center text-gray-500">
+                    <i class="fa fa-calendar-o text-3xl mb-2"></i><br>暂无节日数据
+                </div>
+            </template>
+            
             <!-- 节日列表（可滚动） -->
             <div id="festival-list" class="max-h-[500px] overflow-y-auto pr-2 border-x-2 border-b-2 border-gray-200 rounded-b-lg">
-                <div class="space-y-1">
+                <div class="space-y-0">
                     <!-- 节日列表将通过JS动态生成 -->
                 </div>
             </div>
@@ -175,6 +203,25 @@
                     <!-- 可滚动的表格内容 -->
                     <div class="overflow-auto max-h-[calc(90vh-200px)]">
                         <table class="min-w-full table-fixed divide-y divide-gray-200">
+                            <!-- 节假日列表模板 -->
+                            <template id="holiday-item-template">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="w-[20%] px-6 py-4 text-sm font-medium text-gray-900 truncate"></td>
+                                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate"></td>
+                                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate"></td>
+                                    <td class="w-[10%] px-6 py-4 text-sm text-gray-500 truncate"></td>
+                                    <td class="w-[25%] px-6 py-4 text-sm text-gray-500"></td>
+                                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate"></td>
+                                </tr>
+                            </template>
+                            
+                            <!-- 节假日空状态模板 -->
+                            <template id="holiday-empty-template">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500"></td>
+                                </tr>
+                            </template>
+                            
                             <tbody id="holiday-list-body" class="bg-white divide-y divide-gray-200">
                                 <!-- 节假日数据将通过JS动态生成 -->
                             </tbody>

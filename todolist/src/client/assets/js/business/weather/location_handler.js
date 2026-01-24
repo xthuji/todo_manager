@@ -35,7 +35,7 @@ const WEATHER_API = {
     // -------------------------------------------------------------------------
     const LocationDataManager = {
         _logPrefix: '[DataManager]',
-        _log: (msg) => logStep(`%c${LocationDataManager._logPrefix} %c${msg}`, 'color: #0000FF;', 'color: unset;'),
+        _log: function(msg) { logStep(`%c${this._logPrefix} %c${msg}`, 'color: #0000FF;', 'color: unset;'); },
 
         dataCache: {
             fullAreaData: null,
@@ -78,7 +78,7 @@ const WEATHER_API = {
             }
             this._log('开始构建区域查找映射表');
             try {
-                areaData.forEach(province => this._processProvinceData(province));
+                areaData.forEach(function(province) { this._processProvinceData(province); }.bind(this));
                 this._logBuildStats();
             } catch (error) {
                 this._log(`构建区域映射时发生错误: ${error.message || error}`);
@@ -91,7 +91,7 @@ const WEATHER_API = {
             const provinceName = this._normalizeProvinceName(province.name);
 
             if (province.children && Array.isArray(province.children)) {
-                province.children.forEach(city => this._processCityData(city, provinceName, province));
+                province.children.forEach(function(city) { this._processCityData(city, provinceName, province); }.bind(this));
             }
         },
 
@@ -101,7 +101,7 @@ const WEATHER_API = {
             const cityName = this._normalizeCityName(city.name);
 
             if (city.children && Array.isArray(city.children)) {
-                city.children.forEach(district => this._processDistrictData(district, provinceName, cityName, province, city));
+                city.children.forEach(function(district) { this._processDistrictData(district, provinceName, cityName, province, city); }.bind(this));
             }
         },
 
@@ -169,7 +169,7 @@ const WEATHER_API = {
             }
 
             this.dataCache.loading = true;
-            this.dataCache.loadingPromise = new Promise(async (resolve, reject) => {
+            this.dataCache.loadingPromise = new Promise(async function(resolve, reject) {
                 try {
                     const areaData = await this._loadAreaCodesInternal();
                     this.dataCache.fullAreaData = areaData;
@@ -182,7 +182,7 @@ const WEATHER_API = {
                     this.dataCache.loadingPromise = null;
                     this._log('省市县数据加载流程完成');
                 }
-            });
+            }.bind(this));
             return this.dataCache.loadingPromise;
         },
 
