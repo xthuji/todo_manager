@@ -25,7 +25,7 @@ import './common/lunar_utils.js';
 import './common/holiday_manager.js';
     
 // 页面加载完成后执行
-document.addEventListener('DOMContentLoaded', async function() {
+$(document).ready(async function() {
 
     // 初始化节日管理
     await initFestivalManager();
@@ -43,29 +43,29 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.closeHolidayModal = closeHolidayModal;
     
     // 初始化事件监听器
-    const viewHolidayBtn = document.getElementById('btn-view-holiday-info');
-    if (viewHolidayBtn) {
-        viewHolidayBtn.addEventListener('click', openHolidayModal);
+    const viewHolidayBtn = $('#btn-view-holiday-info');
+    if (viewHolidayBtn.length) {
+        viewHolidayBtn.on('click', openHolidayModal);
     }
 });
 
 // 查看节假日信息相关函数
 async function openHolidayModal() {
-    const modal = document.getElementById('holiday-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
+    const modal = $('#holiday-modal');
+    if (modal.length) {
+        modal.removeClass('hidden');
         await loadHolidayData();
         
         // 添加点击浮层外部关闭浮层的功能
         // 使用setTimeout确保modal已经显示
         setTimeout(() => {
-            document.addEventListener('click', handleOutsideClick);
+            $(document).on('click', handleOutsideClick);
         }, 10);
         
         // 获取内部内容div并添加点击事件阻止冒泡
-        const modalContent = modal.querySelector('div.bg-white');
-        if (modalContent) {
-            modalContent.addEventListener('click', function(e) {
+        const modalContent = modal.find('div.bg-white');
+        if (modalContent.length) {
+            modalContent.on('click', function(e) {
                 e.stopPropagation(); // 阻止事件冒泡，防止点击内部内容关闭浮层
             });
         }
@@ -74,43 +74,43 @@ async function openHolidayModal() {
 
 // 处理点击浮层外部关闭浮层的函数
 function handleOutsideClick(event) {
-    const modal = document.getElementById('holiday-modal');
+    const modal = $('#holiday-modal');
     
     // 直接判断点击目标是否为modal本身（即半透明背景层）且浮层是可见的
-    if (modal && !modal.classList.contains('hidden') && event.target === modal) {
+    if (modal.length && !modal.hasClass('hidden') && event.target === modal[0]) {
         closeHolidayModal();
     }
 }
 
 function closeHolidayModal() {
-    const modal = document.getElementById('holiday-modal');
-    if (modal) {
-        modal.classList.add('hidden');
+    const modal = $('#holiday-modal');
+    if (modal.length) {
+        modal.addClass('hidden');
         
         // 移除点击事件监听器，避免重复绑定
-        document.removeEventListener('click', handleOutsideClick);
+        $(document).off('click', handleOutsideClick);
     }
 }
 
 async function loadHolidayData() {
-    const tbody = document.getElementById('holiday-list-body');
-    if (!tbody) {
+    const tbody = $('#holiday-list-body');
+    if (!tbody.length) {
         console.error('节假日列表表格体不存在');
         return;
     }
     
     // 使用空状态模板显示加载中
-    const emptyTemplate = document.getElementById('holiday-empty-template');
-    if (emptyTemplate) {
-        const loadingRow = emptyTemplate.content.cloneNode(true);
-        const loadingCell = loadingRow.querySelector('td');
-        if (loadingCell) {
-            loadingCell.textContent = '加载中...';
+    const emptyTemplate = $('#holiday-empty-template');
+    if (emptyTemplate.length) {
+        const loadingRow = $(emptyTemplate.html());
+        const loadingCell = loadingRow.find('td');
+        if (loadingCell.length) {
+            loadingCell.text('加载中...');
         }
-        tbody.innerHTML = '';
-        tbody.appendChild(loadingRow);
+        tbody.empty();
+        tbody.append(loadingRow);
     } else {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">加载中...</td></tr>';
+        tbody.html('<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">加载中...</td></tr>');
     }
 
     try {
@@ -133,31 +133,31 @@ async function loadHolidayData() {
             }
         } else if (!holidayData) {
             // 使用空状态模板显示错误信息
-            if (emptyTemplate) {
-                const errorRow = emptyTemplate.content.cloneNode(true);
-                const errorCell = errorRow.querySelector('td');
-                if (errorCell) {
-                    errorCell.textContent = '未找到节假日缓存数据，请先刷新节假日缓存';
+            if (emptyTemplate.length) {
+                const errorRow = $(emptyTemplate.html());
+                const errorCell = errorRow.find('td');
+                if (errorCell.length) {
+                    errorCell.text('未找到节假日缓存数据，请先刷新节假日缓存');
                 }
-                tbody.innerHTML = '';
-                tbody.appendChild(errorRow);
+                tbody.empty();
+                tbody.append(errorRow);
             } else {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">未找到节假日缓存数据，请先刷新节假日缓存</td></tr>';
+                tbody.html('<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">未找到节假日缓存数据，请先刷新节假日缓存</td></tr>');
             }
             return;
         } else {
             console.warn('未知的节假日数据格式:', holidayData);
             // 使用空状态模板显示错误信息
-            if (emptyTemplate) {
-                const errorRow = emptyTemplate.content.cloneNode(true);
-                const errorCell = errorRow.querySelector('td');
-                if (errorCell) {
-                    errorCell.textContent = '节假日数据格式未知，请检查数据来源';
+            if (emptyTemplate.length) {
+                const errorRow = $(emptyTemplate.html());
+                const errorCell = errorRow.find('td');
+                if (errorCell.length) {
+                    errorCell.text('节假日数据格式未知，请检查数据来源');
                 }
-                tbody.innerHTML = '';
-                tbody.appendChild(errorRow);
+                tbody.empty();
+                tbody.append(errorRow);
             } else {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">节假日数据格式未知，请检查数据来源</td></tr>';
+                tbody.html('<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">节假日数据格式未知，请检查数据来源</td></tr>');
             }
             return;
         }
@@ -172,71 +172,71 @@ async function loadHolidayData() {
         // 生成表格内容
         if (allHolidays.length === 0) {
             // 使用空状态模板显示空数据信息
-            if (emptyTemplate) {
-                const emptyRow = emptyTemplate.content.cloneNode(true);
-                const emptyCell = emptyRow.querySelector('td');
-                if (emptyCell) {
-                    emptyCell.textContent = '暂无节假日数据';
+            if (emptyTemplate.length) {
+                const emptyRow = $(emptyTemplate.html());
+                const emptyCell = emptyRow.find('td');
+                if (emptyCell.length) {
+                    emptyCell.text('暂无节假日数据');
                 }
-                tbody.innerHTML = '';
-                tbody.appendChild(emptyRow);
+                tbody.empty();
+                tbody.append(emptyRow);
             } else {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无节假日数据</td></tr>';
+                tbody.html('<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无节假日数据</td></tr>');
             }
             return;
         }
 
         // 使用节假日项模板
-        const holidayTemplate = document.getElementById('holiday-item-template');
-        if (!holidayTemplate) {
+        const holidayTemplate = $('#holiday-item-template');
+        if (!holidayTemplate.length) {
             console.error('节假日项模板不存在');
             return;
         }
 
-        tbody.innerHTML = '';
+        tbody.empty();
         allHolidays.forEach(holiday => {
-            const holidayItem = holidayTemplate.content.cloneNode(true);
-            const cells = holidayItem.querySelectorAll('td');
+            const holidayItem = $(holidayTemplate.html());
+            const cells = holidayItem.find('td');
             
             if (cells.length >= 6) {
                 // 填充节日名称
-                cells[0].textContent = holiday.Name || holiday.name || '-';
+                cells.eq(0).text(holiday.Name || holiday.name || '-');
                 
                 // 填充开始日期
-                cells[1].textContent = holiday.StartDate || '-';
+                cells.eq(1).text(holiday.StartDate || '-');
                 
                 // 填充结束日期
-                cells[2].textContent = holiday.EndDate || '-';
+                cells.eq(2).text(holiday.EndDate || '-');
                 
                 // 填充持续天数
-                cells[3].textContent = holiday.Duration || '-';
+                cells.eq(3).text(holiday.Duration || '-');
                 
                 // 填充补班日期
                 const compDaysHtml = holiday.CompDays && Array.isArray(holiday.CompDays) && holiday.CompDays.length > 0 
                     ? holiday.CompDays.join('<br>') 
                     : '-';
-                cells[4].innerHTML = compDaysHtml;
+                cells.eq(4).html(compDaysHtml);
                 
                 // 填充年份
-                cells[5].textContent = holiday.Year || (holiday.StartDate ? new Date(holiday.StartDate).getFullYear() : '-');
+                cells.eq(5).text(holiday.Year || (holiday.StartDate ? new Date(holiday.StartDate).getFullYear() : '-'));
             }
             
-            tbody.appendChild(holidayItem);
+            tbody.append(holidayItem);
         });
     } catch (error) {
         console.error('解析节假日数据失败:', error);
         // 使用空状态模板显示错误信息
-        if (emptyTemplate) {
-            const errorRow = emptyTemplate.content.cloneNode(true);
-            const errorCell = errorRow.querySelector('td');
-            if (errorCell) {
-                errorCell.textContent = `解析节假日数据失败: ${error.message}`;
-                errorCell.className = 'px-6 py-4 text-center text-red-500';
+        if (emptyTemplate.length) {
+            const errorRow = $(emptyTemplate.html());
+            const errorCell = errorRow.find('td');
+            if (errorCell.length) {
+                errorCell.text(`解析节假日数据失败: ${error.message}`);
+                errorCell.attr('class', 'px-6 py-4 text-center text-red-500');
             }
-            tbody.innerHTML = '';
-            tbody.appendChild(errorRow);
+            tbody.empty();
+            tbody.append(errorRow);
         } else {
-            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">解析节假日数据失败: ${error.message}</td></tr>`;
+            tbody.html(`<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">解析节假日数据失败: ${error.message}</td></tr>`);
         }
     }
 }
@@ -259,39 +259,38 @@ async function initFestivalManager() {
 
 // 渲染节日列表
 function renderFestivalList(festivals) {
-    const festivalList = document.getElementById('festival-list');
-    if (!festivalList) {
+    const festivalList = $('#festival-list');
+    if (!festivalList.length) {
         console.error('节日列表容器不存在');
         return;
     }
     
     // 清空现有内容
-    festivalList.innerHTML = '';
+    festivalList.empty();
     
     // 创建内部容器
-    const innerContainer = document.createElement('div');
-    innerContainer.className = 'space-y-0';
-    festivalList.appendChild(innerContainer);
+    const innerContainer = $('<div>').addClass('space-y-0');
+    festivalList.append(innerContainer);
     
     // 更新节日计数
-    const festivalCount = document.getElementById('festival-count');
-    if (festivalCount) {
-        festivalCount.textContent = `共 ${festivals.length} 个节日`;
+    const festivalCount = $('#festival-count');
+    if (festivalCount.length) {
+        festivalCount.text(`共 ${festivals.length} 个节日`);
     }
     
     if (!festivals || festivals.length === 0) {
         // 使用空状态模板
-        const emptyTemplate = document.getElementById('empty-state-template');
-        if (emptyTemplate) {
-            const emptyState = emptyTemplate.content.cloneNode(true);
-            innerContainer.appendChild(emptyState);
+        const emptyTemplate = $('#empty-state-template');
+        if (emptyTemplate.length) {
+            const emptyState = $(emptyTemplate.html());
+            innerContainer.append(emptyState);
         }
         return;
     }
     
     // 使用节日项模板
-    const festivalTemplate = document.getElementById('festival-item-template');
-    if (!festivalTemplate) {
+    const festivalTemplate = $('#festival-item-template');
+    if (!festivalTemplate.length) {
         console.error('节日项模板不存在');
         return;
     }
@@ -299,28 +298,29 @@ function renderFestivalList(festivals) {
     // 创建每个节日项
     for (let i = 0; i < festivals.length; i++) {
         const festival = festivals[i];
-        const festivalItem = festivalTemplate.content.cloneNode(true);
+        const festivalItem = $(festivalTemplate.html());
         
         // 填充节日名称
-        const nameElement = festivalItem.querySelector('.col-span-2');
-        if (nameElement) {
-            nameElement.textContent = festival.name;
+        const nameElement = festivalItem.find('.col-span-2');
+        if (nameElement.length) {
+            let nameText = festival.name;
             if (festival.alias) {
-                nameElement.textContent += ` (${festival.alias})`;
+                nameText += ` (${festival.alias})`;
             }
+            nameElement.text(nameText);
         }
         
         // 填充节日类型
-        const typeElement = festivalItem.querySelector('.col-span-1:nth-child(2)');
-        if (typeElement) {
+        const typeElement = festivalItem.find('.col-span-1:nth-child(2)');
+        if (typeElement.length) {
             const typeClass = window.lunarUtils.getFestivalTypeClass(festival.type);
             const typeName = window.lunarUtils.getFestivalTypeName(festival.type);
-            typeElement.innerHTML = `<span class="${typeClass} festival-tag text-white px-1 py-0.5 rounded text-xs whitespace-nowrap">${typeName}</span>`;
+            typeElement.html(`<span class="${typeClass} festival-tag text-white px-1 py-0.5 rounded text-xs whitespace-nowrap">${typeName}</span>`);
         }
         
         // 填充日期类型
-        const dateElement = festivalItem.querySelector('.col-span-1:nth-child(3)');
-        if (dateElement) {
+        const dateElement = festivalItem.find('.col-span-1:nth-child(3)');
+        if (dateElement.length) {
             let dateTypeText = '';
             switch (festival.dateType) {
                 case 'solar':
@@ -338,34 +338,34 @@ function renderFestivalList(festivals) {
             if (festival.date && festival.date.trim() !== '') {
                 dateTypeText += ` ${festival.date}`;
             }
-            dateElement.textContent = dateTypeText;
+            dateElement.text(dateTypeText);
         }
         
         // 绑定事件
-        const editBtn = festivalItem.querySelector('.edit-btn');
-        if (editBtn) {
-            editBtn.addEventListener('click', () => editFestival(festival.id));
+        const editBtn = festivalItem.find('.edit-btn');
+        if (editBtn.length) {
+            editBtn.on('click', () => editFestival(festival.id));
         }
         
-        const deleteBtn = festivalItem.querySelector('.delete-btn');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => deleteFestivalConfirm(festival.id, festival.name));
+        const deleteBtn = festivalItem.find('.delete-btn');
+        if (deleteBtn.length) {
+            deleteBtn.on('click', () => deleteFestivalConfirm(festival.id, festival.name));
         }
         
-        innerContainer.appendChild(festivalItem);
+        innerContainer.append(festivalItem);
     }
 }
 
 // 初始化筛选功能
 function initFilterAndPagination(festivals) {
     try {
-        // 安全地获取DOM元素
-        const searchInput = document.getElementById('search-input');
-        const typeFilter = document.getElementById('type-filter');
-        const dateTypeFilter = document.getElementById('date-type-filter');
+        // 安全地获取DOM元素 (使用jQuery)
+        const searchInput = $('#search-input');
+        const typeFilter = $('#type-filter');
+        const dateTypeFilter = $('#date-type-filter');
         
         // 验证必要的DOM元素是否存在
-        if (!searchInput || !typeFilter || !dateTypeFilter) {
+        if (!searchInput.length || !typeFilter.length || !dateTypeFilter.length) {
             console.warn('筛选功能所需的DOM元素不完整，可能无法正常工作');
             // 直接渲染所有节日数据，不使用筛选功能
             renderFestivalList(festivals || []);
@@ -425,12 +425,12 @@ function initFilterAndPagination(festivals) {
                         // 如果任何一个日期不存在，按名称排序
                         return a.name.localeCompare(b.name);
                     }
-                       
+                        
                     const aMonthMatch = a.date.match(/(\d+)月/);
                     const aDayMatch = a.date.match(/月(\d+)日/);
                     const bMonthMatch = b.date.match(/(\d+)月/);
                     const bDayMatch = b.date.match(/月(\d+)日/);
-                       
+                        
                     if (aMonthMatch && aDayMatch && bMonthMatch && bDayMatch) {
                         const aMonth = parseInt(aMonthMatch[1]);
                         const aDay = parseInt(aDayMatch[1]);
@@ -456,13 +456,13 @@ function initFilterAndPagination(festivals) {
                     const festival = festivals[i];
                     
                     // 快速筛选条件
-                    if (searchInput.value !== '' && !festival.name.includes(searchInput.value)) {
+                    if (searchInput.val() !== '' && !festival.name.includes(searchInput.val())) {
                         continue;
                     }
-                    if (typeFilter.value !== 'all' && festival.type !== typeFilter.value) {
+                    if (typeFilter.val() !== 'all' && festival.type !== typeFilter.val()) {
                         continue;
                     }
-                    if (dateTypeFilter.value !== 'all' && festival.dateType !== dateTypeFilter.value) {
+                    if (dateTypeFilter.val() !== 'all' && festival.dateType !== dateTypeFilter.val()) {
                         continue;
                     }
                     
@@ -479,11 +479,11 @@ function initFilterAndPagination(festivals) {
         
         // 事件监听器 - 搜索使用防抖
         const debouncedSearch = debounce(applyFilters, 300);
-        searchInput.addEventListener('input', debouncedSearch);
+        searchInput.on('input', debouncedSearch);
         
         // 其他筛选事件
-        typeFilter.addEventListener('change', applyFilters);
-        dateTypeFilter.addEventListener('change', applyFilters);
+        typeFilter.on('change', applyFilters);
+        dateTypeFilter.on('change', applyFilters);
         
         // 初始更新
         applyFilters();
@@ -496,24 +496,24 @@ function initFilterAndPagination(festivals) {
 
 // 添加新节日
 function addFestival() {
-    const festivalModal = document.getElementById('festival-modal');
-    document.getElementById('modal-title').textContent = '新增节日';
-    document.getElementById('festival-id').value = '';
-    document.getElementById('festival-name').value = '';
-    document.getElementById('festival-alias').value = '';
-    document.getElementById('festival-date-type').value = 'solar';
-    document.getElementById('festival-type').value = 'custom';
-    document.getElementById('festival-month').value = '';
-    document.getElementById('festival-day').value = '';
-    document.getElementById('festival-week-month').value = '';
-    document.getElementById('festival-week-count').value = '';
-    document.getElementById('festival-week-day').value = '';
+    const festivalModal = $('#festival-modal');
+    $('#modal-title').text('新增节日');
+    $('#festival-id').val('');
+    $('#festival-name').val('');
+    $('#festival-alias').val('');
+    $('#festival-date-type').val('solar');
+    $('#festival-type').val('custom');
+    $('#festival-month').val('');
+    $('#festival-day').val('');
+    $('#festival-week-month').val('');
+    $('#festival-week-count').val('');
+    $('#festival-week-day').val('');
     
     // 显示日期类型对应输入区域
     toggleDateTypeInputs('solar');
     
     // 显示模态框
-    festivalModal.classList.remove('hidden');
+    festivalModal.removeClass('hidden');
     
     // 添加ESC快捷键关闭功能
     function handleEscKey(e) {
@@ -524,27 +524,27 @@ function addFestival() {
     
     // 添加点击外部区域关闭功能
     function handleClickOutside(e) {
-        if (e.target === festivalModal) {
+        if (e.target === festivalModal[0]) {
             closeFestivalModal();
         }
     }
     
     // 移除之前的事件监听器，避免重复绑定
-    document.removeEventListener('keydown', handleEscKey);
-    festivalModal.removeEventListener('click', handleClickOutside);
+    $(document).off('keydown', handleEscKey);
+    festivalModal.off('click', handleClickOutside);
     
     // 绑定新的事件监听器
-    document.addEventListener('keydown', handleEscKey);
-    festivalModal.addEventListener('click', handleClickOutside);
+    $(document).on('keydown', handleEscKey);
+    festivalModal.on('click', handleClickOutside);
 }
 
 // 关闭节日编辑模态框
 function closeFestivalModal() {
-    const festivalModal = document.getElementById('festival-modal');
-    festivalModal.classList.add('hidden');
+    const festivalModal = $('#festival-modal');
+    festivalModal.addClass('hidden');
     
     // 移除事件监听器
-    document.removeEventListener('keydown', function(e) {
+    $(document).off('keydown', function(e) {
         if (e.key === 'Escape') closeFestivalModal();
     });
 }
@@ -557,13 +557,13 @@ function editFestival(festivalId) {
         return;
     }
     
-    const festivalModal = document.getElementById('festival-modal');
-    document.getElementById('modal-title').textContent = '编辑节日';
-    document.getElementById('festival-id').value = festival.id;
-    document.getElementById('festival-name').value = festival.name || '';
-    document.getElementById('festival-alias').value = festival.alias || '';
-    document.getElementById('festival-date-type').value = festival.dateType || 'solar';
-    document.getElementById('festival-type').value = festival.type || 'custom';
+    const festivalModal = $('#festival-modal');
+    $('#modal-title').text('编辑节日');
+    $('#festival-id').val(festival.id);
+    $('#festival-name').val(festival.name || '');
+    $('#festival-alias').val(festival.alias || '');
+    $('#festival-date-type').val(festival.dateType || 'solar');
+    $('#festival-type').val(festival.type || 'custom');
     
     // 根据日期类型设置输入值
     const dateType = festival.dateType || 'solar';
@@ -577,23 +577,23 @@ function editFestival(festivalId) {
             // 解析公历日期格式 MM-DD
             const dateParts = festival.date.split('-');
             if (dateParts.length >= 2) {
-                document.getElementById('festival-month').value = dateParts[0].padStart(2, '0');
-                document.getElementById('festival-day').value = dateParts[1].padStart(2, '0');
+                $('#festival-month').val(dateParts[0].padStart(2, '0'));
+                $('#festival-day').val(dateParts[1].padStart(2, '0'));
             }
         } else if (dateType === 'lunar') {
             // 解析农历日期格式 MM-DD
             const dateParts = festival.date.split('-');
             if (dateParts.length >= 2) {
-                document.getElementById('lunar-festival-month').value = dateParts[0].padStart(2, '0');
-                document.getElementById('lunar-festival-day').value = dateParts[1].padStart(2, '0');
+                $('#lunar-festival-month').val(dateParts[0].padStart(2, '0'));
+                $('#lunar-festival-day').val(dateParts[1].padStart(2, '0'));
             }
         } else if (dateType === 'week') {
             // 解析日期格式 MM-W-D (月-第几周-星期几)
             const dateParts = festival.date.split('-');
             if (dateParts.length >= 3) {
-                document.getElementById('festival-week-month').value = dateParts[0];
-                document.getElementById('festival-week-count').value = dateParts[1];
-                document.getElementById('festival-week-day').value = dateParts[2];
+                $('#festival-week-month').val(dateParts[0]);
+                $('#festival-week-count').val(dateParts[1]);
+                $('#festival-week-day').val(dateParts[2]);
             }
         } else if (dateType === 'solar_terms') {
             // 节气的日期自动处理
@@ -602,20 +602,20 @@ function editFestival(festivalId) {
     } else {
         // 处理没有date字段的情况
         if (dateType === 'solar') {
-            document.getElementById('festival-month').value = '';
-            document.getElementById('festival-day').value = '';
+            $('#festival-month').val('');
+            $('#festival-day').val('');
         } else if (dateType === 'lunar') {
-            document.getElementById('lunar-festival-month').value = '';
-            document.getElementById('lunar-festival-day').value = '';
+            $('#lunar-festival-month').val('');
+            $('#lunar-festival-day').val('');
         } else if (dateType === 'week') {
-            document.getElementById('festival-week-month').value = '';
-            document.getElementById('festival-week-count').value = '';
-            document.getElementById('festival-week-day').value = '';
+            $('#festival-week-month').val('');
+            $('#festival-week-count').val('');
+            $('#festival-week-day').val('');
         }
     }
     
     // 显示模态框
-    festivalModal.classList.remove('hidden');
+    festivalModal.removeClass('hidden');
     
     // 添加ESC快捷键关闭功能
     function handleEscKey(e) {
@@ -626,52 +626,52 @@ function editFestival(festivalId) {
     
     // 添加点击外部区域关闭功能
     function handleClickOutside(e) {
-        if (e.target === festivalModal) {
+        if (e.target === festivalModal[0]) {
             closeFestivalModal();
         }
     }
     
     // 移除之前的事件监听器，避免重复绑定
-    document.removeEventListener('keydown', handleEscKey);
-    festivalModal.removeEventListener('click', handleClickOutside);
+    $(document).off('keydown', handleEscKey);
+    festivalModal.off('click', handleClickOutside);
     
     // 绑定新的事件监听器
-    document.addEventListener('keydown', handleEscKey);
-    festivalModal.addEventListener('click', handleClickOutside);
+    $(document).on('keydown', handleEscKey);
+    festivalModal.on('click', handleClickOutside);
 }
 
 // 切换日期类型输入区域显示
 function toggleDateTypeInputs(dateType) {
-    const solarInput = document.getElementById('solar-date-input');
-    const lunarInput = document.getElementById('lunar-date-input');
-    const weekInput = document.getElementById('week-date-input');
-    const solarTermsInput = document.getElementById('solar-terms-input');
+    const solarInput = $('#solar-date-input');
+    const lunarInput = $('#lunar-date-input');
+    const weekInput = $('#week-date-input');
+    const solarTermsInput = $('#solar-terms-input');
     
     // 隐藏所有输入区域
-    solarInput.classList.add('hidden');
-    lunarInput.classList.add('hidden');
-    weekInput.classList.add('hidden');
-    solarTermsInput.classList.add('hidden');
+    solarInput.addClass('hidden');
+    lunarInput.addClass('hidden');
+    weekInput.addClass('hidden');
+    solarTermsInput.addClass('hidden');
     
     // 根据日期类型显示对应的输入区域
     if (dateType === 'solar') {
-        solarInput.classList.remove('hidden');
+        solarInput.removeClass('hidden');
     } else if (dateType === 'lunar') {
-        lunarInput.classList.remove('hidden');
+        lunarInput.removeClass('hidden');
     } else if (dateType === 'week') {
-        weekInput.classList.remove('hidden');
+        weekInput.removeClass('hidden');
     } else if (dateType === 'solar_terms') {
-        solarTermsInput.classList.remove('hidden');
+        solarTermsInput.removeClass('hidden');
     }
 }
 
 // 保存节日
 function saveFestival() {
-    const id = document.getElementById('festival-id').value;
-    const name = document.getElementById('festival-name').value.trim();
-    const alias = document.getElementById('festival-alias').value.trim();
-    const type = document.getElementById('festival-type').value;
-    const dateType = document.getElementById('festival-date-type').value;
+    const id = $('#festival-id').val();
+    const name = $('#festival-name').val().trim();
+    const alias = $('#festival-alias').val().trim();
+    const type = $('#festival-type').val();
+    const dateType = $('#festival-date-type').val();
     
     // 验证必填字段
     if (!name) {
@@ -683,8 +683,8 @@ function saveFestival() {
     
     // 根据日期类型获取日期
     if (dateType === 'solar') {
-        const month = document.getElementById('festival-month').value;
-        const day = document.getElementById('festival-day').value;
+        const month = $('#festival-month').val();
+        const day = $('#festival-day').val();
         
         if (!month || !day) {
             alert('请选择完整的日期');
@@ -693,8 +693,8 @@ function saveFestival() {
         
         date = `${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     } else if (dateType === 'lunar') {
-        const month = document.getElementById('lunar-festival-month').value;
-        const day = document.getElementById('lunar-festival-day').value;
+        const month = $('#lunar-festival-month').val();
+        const day = $('#lunar-festival-day').val();
         
         if (!month || !day) {
             alert('请选择完整的日期');
@@ -703,9 +703,9 @@ function saveFestival() {
         
         date = `${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     } else if (dateType === 'week') {
-        const weekMonth = document.getElementById('festival-week-month').value;
-        const weekCount = document.getElementById('festival-week-count').value;
-        const weekDay = document.getElementById('festival-week-day').value;
+        const weekMonth = $('#festival-week-month').val();
+        const weekCount = $('#festival-week-count').val();
+        const weekDay = $('#festival-week-day').val();
         
         if (!weekMonth || !weekCount || !weekDay) {
             alert('请选择完整的星期日期');
@@ -748,7 +748,7 @@ function saveFestival() {
     initFilterAndPagination(window.calendarConfig.festivals);
     
     // 关闭模态框
-    document.getElementById('festival-modal').classList.add('hidden');
+    $('#festival-modal').addClass('hidden');
 }
 
 // 保存节日数据到服务器
@@ -795,15 +795,15 @@ async function saveFestivalsToServer() {
 
 // 删除节日确认
 function deleteFestivalConfirm(festivalId, festivalName) {
-    const deleteModal = document.getElementById('delete-modal');
-    document.getElementById('delete-confirm-text').textContent = `确定要删除节日 "${festivalName}" 吗？`;
-    document.getElementById('delete-festival-id').value = festivalId;
-    deleteModal.classList.remove('hidden');
+    const deleteModal = $('#delete-modal');
+    $('#delete-confirm-text').text(`确定要删除节日 "${festivalName}" 吗？`);
+    $('#delete-festival-id').val(festivalId);
+    deleteModal.removeClass('hidden');
 }
 
 // 删除节日
 function deleteFestival() {
-    const festivalId = document.getElementById('delete-festival-id').value;
+    const festivalId = $('#delete-festival-id').val();
     
     // 从节日列表中移除
     window.calendarConfig.festivals = window.calendarConfig.festivals.filter(f => f.id !== festivalId);
@@ -815,18 +815,18 @@ function deleteFestival() {
     initFilterAndPagination(window.calendarConfig.festivals);
     
     // 关闭删除确认模态框
-    document.getElementById('delete-modal').classList.add('hidden');
+    $('#delete-modal').addClass('hidden');
 }
 
 // 关闭删除确认模态框
 function closeDeleteModal() {
-    document.getElementById('delete-modal').classList.add('hidden');
+    $('#delete-modal').addClass('hidden');
 }
 
 // 刷新节假日缓存
 window.refreshHolidayCache = async function() {
     try {
-        const apiUrl = document.getElementById('holiday-api-url').value;
+        const apiUrl = $('#holiday-api-url').val();
         if (!apiUrl) {
             alert('请输入有效的API地址');
             return;

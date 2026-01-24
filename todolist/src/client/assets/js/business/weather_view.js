@@ -26,9 +26,9 @@ import "./weather/location_handler.js";
 function updateCurrentDateTime() {
     const now = new Date();
     const dateStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日';
-    const dateElement = document.getElementById('current-date');
-    if (dateElement) {
-        dateElement.textContent = dateStr;
+    const dateElement = $('#current-date');
+    if (dateElement.length > 0) {
+        dateElement.text(dateStr);
     }
 }
 
@@ -49,9 +49,4 @@ async function initializeAll() {
     }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeAll);
-} else {
-    // 页面已经加载完成，直接初始化
-    initializeAll();
-}
+$(document).ready(initializeAll);

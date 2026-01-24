@@ -34,7 +34,7 @@ import './common/lunar_utils.js';
     // 模块主体
     const CalendarView = {
 
-        // 缓存 DOM 元素引用
+        // 缓存 DOM 元素引用 (使用 jQuery)
         dom: {
             grid: null,
             prevBtn: null,
@@ -66,15 +66,15 @@ import './common/lunar_utils.js';
          */
         init: async function() {
             try {
-                // 1. 缓存 DOM 引用
-                this.dom.grid = document.getElementById('calendar-grid');
-                this.dom.prevBtn = document.getElementById('prev-month');
-                this.dom.nextBtn = document.getElementById('next-month');
-                this.dom.todayBtn = document.getElementById('btn-today');
-                this.dom.yearSelect = document.getElementById('year-selector');
-                this.dom.monthSelect = document.getElementById('month-selector');
+                // 1. 缓存 DOM 引用 (使用 jQuery)
+                this.dom.grid = $('#calendar-grid');
+                this.dom.prevBtn = $('#prev-month');
+                this.dom.nextBtn = $('#next-month');
+                this.dom.todayBtn = $('#btn-today');
+                this.dom.yearSelect = $('#year-selector');
+                this.dom.monthSelect = $('#month-selector');
 
-                if (!this.dom.grid || !this.dom.prevBtn || !this.dom.nextBtn || !this.dom.todayBtn) {
+                if (!this.dom.grid.length || !this.dom.prevBtn.length || !this.dom.nextBtn.length || !this.dom.todayBtn.length) {
                     console.error('日历核心 DOM 元素缺失');
                     return;
                 }
@@ -131,14 +131,15 @@ import './common/lunar_utils.js';
          * 填充年份和月份选择器
          */
         _populateSelectors: function() {
-            if (this.dom.yearSelect && this.dom.monthSelect) {
+            if (this.dom.yearSelect.length && this.dom.monthSelect.length) {
                 // 生成年份选项（当前年份前后5年）
                 const currentYear = new Date().getFullYear();
                 for (let year = currentYear - 5; year <= currentYear + 5; year++) {
-                    const option = document.createElement('option');
-                    option.value = year;
-                    option.textContent = `${year}年`;
-                    this.dom.yearSelect.appendChild(option);
+                    const option = $('<option>', {
+                        value: year,
+                        text: `${year}年`
+                    });
+                    this.dom.yearSelect.append(option);
                 }
             }
             // 状态同步将在 render() 中完成
@@ -148,22 +149,23 @@ import './common/lunar_utils.js';
          * [重构] 统一的事件处理器设置
          */
         _setupEventHandlers: function() {
-            // 使用 .bind(this) 确保方法内部的 `this` 指向 CalendarView 模块
-            this.dom.prevBtn.onclick = this.goToPrevMonth.bind(this);
-            this.dom.nextBtn.onclick = this.goToNextMonth.bind(this);
-            this.dom.todayBtn.onclick = this.goToToday.bind(this);
+            // 使用 jQuery 的 on 方法绑定事件，确保方法内部的 `this` 指向 CalendarView 模块
+            const self = this;
+            this.dom.prevBtn.on('click', function() { self.goToPrevMonth(); });
+            this.dom.nextBtn.on('click', function() { self.goToNextMonth(); });
+            this.dom.todayBtn.on('click', function() { self.goToToday(); });
 
-            if (this.dom.yearSelect && this.dom.monthSelect) {
-                this.dom.yearSelect.addEventListener('change', () => {
-                    const year = parseInt(this.dom.yearSelect.value);
-                    const month = parseInt(this.dom.monthSelect.value);
-                    this._setCalendarMonth(year, month);
+            if (this.dom.yearSelect.length && this.dom.monthSelect.length) {
+                this.dom.yearSelect.on('change', function() {
+                    const year = parseInt(self.dom.yearSelect.val());
+                    const month = parseInt(self.dom.monthSelect.val());
+                    self._setCalendarMonth(year, month);
                 });
 
-                this.dom.monthSelect.addEventListener('change', () => {
-                    const year = parseInt(this.dom.yearSelect.value);
-                    const month = parseInt(this.dom.monthSelect.value);
-                    this._setCalendarMonth(year, month);
+                this.dom.monthSelect.on('change', function() {
+                    const year = parseInt(self.dom.yearSelect.val());
+                    const month = parseInt(self.dom.monthSelect.val());
+                    self._setCalendarMonth(year, month);
                 });
             }
         },
@@ -179,7 +181,7 @@ import './common/lunar_utils.js';
          * (原 setCalendarMonth)
          */
         _setCalendarMonth: function(year, month, day = null, button = null) {
-            if (button) button.disabled = true;
+            if (button && button.length) button.prop('disabled', true);
 
             try {
                 // 1. 更新内部状态
@@ -199,7 +201,7 @@ import './common/lunar_utils.js';
             } catch (error) {
                 console.error('设置日历月份时出错:', error);
             } finally {
-                if (button) button.disabled = false;
+                if (button && button.length) button.prop('disabled', false);
             }
         },
 
@@ -254,7 +256,7 @@ import './common/lunar_utils.js';
                 const calendarGridData = this._buildMonthGrid(this.config.currentYear, this.config.currentMonth);
 
                 // 3. 清空日历网格
-                this.dom.grid.innerHTML = '';
+                this.dom.grid.empty();
 
                 // 4. 渲染
                 calendarGridData.forEach(week => {
@@ -262,12 +264,11 @@ import './common/lunar_utils.js';
                         if (dayData) {
                             // [重构] 调用 _createDayElement (只负责渲染)
                             const dayElement = this._createDayElement(dayData, dayIndex);
-                            this.dom.grid.appendChild(dayElement);
+                            this.dom.grid.append(dayElement);
                         } else {
                             // 理论上 _buildMonthGrid 应该填充
-                            const emptyDay = document.createElement('div');
-                            emptyDay.className = 'calendar-day';
-                            this.dom.grid.appendChild(emptyDay);
+                            const emptyDay = $('<div>').addClass('calendar-day');
+                            this.dom.grid.append(emptyDay);
                         }
                     });
                 });
@@ -281,18 +282,19 @@ import './common/lunar_utils.js';
          * 更新选择器的值以匹配当前状态
          */
         _updateSelectors: function() {
-            if (this.dom.yearSelect) {
+            if (this.dom.yearSelect.length) {
                 // 确保选项存在
-                if (!this.dom.yearSelect.querySelector(`option[value="${this.config.currentYear}"]`)) {
-                    const option = document.createElement('option');
-                    option.value = this.config.currentYear;
-                    option.textContent = `${this.config.currentYear}年`;
-                    this.dom.yearSelect.appendChild(option);
+                if (!this.dom.yearSelect.find(`option[value="${this.config.currentYear}"]`).length) {
+                    const option = $('<option>', {
+                        value: this.config.currentYear,
+                        text: `${this.config.currentYear}年`
+                    });
+                    this.dom.yearSelect.append(option);
                 }
-                this.dom.yearSelect.value = this.config.currentYear;
+                this.dom.yearSelect.val(this.config.currentYear);
             }
-            if (this.dom.monthSelect) {
-                this.dom.monthSelect.value = this.config.currentMonth;
+            if (this.dom.monthSelect.length) {
+                this.dom.monthSelect.val(this.config.currentMonth);
             }
         },
 
@@ -456,78 +458,78 @@ import './common/lunar_utils.js';
             const dayClasses = this._buildDayClasses(info, dayData.isCurrentMonth);
 
             // 3. 使用日历日期模板
-            const dayTemplate = document.getElementById('calendar-day-template');
-            if (!dayTemplate) {
+            const dayTemplate = $('#calendar-day-template');
+            let dayContainer;
+            if (!dayTemplate.length) {
                 console.error('日历日期模板不存在');
                 // 回退到原来的创建方式
-                const dayContainer = document.createElement('div');
-                dayContainer.className = dayClasses.join(' ');
+                dayContainer = $('<div>').addClass(dayClasses.join(' '));
                 return dayContainer;
             }
 
             // 克隆模板内容
-            const dayContainer = dayTemplate.content.cloneNode(true).firstElementChild;
-            dayContainer.className = dayClasses.join(' ');
+            dayContainer = $(dayTemplate.html());
+            dayContainer.addClass(dayClasses.join(' '));
 
             // 4. 填充日期数字
-            const dayNumber = dayContainer.querySelector('.calendar-day-number');
-            if (dayNumber) {
+            const dayNumber = dayContainer.find('.calendar-day-number');
+            if (dayNumber.length) {
                 if (!dayData.isCurrentMonth) {
-                    dayNumber.classList.add('calendar-day-number-other_month');
+                    dayNumber.addClass('calendar-day-number-other_month');
                 }
                 
                 // 简化样式逻辑
                 if (info.isHoliday || (info.isWeekend && !info.isWorkday)) {
-                    dayNumber.style.color = '#dc2626'; // 红色
+                    dayNumber.css('color', '#dc2626'); // 红色
                 } else {
-                    dayNumber.style.color = '#111827'; // 黑色
+                    dayNumber.css('color', '#111827'); // 黑色
                 }
 
                 if (info.isToday) {
-                    dayNumber.classList.add('text-sm', 'border-2', 'border-blue-500', 'w-6', 'h-6', 'inline-flex', 'items-center', 'justify-center', 'rounded-full');
+                    dayNumber.addClass('text-sm border-2 border-blue-500 w-6 h-6 inline-flex items-center justify-center rounded-full');
                 }
-                dayNumber.textContent = info.dayNum;
+                dayNumber.text(info.dayNum);
             }
 
             // 5. 填充农历日期
-            const lunarDateElement = dayContainer.querySelector('.lunar-date');
-            if (lunarDateElement) {
+            const lunarDateElement = dayContainer.find('.lunar-date');
+            if (lunarDateElement.length) {
                 if (info.lunarDate) {
-                    lunarDateElement.textContent = info.lunarDate;
+                    lunarDateElement.text(info.lunarDate);
                 } else {
-                    lunarDateElement.style.display = 'none';
+                    lunarDateElement.hide();
                 }
             }
 
             // 6. 填充节日标签
-            const festivalContainer = dayContainer.querySelector('.festival-container');
-            if (festivalContainer) {
+            const festivalContainer = dayContainer.find('.festival-container');
+            if (festivalContainer.length) {
                 // 清空节日容器
-                festivalContainer.innerHTML = '';
+                festivalContainer.empty();
                 
                 if (info.festivals.length > 0) {
-                    const festivalTagTemplate = document.getElementById('festival-tag-template');
+                    const festivalTagTemplate = $('#festival-tag-template');
                     
                     info.festivals.forEach(festival => {
-                        if (festivalTagTemplate) {
+                        if (festivalTagTemplate.length) {
                             // 使用节日标签模板
-                            const festivalTag = festivalTagTemplate.content.cloneNode(true).firstElementChild;
-                            festivalTag.className = `festival-tag ${window.lunarUtils.getFestivalTypeClass(festival.type)} w-full text-center`;
-                            festivalTag.textContent = festival.name;
-                            festivalContainer.appendChild(festivalTag);
+                            const festivalTag = $(festivalTagTemplate.html());
+                            festivalTag.addClass(`festival-tag ${window.lunarUtils.getFestivalTypeClass(festival.type)} w-full text-center`);
+                            festivalTag.text(festival.name);
+                            festivalContainer.append(festivalTag);
                         } else {
                             // 回退到原来的创建方式
-                            const festivalTag = document.createElement('div');
-                            festivalTag.className = `festival-tag ${window.lunarUtils.getFestivalTypeClass(festival.type)} w-full text-center`;
-                            festivalTag.textContent = festival.name;
-                            festivalContainer.appendChild(festivalTag);
+                            const festivalTag = $('<div>');
+                            festivalTag.addClass(`festival-tag ${window.lunarUtils.getFestivalTypeClass(festival.type)} w-full text-center`);
+                            festivalTag.text(festival.name);
+                            festivalContainer.append(festivalTag);
                         }
                     });
                 }
             }
 
             // 7. 添加点击事件
-            dayContainer.addEventListener('click', function() {
+            dayContainer.on('click', function() {
                 console.log('点击了日期:', info.date);
             });
 
@@ -536,7 +538,7 @@ import './common/lunar_utils.js';
     };
 
     // 启动日历
-    document.addEventListener('DOMContentLoaded', () => {
+    $(document).ready(() => {
         // [重构] 将 CalendarView 挂载到 window，以便其他模块 (如 holidayManager) 可以访问它
         // 这是一个折衷方案，比完全的全局变量要好
         window.CalendarView = CalendarView;

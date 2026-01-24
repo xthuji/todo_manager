@@ -207,29 +207,27 @@ const taskCardRenderer = {
   },
   
   renderTaskCard: (task, isContinuous, dateString) => {
-    const taskCard = document.createElement('div');
-    taskCard.classList.add('flex-1', 'h-[30px]', 'p-1', 'text-xs', 'rounded-lg', 
-                          'border-2', 'shadow-sm', 'truncate', 'cursor-pointer', 
-                          'hover:opacity-90', 'transition-opacity', 'flex', 'items-center');
+    const taskCard = $('<div>');
+    taskCard.addClass('flex-1 h-[30px] p-1 text-xs rounded-lg border-2 shadow-sm truncate cursor-pointer hover:opacity-90 transition-opacity flex items-center');
     
     const statusColorClass = calculateTaskDisplayStatus(task);
     const backgroundClass = taskCardRenderer.getTaskColorClass(task.id, 
       Math.ceil(new Date(dateString).getDate() / 7));
     
-    taskCard.classList.add(backgroundClass);
-    taskCard.classList.add(`border-status-${statusColorClass}`);
+    taskCard.addClass(backgroundClass);
+    taskCard.addClass(`border-status-${statusColorClass}`);
     
     if (isContinuous) {
-      taskCard.classList.add('continuous-task-item');
+      taskCard.addClass('continuous-task-item');
       const startDate = new Date(task.startDate);
       const endDate = new Date(task.dueDate);
       const currentTaskDate = new Date(dateString);
       const dayOfTask = Math.floor((currentTaskDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
       const totalDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
       
-      if (dayOfTask === 1) taskCard.classList.add('task-item-first');
-      else if (dayOfTask === totalDays) taskCard.classList.add('task-item-last');
-      else taskCard.classList.add('task-item-middle');
+      if (dayOfTask === 1) taskCard.addClass('task-item-first');
+      else if (dayOfTask === totalDays) taskCard.addClass('task-item-last');
+      else taskCard.addClass('task-item-middle');
     }
     
     const priorityColorClass = `bg-priority-${task.priority || 'none'}`;
@@ -244,7 +242,7 @@ const taskCardRenderer = {
       continuousIndicator = `<span class="text-[8px] text-gray-500 ml-1">(${dayOfTask}/${totalDays})</span>`;
     }
     
-    taskCard.innerHTML = `
+    taskCard.html(`
       <div class="flex items-center w-full h-full">
         ${task.priority && task.priority !== 'none' ? 
           `<span class="w-4 h-4 rounded-full ${priorityColorClass} text-white text-[10px] font-bold flex items-center justify-center mr-1 flex-shrink-0">${task.priority}</span>` : ''}
@@ -252,10 +250,10 @@ const taskCardRenderer = {
         <span class="text-gray-700 truncate flex-1" title="${task.title || '无标题任务'}">${task.title || '无标题任务'}</span>
         ${continuousIndicator}
       </div>
-    `;
+    `);
     
-    taskCard.addEventListener('click', () => editTask(task.id));
-    return taskCard;
+    taskCard.on('click', () => editTask(task.id));
+    return taskCard[0];
   }
 };
 
@@ -266,42 +264,41 @@ const dayCellRenderer = {
       const dateString = utils.formatDate(date);
       const dateInfo = dateTypeHandler.getTypeInfo(date);
 
-      const dayElement = document.createElement('div');
-      dayElement.classList.add('calendar-day');
-      dayElement.setAttribute('data-date', dateString);
+      const dayElement = $('<div>');
+      dayElement.addClass('calendar-day');
+      dayElement.attr('data-date', dateString);
 
       if (isCurrentMonth) {
-          dayElement.classList.add(dateTypeHandler.getBackgroundColor(dateInfo.displayType));
+          dayElement.addClass(dateTypeHandler.getBackgroundColor(dateInfo.displayType));
       } else {
-          dayElement.classList.add('bg-calendar-other_month');
+          dayElement.addClass('bg-calendar-other_month');
       }
       
       // 无论是否为当月，只要是今天都添加高亮样式
       if (dateInfo.isToday) {
-          dayElement.classList.add('calendar-day-today', 'bg-blue-100');
+          dayElement.addClass('calendar-day-today bg-blue-100');
       }
 
       // 渲染日期头部
-      const dateHeader = document.createElement('div');
-      dateHeader.classList.add('text-sm', 'font-medium', 'mb-1');
+      const dateHeader = $('<div>');
+      dateHeader.addClass('text-sm font-medium mb-1');
 
-      const dateContentContainer = document.createElement('div');
-      dateContentContainer.classList.add('flex', 'items-center', 'justify-between', 'w-full');
+      const dateContentContainer = $('<div>');
+      dateContentContainer.addClass('flex items-center justify-between w-full');
 
-      const dateNumberElement = document.createElement('span');
-      dateNumberElement.textContent = date.getDate();
+      const dateNumberElement = $('<span>');
+      dateNumberElement.text(date.getDate());
 
-      dateNumberElement.style.color = dateTypeHandler.getTextColor(dateInfo.dateType, dateInfo.isWeekend);
+      dateNumberElement.css('color', dateTypeHandler.getTextColor(dateInfo.dateType, dateInfo.isWeekend));
       
       // 无论是否为当月，只要是今天都添加高亮圆圈边框
       if (dateInfo.isToday) {
-          dateNumberElement.classList.add('w-6', 'h-6', 'flex', 'items-center', 'justify-center',
-              'border-2', 'border-blue-500', 'rounded-full', 'text-xs', 'font-bold');
+          dateNumberElement.addClass('w-6 h-6 flex items-center justify-center border-2 border-blue-500 rounded-full text-xs font-bold');
       }
 
-      const leftContainer = document.createElement('div');
-      leftContainer.classList.add('flex', 'items-center');
-      leftContainer.appendChild(dateNumberElement);
+      const leftContainer = $('<div>');
+      leftContainer.addClass('flex items-center');
+      leftContainer.append(dateNumberElement);
 
       // 添加农历和节日信息
       let lunarDate = '';
@@ -323,28 +320,28 @@ const dayCellRenderer = {
       }
 
       if (lunarDate) {
-          const lunarElement = document.createElement('span');
-          lunarElement.classList.add('text-xs', 'ml-1', 'text-gray-500');
-          lunarElement.textContent = lunarDate;
-          leftContainer.appendChild(lunarElement);
+          const lunarElement = $('<span>');
+          lunarElement.addClass('text-xs ml-1 text-gray-500');
+          lunarElement.text(lunarDate);
+          leftContainer.append(lunarElement);
       }
 
-      dateContentContainer.appendChild(leftContainer);
+      dateContentContainer.append(leftContainer);
 
       if (festivalInfo) {
-          const festivalElement = document.createElement('span');
-          festivalElement.classList.add('text-xs', 'ml-auto');
-          festivalElement.innerHTML = festivalInfo;
-          dateContentContainer.appendChild(festivalElement);
+          const festivalElement = $('<span>');
+          festivalElement.addClass('text-xs ml-auto');
+          festivalElement.html(festivalInfo);
+          dateContentContainer.append(festivalElement);
       }
 
-      dateHeader.appendChild(dateContentContainer);
-      dayElement.appendChild(dateHeader);
+      dateHeader.append(dateContentContainer);
+      dayElement.append(dateHeader);
 
       // 渲染任务
       if (tasks.length > 0) {
-          const tasksContainer = document.createElement('div');
-          tasksContainer.classList.add('mt-1', 'space-y-1', 'min-h-[100px]', 'overflow-visible');
+          const tasksContainer = $('<div>');
+          tasksContainer.addClass('mt-1 space-y-1 min-h-[100px] overflow-visible');
 
           const weekOfMonth = Math.ceil(date.getDate() / 7);
           const taskRows = taskLayoutManager.assignTaskRows(tasks, weekOfMonth);
@@ -352,41 +349,41 @@ const dayCellRenderer = {
 
           taskRowsArray.forEach(([rowIndex, rowTasks]) => {
               if (rowTasks.length === 1 && rowTasks[0].isEmpty) {
-                  const emptyPlaceholder = document.createElement('div');
-                  emptyPlaceholder.classList.add('flex-1', 'h-[30px]', 'border', 'border-dashed', 'border-gray-100', 'rounded-lg');
-                  tasksContainer.appendChild(emptyPlaceholder);
+                  const emptyPlaceholder = $('<div>');
+                  emptyPlaceholder.addClass('flex-1 h-[30px] border border-dashed border-gray-100 rounded-lg');
+                  tasksContainer.append(emptyPlaceholder);
               } else if (rowTasks.length === 1) {
                   const taskElement = taskCardRenderer.renderTaskCard(rowTasks[0], rowTasks[0].isContinuous, dateString);
-                  tasksContainer.appendChild(taskElement);
+                  tasksContainer.append(taskElement);
               } else {
-                  const rowContainer = document.createElement('div');
-                  rowContainer.classList.add('flex', 'gap-1', 'h-[30px]');
+                  const rowContainer = $('<div>');
+                  rowContainer.addClass('flex gap-1 h-[30px]');
 
                   rowTasks.forEach(task => {
                       const taskElement = taskCardRenderer.renderTaskCard(task, task.isContinuous, dateString);
-                      rowContainer.appendChild(taskElement);
+                      rowContainer.append(taskElement);
                   });
 
-                  tasksContainer.appendChild(rowContainer);
+                  tasksContainer.append(rowContainer);
               }
           });
 
-          dayElement.appendChild(tasksContainer);
+          dayElement.append(tasksContainer);
       }
 
-      return dayElement;
+      return dayElement[0];
   }
 }
 
 // 年月选择器渲染器
 const yearMonthSelector = {
   render: (date, onYearChange, onMonthChange) => {
-    const calendarMonthElement = document.getElementById('calendar-month');
+    const calendarMonthElement = $('#calendar-month');
     const year = date.getFullYear();
     const month = date.getMonth();
     const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
     
-    calendarMonthElement.innerHTML = `
+    calendarMonthElement.html(`
       <select id="year-select" class="bg-transparent border-0 text-lg font-semibold focus:ring-1 focus:ring-blue-500">
         ${Array.from({length: 5}, (_, i) => year - 2 + i)
           .map(y => `<option value="${y}" ${y === year ? 'selected' : ''}>${y}年</option>`)
@@ -397,13 +394,13 @@ const yearMonthSelector = {
           `<option value="${idx}" ${idx === month ? 'selected' : ''}>${name}</option>`
         ).join('')}
       </select>
-    `;
+    `);
     
-    document.getElementById('year-select').addEventListener('change', (e) => {
+    $('#year-select').on('change', (e) => {
       onYearChange(parseInt(e.target.value));
     });
     
-    document.getElementById('month-select').addEventListener('change', (e) => {
+    $('#month-select').on('change', (e) => {
       onMonthChange(parseInt(e.target.value));
     });
   }
@@ -425,8 +422,8 @@ export async function renderCalendar(date, tasks = []) {
   );
   
   // 清空日历
-  const calendarGrid = document.getElementById('calendar-grid');
-  calendarGrid.innerHTML = '';
+  const calendarGrid = $('#calendar-grid');
+  calendarGrid.empty();
   
   // 计算日历日期范围
   const year = date.getFullYear();
@@ -442,7 +439,7 @@ export async function renderCalendar(date, tasks = []) {
       isCurrentMonth: false, 
       lunarUtils: window.lunarUtils 
     });
-    calendarGrid.appendChild(dayElement);
+    calendarGrid.append(dayElement);
   }
   
   // 添加本月日期
@@ -457,7 +454,7 @@ export async function renderCalendar(date, tasks = []) {
       lunarUtils: window.lunarUtils 
     });
     
-    calendarGrid.appendChild(dayElement);
+    calendarGrid.append(dayElement);
   }
   
   // 添加下月日期
@@ -470,7 +467,7 @@ export async function renderCalendar(date, tasks = []) {
       isCurrentMonth: false, 
       lunarUtils: window.lunarUtils 
     });
-    calendarGrid.appendChild(dayElement);
+    calendarGrid.append(dayElement);
   }
 }
 

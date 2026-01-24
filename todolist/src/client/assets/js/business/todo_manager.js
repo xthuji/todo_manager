@@ -42,8 +42,8 @@ const FULL_START_COMMAND = `sh ${SCRIPT_DIRECTORY}/${START_SCRIPT_NAME}`; // 完
 
 // 获取当前选择的文件名
 export function getCurrentFileName() {
-    const fileDropdown = document.getElementById('todo-file-select');
-    return fileDropdown ? fileDropdown.value : defaultFileName;
+    const fileDropdown = $('#todo-file-select');
+    return fileDropdown.length ? fileDropdown.val() : defaultFileName;
 }
 
 // 跳转到指定日期
@@ -74,6 +74,8 @@ function clearOldFilterCache() {
 // 初始化函数
 export async function init() {
     try {
+        console.log('Initializing task manager');
+        
         // 1. 清理旧的筛选参数缓存
         clearOldFilterCache();
         
@@ -99,32 +101,50 @@ export async function init() {
             return date.toISOString().split('T')[0];
         }
         
-        // 获取当前选择的文件名
+        // 6. 获取当前选择的文件名（确保在updateFileDropdown后获取）
         const currentFileName = getCurrentFileName();
+        console.log('Current file name:', currentFileName);
         
-        // 尝试加载文件，如果文件不存在或为空，则使用模拟数据
+        // 7. 尝试加载文件，只使用真实接口数据
         try {
+            console.log('Loading tasks from file:', currentFileName);
             tasks = await loadTasksFromFile(currentFileName);
+            
+            // 确保tasks是数组
+            if (!Array.isArray(tasks)) {
+                console.log('任务数据格式不正确，设置为空数组');
+                tasks = [];
+            }
+            
+            console.log('Loaded', tasks.length, 'tasks from file');
         } catch (error) {
             console.error('加载任务文件失败:', error);
+            // 加载失败时设置为空数组，不使用模拟数据
+            tasks = [];
         }
         
-        // 6. 渲染日历
+        // 8. 渲染日历
         const filteredTasks = filterTasks(tasks);
         await renderCalendar(currentDate, filteredTasks);
         
-        // 7. 渲染任务列表
+        // 9. 渲染任务列表
+        console.log('Rendering task list with', tasks.length, 'tasks');
         renderTaskList(tasks);
         
-        // 8. 初始化时设置默认筛选参数（仅在页面首次加载时执行一次）
+        // 10. 初始化时设置默认筛选参数（仅在页面首次加载时执行一次）
         // 等待DOM完全加载后再设置筛选参数
         setTimeout(async () => {
             const { setAllFiltersToDefault } = await import('./todo/task_list_renderer.js');
             setAllFiltersToDefault();
         }, 100);
         
-        // 9. 添加事件监听器
+        // 11. 添加事件监听器（如果尚未绑定）
         addEventListeners();
+        
+        // 12. 更新当前任务文件名显示
+        updateCurrentTodoFileDisplay();
+        
+        console.log('Initialization completed');
     } catch (error) {
         console.error('初始化失败:', error);
         // 显示错误信息
@@ -244,7 +264,17 @@ export function saveCurrentFilters() {
 }
 
 // 添加事件监听器
+let eventListenersBound = false;
+
 function addEventListeners() {
+    // 防止事件监听器被重复绑定
+    if (eventListenersBound) {
+        console.log('Event listeners already bound');
+        return;
+    }
+    
+    console.log('Binding event listeners');
+    
     // 定义事件监听器配置
     const eventListeners = [
         // 任务相关
@@ -285,29 +315,67 @@ function addEventListeners() {
     
     // 批量注册事件监听器
     eventListeners.forEach(({ id, event, handler }) => {
-        const element = id === 'document' ? document : document.getElementById(id);
-        if (element) {
-            element.addEventListener(event, handler);
+        const element = id === 'document' ? $(document) : $('#' + id);
+        if (element.length) {
+            console.log(`Binding ${event} event to ${id}`);
+            element.on(event, handler);
+        } else {
+            console.log(`Element ${id} not found`);
         }
     });
     
     // 初始化显示当前任务文件名和节假日缓存时间
     updateCurrentTodoFileDisplay();
     updateCurrentHolidayCacheDisplay();
+    
+    // 标记事件监听器已绑定
+    eventListenersBound = true;
 }
 
 // 扫描并更新文件
 async function scanAndUpdateFiles() {
     try {
+        console.log('Scanning and updating files');
+        
         await updateFileDropdown();
         const fileDropdown = document.getElementById('todo-file-select');
         const filename = fileDropdown?.value || defaultFileName;
-        const loadedTasks = await loadTasksFromFile(filename);
-        tasks = Array.isArray(loadedTasks) ? loadedTasks : [];
+        console.log('Current file name after scan:', filename);
+        
+        // 生成当前日期和未来几天的日期
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        const dayAfterTomorrow = new Date(today);
+        dayAfterTomorrow.setDate(today.getDate() + 2);
+        
+        // 格式化日期为YYYY-MM-DD
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+        
+        try {
+            console.log('Loading tasks from file:', filename);
+            const loadedTasks = await loadTasksFromFile(filename);
+            tasks = Array.isArray(loadedTasks) ? loadedTasks : [];
+            
+            console.log('Loaded', tasks.length, 'tasks from file');
+        } catch (error) {
+            console.error('加载任务文件失败:', error);
+            // 加载失败时设置为空数组，不使用模拟数据
+            tasks = [];
+        }
+        
+        console.log('Rendering calendar with', tasks.length, 'tasks');
         await renderCalendar(currentDate, tasks);
+        
+        console.log('Rendering task list with', tasks.length, 'tasks');
         await renderTaskList(tasks);
+        
         // 扫描后更新当前任务文件名显示
         updateCurrentTodoFileDisplay();
+        
+        console.log('Scan and update completed');
     } catch (error) {
         console.error('扫描文件并加载任务失败:', error);
     }
@@ -619,13 +687,13 @@ async function handleFileImport(event) {
 
 // 关闭任务模态框
 function closeTaskModal() {
-    document.getElementById('task-modal')?.classList.add('hidden');
+    $('#task-modal').addClass('hidden');
 }
 
 // 处理文件选择变化
 async function handleTodoFileChange() {
-    const fileDropdown = document.getElementById('todo-file-select');
-    const loadedTasks = await loadTasksFromFile(fileDropdown.value);
+    const fileDropdown = $('#todo-file-select');
+    const loadedTasks = await loadTasksFromFile(fileDropdown.val());
     tasks = loadedTasks;
     // 使用筛选后的任务数据渲染日历
     const filteredTasks = filterTasks(tasks);
@@ -637,8 +705,8 @@ async function handleTodoFileChange() {
 
 // 处理加载文件点击事件
 async function handleLoadFileClick() {
-    const fileDropdown = document.getElementById('todo-file-select');
-    const loadedTasks = await loadTasksFromFile(fileDropdown.value);
+    const fileDropdown = $('#todo-file-select');
+    const loadedTasks = await loadTasksFromFile(fileDropdown.val());
     tasks = loadedTasks;
     
     // 重新初始化项目和上下文筛选下拉框
@@ -703,15 +771,15 @@ function handleConfirmShutdownClick() {
 async function saveTask(e) {
     e.preventDefault();
     
-    const taskId = document.getElementById('task-id').value;
-    const title = document.getElementById('task-title').value.trim();
-    const priority = document.getElementById('task-priority').value;
-    const status = document.getElementById('task-status').value;
-    const dueDate = document.getElementById('task-due-date').value;
-    const startDate = document.getElementById('task-start-date').value;
-    const project = document.getElementById('task-project').value.trim() || null;
-    const context = document.getElementById('task-context').value.trim() || null;
-    const note = document.getElementById('task-note').value.trim() || '';
+    const taskId = $('#task-id').val();
+    const title = $('#task-title').val().trim();
+    const priority = $('#task-priority').val();
+    const status = $('#task-status').val();
+    const dueDate = $('#task-due-date').val();
+    const startDate = $('#task-start-date').val();
+    const project = $('#task-project').val().trim() || null;
+    const context = $('#task-context').val().trim() || null;
+    const note = $('#task-note').val().trim() || '';
     
     if (!title) return;
     
@@ -764,47 +832,50 @@ async function saveTask(e) {
     await renderCalendar(currentDate, tasks);
     
     // 先清空任务列表，然后再重新渲染，确保完全刷新状态显示
-    const taskList = document.getElementById('task-list');
-    if (taskList) {
-        taskList.innerHTML = '';
+    const taskList = $('#task-list');
+    if (taskList.length) {
+        taskList.empty();
     }
     await renderTaskList(tasks);
 }
 
 // 切换详情面板显示/隐藏
 function toggleDetailPanel() {
-    const detailPanel = document.getElementById('detail-panel');
-    const toggleButton = document.getElementById('toggle-detail-panel');
-    const icon = toggleButton.querySelector('i');
+    const detailPanel = $('#detail-panel');
+    const toggleButton = $('#toggle-detail-panel');
+    const icon = toggleButton.find('i');
     
-    if (detailPanel.classList.contains('hidden')) {
-        detailPanel.classList.remove('hidden');
-        icon.classList.remove('fa-chevron-down');
-        icon.classList.add('fa-chevron-up');
-        toggleButton.textContent = '详情';
-        toggleButton.prepend(icon);
+    console.log('toggleDetailPanel called');
+    console.log('detailPanel:', detailPanel);
+    console.log('toggleButton:', toggleButton);
+    console.log('icon:', icon);
+    
+    if (detailPanel.hasClass('hidden')) {
+        detailPanel.removeClass('hidden');
+        icon.removeClass('fa-chevron-down');
+        icon.addClass('fa-chevron-up');
+        console.log('Detail panel shown');
     } else {
-        detailPanel.classList.add('hidden');
-        icon.classList.remove('fa-chevron-up');
-        icon.classList.add('fa-chevron-down');
-        toggleButton.textContent = '详情';
-        toggleButton.prepend(icon);
+        detailPanel.addClass('hidden');
+        icon.removeClass('fa-chevron-up');
+        icon.addClass('fa-chevron-down');
+        console.log('Detail panel hidden');
     }
 }
 
 // 更新当前任务文件名显示
 function updateCurrentTodoFileDisplay() {
-    const currentTodoFileElement = document.getElementById('current-todo-file');
-    if (currentTodoFileElement) {
+    const currentTodoFileElement = $('#current-todo-file');
+    if (currentTodoFileElement.length) {
         const fileName = getCurrentFileName();
-        currentTodoFileElement.textContent = `任务文件: ${fileName}`;
+        currentTodoFileElement.text(`任务文件: ${fileName}`);
     }
 }
 
 // 更新当前节假日缓存时间显示
 function updateCurrentHolidayCacheDisplay() {
-    const currentHolidayCacheElement = document.getElementById('current-holiday-cache');
-    if (currentHolidayCacheElement && holidayDataTimestamp) {
+    const currentHolidayCacheElement = $('#current-holiday-cache');
+    if (currentHolidayCacheElement.length && holidayDataTimestamp) {
         const cacheDate = new Date(holidayDataTimestamp);
         const formattedDate = cacheDate.toLocaleDateString('zh-CN', {
             year: 'numeric',
@@ -813,7 +884,7 @@ function updateCurrentHolidayCacheDisplay() {
             hour: '2-digit',
             minute: '2-digit'
         });
-        currentHolidayCacheElement.textContent = `节假日缓存: ${formattedDate}`;
+        currentHolidayCacheElement.text(`节假日缓存: ${formattedDate}`);
     }
 }
 
@@ -1053,7 +1124,7 @@ function showDetailedGuide() {
 
 // 页面加载完成后初始化
 if (typeof window !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', async () => {
+    $(document).ready(async () => {
         
         // 首先尝试检查服务状态
         let isServerRunning = false;
@@ -1074,16 +1145,16 @@ if (typeof window !== 'undefined') {
         } else {
             // 服务未运行，显示错误信息
             console.log('服务未运行，请先启动服务...');
-            const mainContent = document.getElementById('main-content');
-            if (mainContent) {
-                mainContent.innerHTML = `
+            const mainContent = $('#main-content');
+            if (mainContent.length) {
+                mainContent.html(`
                     <div class="text-center p-8 bg-gray-50 rounded-lg">
                         <div class="text-red-500 text-6xl mb-4">❌</div>
                         <h2 class="text-2xl font-bold mb-2">服务未运行</h2>
                         <p class="text-gray-600 mb-6">待办事项管理系统的后端服务当前未启动。</p>
                         <p class="text-gray-500">请点击顶部的"启动服务"按钮或手动运行启动脚本。</p>
                     </div>
-                `;
+                `);
             }
         }
         

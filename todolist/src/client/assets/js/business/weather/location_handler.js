@@ -287,6 +287,13 @@ const WEATHER_API = {
          * @returns {object} 包含mojiCode、nmcCode、cmaCode的对象
          */
         getDistrictCodes: function (districtCode) {
+            if (!this.dataCache || !this.dataCache.districtCodesMap) {
+                return {
+                    mojiCode: '',
+                    nmcCode: '',
+                    cmaCode: ''
+                };
+            }
             return this.dataCache.districtCodesMap[districtCode] || {
                 mojiCode: '',
                 nmcCode: '',

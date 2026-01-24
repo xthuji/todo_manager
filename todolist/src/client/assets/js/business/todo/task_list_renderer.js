@@ -37,10 +37,10 @@ function recordDefaultFilterValues() {
     const filterIds = ['priority-filter', 'status-filter', 'date-filter', 'project-filter', 'context-filter'];
     
     filterIds.forEach(filterId => {
-        const filterElement = document.getElementById(filterId);
-        if (filterElement) {
+        const filterElement = $('#' + filterId);
+        if (filterElement.length) {
             // 记录默认选中的值
-            const defaultSelected = Array.from(filterElement.options)
+            const defaultSelected = Array.from(filterElement[0].options)
                 .filter(option => option.selected)
                 .map(option => option.value);
             
@@ -50,12 +50,12 @@ function recordDefaultFilterValues() {
 }
 
 // 确保在页面加载时记录默认值
-document.addEventListener('DOMContentLoaded', recordDefaultFilterValues);
+$(document).ready(recordDefaultFilterValues);
 
 // 渲染任务列表
 export async function renderTaskList(tasks) {
-    const taskList = document.getElementById('task-list');
-    taskList.innerHTML = '';
+    const taskList = $('#task-list');
+    taskList.empty();
     
     // 初始化项目和上下文筛选下拉框
         initProjectAndContextFilters();
@@ -77,30 +77,28 @@ export async function renderTaskList(tasks) {
     const filteredTasks = filterTasks(tasksWithUpdatedStatus);
     
     // 更新任务统计数量
-    const taskCountElement = document.getElementById('task-count');
-    if (taskCountElement) {
-        taskCountElement.textContent = `共 ${filteredTasks.length} 个任务`;
+    const taskCountElement = $('#task-count');
+    if (taskCountElement.length) {
+        taskCountElement.text(`共 ${filteredTasks.length} 个任务`);
     }
     
     if (filteredTasks.length === 0) {
         if (tasks.length > 0) {
-            const emptyState = document.createElement('div');
-            emptyState.classList.add('text-center', 'p-8', 'text-gray-500');
-            emptyState.innerHTML = `
+            const emptyState = $('<div>').addClass('text-center p-8 text-gray-500');
+            emptyState.html(`
                 <i class="fa fa-filter text-4xl mb-4"></i>
                 <p>没有匹配当前筛选条件的任务</p>
                 <p class="text-sm mt-2">请尝试调整筛选条件</p>
-            `;
-            taskList.appendChild(emptyState);
+            `);
+            taskList.append(emptyState);
         } else {
-            const emptyState = document.createElement('div');
-            emptyState.classList.add('text-center', 'p-8', 'text-gray-500');
-            emptyState.innerHTML = `
+            const emptyState = $('<div>').addClass('text-center p-8 text-gray-500');
+            emptyState.html(`
                 <i class="fa fa-tasks text-4xl mb-4"></i>
                 <p>暂无任务</p>
                 <p class="text-sm mt-2">点击"添加任务"开始创建您的待办事项</p>
-            `;
-            taskList.appendChild(emptyState);
+            `);
+            taskList.append(emptyState);
         }
         return;
     }
@@ -159,59 +157,58 @@ export async function renderTaskList(tasks) {
     });
     
     // 获取任务元素模板
-    const taskTemplate = document.getElementById('task-item-template');
-    const useTemplate = !!taskTemplate;
+    const taskTemplate = $('#task-item-template');
+    const useTemplate = taskTemplate.length > 0;
 
     sortedTasks.forEach(task => {
         let taskElement;
         
         // 使用模板渲染
         if (useTemplate) {
-            taskElement = taskTemplate.content.cloneNode(true).firstElementChild;
+            taskElement = $(taskTemplate[0].content.cloneNode(true)).first();
         } else {
             // 回退到原来的创建方式
-            taskElement = document.createElement('div');
-            taskElement.classList.add('p-4', 'border-2', 'rounded-lg', 'mb-2', 'hover:bg-gray-50', 'transition-colors');
+            taskElement = $('<div>').addClass('p-4 border-2 rounded-lg mb-2 hover:bg-gray-50 transition-colors');
         }
         
         // 使用预计算的displayStatus字段作为状态颜色类
         const displayStatus = task.displayStatus || 'pending';
         
         // 添加彩色边框，使用任务状态颜色
-        taskElement.className = 'p-4 border-2 border-status-' + displayStatus + ' rounded-lg mb-2 hover:bg-gray-50 transition-colors';
+        taskElement.attr('class', 'p-4 border-2 border-status-' + displayStatus + ' rounded-lg mb-2 hover:bg-gray-50 transition-colors');
 
         // 填充任务数据
-        const titleElement = taskElement.querySelector('h3');
-        if (titleElement) {
-            titleElement.textContent = `#${task.id} ${task.title}`;
+        const titleElement = taskElement.find('h3');
+        if (titleElement.length) {
+            titleElement.text(`#${task.id} ${task.title}`);
             if (task.status === 'completed') {
-                titleElement.classList.add('line-through', 'text-gray-500');
+                titleElement.addClass('line-through text-gray-500');
             }
         }
 
         // 优先级标签
-        const priorityElement = taskElement.querySelector('.bg-priority-none');
-        if (priorityElement) {
+        const priorityElement = taskElement.find('.bg-priority-none');
+        if (priorityElement.length) {
             if (task.priority !== 'none') {
-                priorityElement.className = 'inline-block px-2 py-1 text-xs font-medium rounded-full bg-priority-' + task.priority + ' text-white';
-                priorityElement.textContent = '优先级 ' + task.priority;
+                priorityElement.attr('class', 'inline-block px-2 py-1 text-xs font-medium rounded-full bg-priority-' + task.priority + ' text-white');
+                priorityElement.text('优先级 ' + task.priority);
             } else {
-                priorityElement.style.display = 'none';
+                priorityElement.hide();
             }
         }
 
         // 日期标签
-        const dateContainer = taskElement.querySelector('.inline-flex.items-center.text-sm.text-gray-600');
-        if (dateContainer) {
+        const dateContainer = taskElement.find('.inline-flex.items-center.text-sm.text-gray-600').first();
+        if (dateContainer.length) {
             if (task.dueDate) {
-                const dateTextElement = dateContainer.querySelector('.date-text');
-                const daysCountElement = dateContainer.querySelector('.days-count');
+                const dateTextElement = dateContainer.find('.date-text');
+                const daysCountElement = dateContainer.find('.days-count');
                 
-                if (dateTextElement) {
-                    dateTextElement.textContent = task.startDate && task.startDate !== task.dueDate ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}` : formatDate(task.dueDate);
+                if (dateTextElement.length) {
+                    dateTextElement.text(task.startDate && task.startDate !== task.dueDate ? `${formatDate(task.startDate)} - ${formatDate(task.dueDate)}` : formatDate(task.dueDate));
                 }
                 
-                if (daysCountElement) {
+                if (daysCountElement.length) {
                     if (task.startDate && task.dueDate) {
                         const startDate = new Date(task.startDate);
                         const dueDate = new Date(task.dueDate);
@@ -245,123 +242,123 @@ export async function renderTaskList(tasks) {
                             tempDate.setDate(tempDate.getDate() + 1);
                         }
                         
-                        daysCountElement.className = 'ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded font-bold';
-                        daysCountElement.textContent = totalWorkDays + '天';
+                        daysCountElement.attr('class', 'ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded font-bold');
+                        daysCountElement.text(totalWorkDays + '天');
                     } else if (task.dueDate) {
                         // 对于单个日期的任务，始终显示天数
-                        daysCountElement.className = 'ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded font-bold';
-                        daysCountElement.textContent = '1天';
+                        daysCountElement.attr('class', 'ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded font-bold');
+                        daysCountElement.text('1天');
                     }
                 }
             } else {
-                dateContainer.style.display = 'none';
+                dateContainer.hide();
             }
         }
 
         // 项目标签
-        const projectContainer = taskElement.querySelectorAll('.inline-flex.items-center.text-sm.text-gray-600')[1];
-        if (projectContainer) {
-            const projectTextElement = projectContainer.querySelector('.project-text');
-            if (projectTextElement) {
+        const projectContainer = taskElement.find('.inline-flex.items-center.text-sm.text-gray-600').eq(1);
+        if (projectContainer.length) {
+            const projectTextElement = projectContainer.find('.project-text');
+            if (projectTextElement.length) {
                 if (task.project) {
-                    projectTextElement.textContent = task.project;
+                    projectTextElement.text(task.project);
                 } else {
-                    projectContainer.style.display = 'none';
+                    projectContainer.hide();
                 }
             }
         }
 
         // 上下文标签
-        const contextContainer = taskElement.querySelectorAll('.inline-flex.items-center.text-sm.text-gray-600')[2];
-        if (contextContainer) {
-            const contextTextElement = contextContainer.querySelector('.context-text');
-            if (contextTextElement) {
+        const contextContainer = taskElement.find('.inline-flex.items-center.text-sm.text-gray-600').eq(2);
+        if (contextContainer.length) {
+            const contextTextElement = contextContainer.find('.context-text');
+            if (contextTextElement.length) {
                 if (task.context) {
-                    contextTextElement.textContent = task.context;
+                    contextTextElement.text(task.context);
                 } else {
-                    contextContainer.style.display = 'none';
+                    contextContainer.hide();
                 }
             }
         }
 
         // 备注
-        const noteElement = taskElement.querySelector('p');
-        if (noteElement) {
+        const noteElement = taskElement.find('p');
+        if (noteElement.length) {
             if (task.note) {
-                noteElement.textContent = task.note;
+                noteElement.text(task.note);
             } else {
-                noteElement.style.display = 'none';
+                noteElement.hide();
             }
         }
 
         // 任务状态信息
-        const statusElement = taskElement.querySelector('.bg-status-pending');
-        if (statusElement) {
-            statusElement.className = 'inline-block px-2 py-1 text-xs font-medium rounded-full bg-status-' + (displayStatus || 'pending') + ' text-white mb-1';
-            statusElement.textContent = getStatusText(displayStatus);
+        const statusElement = taskElement.find('.bg-status-pending');
+        if (statusElement.length) {
+            statusElement.attr('class', 'inline-block px-2 py-1 text-xs font-medium rounded-full bg-status-' + (displayStatus || 'pending') + ' text-white mb-1');
+            statusElement.text(getStatusText(displayStatus));
         }
 
         // 操作按钮
-        const goToCalendarButton = taskElement.querySelector('.go-to-calendar');
-        if (goToCalendarButton) {
-            goToCalendarButton.setAttribute('data-id', task.id);
-            goToCalendarButton.setAttribute('data-date', task.dueDate || '');
+        const goToCalendarButton = taskElement.find('.go-to-calendar');
+        if (goToCalendarButton.length) {
+            goToCalendarButton.attr('data-id', task.id);
+            goToCalendarButton.attr('data-date', task.dueDate || '');
         }
 
-        const toggleStatusButton = taskElement.querySelector('.toggle-status');
-        if (toggleStatusButton) {
-            toggleStatusButton.setAttribute('data-id', task.id);
-            toggleStatusButton.setAttribute('data-status', task.status);
-            toggleStatusButton.setAttribute('title', task.status === 'completed' ? '重新开始任务' : '标记为已完成');
+        const toggleStatusButton = taskElement.find('.toggle-status');
+        if (toggleStatusButton.length) {
+            toggleStatusButton.attr('data-id', task.id);
+            toggleStatusButton.attr('data-status', task.status);
+            toggleStatusButton.attr('title', task.status === 'completed' ? '重新开始任务' : '标记为已完成');
             
-            const toggleStatusIcon = toggleStatusButton.querySelector('i');
-            if (toggleStatusIcon) {
-                toggleStatusIcon.className = task.status === 'completed' ? 'fa fa-refresh' : 'fa fa-check-circle';
+            const toggleStatusIcon = toggleStatusButton.find('i');
+            if (toggleStatusIcon.length) {
+                toggleStatusIcon.attr('class', task.status === 'completed' ? 'fa fa-refresh' : 'fa fa-check-circle');
             }
         }
 
-        const editButton = taskElement.querySelector('.edit-task');
-        if (editButton) {
-            editButton.setAttribute('data-id', task.id);
+        const editButton = taskElement.find('.edit-task');
+        if (editButton.length) {
+            editButton.attr('data-id', task.id);
         }
 
-        const deleteButton = taskElement.querySelector('.delete-task');
-        if (deleteButton) {
-            deleteButton.setAttribute('data-id', task.id);
+        const deleteButton = taskElement.find('.delete-task');
+        if (deleteButton.length) {
+            deleteButton.attr('data-id', task.id);
         }
 
         // 添加事件监听器
-        if (editButton) {
-            editButton.addEventListener('click', function() {
-                const taskId = parseInt(this.getAttribute('data-id'));
+        if (editButton.length) {
+            editButton.on('click', function() {
+                const taskId = parseInt($(this).attr('data-id'));
                 editTask(taskId);
             });
         }
 
-        if (deleteButton) {
-            deleteButton.addEventListener('click', function() {
-                const taskId = parseInt(this.getAttribute('data-id'));
+        if (deleteButton.length) {
+            deleteButton.on('click', function() {
+                const taskId = parseInt($(this).attr('data-id'));
                 showDeleteConfirmation(taskId);
             });
         }
 
-        if (goToCalendarButton) {
-            goToCalendarButton.addEventListener('click', function() {
-                const taskId = parseInt(this.getAttribute('data-id'));
-                const dateString = this.getAttribute('data-date');
+        if (goToCalendarButton.length) {
+            goToCalendarButton.on('click', function() {
+                const taskId = parseInt($(this).attr('data-id'));
+                const dateString = $(this).attr('data-date');
                 goToCalendarForTask(taskId, dateString);
             });
         }
 
-        if (toggleStatusButton) {
-            toggleStatusButton.addEventListener('click', function() {
-                const taskId = parseInt(this.getAttribute('data-id'));
-                const currentStatus = this.getAttribute('data-status');
+        if (toggleStatusButton.length) {
+            toggleStatusButton.on('click', function() {
+                const taskId = parseInt($(this).attr('data-id'));
+                const currentStatus = $(this).attr('data-status');
                 toggleTaskStatus(taskId, currentStatus);
             });
         }
 
-        taskList.appendChild(taskElement);
+        taskList.append(taskElement);
     });
 }
 
@@ -386,24 +383,24 @@ export function initProjectAndContextFilters() {
  * @param {string} filterId - 筛选器的ID
  */
 function initFilterDropdown(filterId) {
-    const filterElement = document.getElementById(filterId);
-    if (filterElement && !filterElement.hasAttribute('data-event-added')) {
-        filterElement.setAttribute('data-event-added', 'true');
-        filterElement.addEventListener('change', function() {
+    const filterElement = $('#' + filterId);
+    if (filterElement.length && !filterElement.attr('data-event-added')) {
+        filterElement.attr('data-event-added', 'true');
+        filterElement.on('change', function() {
             handleFilterChange(this.id);
         });
-        filterElement.addEventListener('click', function(e) {
+        filterElement.on('click', function(e) {
             // 防止事件冒泡导致失焦
             e.stopPropagation();
-            this.classList.toggle('expanded');
+            $(this).toggleClass('expanded');
             // 同时切换容器的expanded类以控制箭头旋转
-            this.parentElement.classList.toggle('expanded');
+            $(this).parent().toggleClass('expanded');
         });
-        filterElement.addEventListener('blur', function() {
+        filterElement.on('blur', function() {
             // 失焦时折叠下拉框并触发筛选
-            this.classList.remove('expanded');
+            $(this).removeClass('expanded');
             // 同时移除容器的expanded类
-            this.parentElement.classList.remove('expanded');
+            $(this).parent().removeClass('expanded');
         });
     }
 }
@@ -414,38 +411,33 @@ function initFilterDropdown(filterId) {
  * @param {Array} values - 要添加的选项值数组
  */
 function initDynamicFilterDropdown(filterId, values) {
-    const filterElement = document.getElementById(filterId);
-    if (filterElement) {
+    const filterElement = $('#' + filterId);
+    if (filterElement.length) {
         // 保存当前选中的值
-        const selectedValues = Array.from(filterElement.selectedOptions).map(option => option.value);
+        const selectedValues = Array.from(filterElement[0].selectedOptions).map(option => option.value);
         
         // 清空除了"全部"选项外的所有选项
-        const allOption = filterElement.querySelector('option[value="all"]');
-        filterElement.innerHTML = '';
-        if (allOption) {
-            filterElement.appendChild(allOption);
+        const allOption = filterElement.find('option[value="all"]');
+        filterElement.empty();
+        if (allOption.length) {
+            filterElement.append(allOption);
         } else {
-            const option = document.createElement('option');
-            option.value = 'all';
-            option.textContent = '全部';
-            option.selected = true;
-            filterElement.appendChild(option);
+            const option = $('<option>').val('all').text('全部').prop('selected', true);
+            filterElement.append(option);
         }
         
         // 添加选项
         values.forEach(value => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = value;
-            filterElement.appendChild(option);
+            const option = $('<option>').val(value).text(value);
+            filterElement.append(option);
         });
         
         // 恢复选中的值
         if (selectedValues.length > 0) {
             selectedValues.forEach(value => {
-                const option = filterElement.querySelector(`option[value="${value}"]`);
-                if (option) {
-                    option.selected = true;
+                const option = filterElement.find(`option[value="${value}"]`);
+                if (option.length) {
+                    option.prop('selected', true);
                 }
             });
         }
@@ -455,20 +447,26 @@ function initDynamicFilterDropdown(filterId, values) {
     }
 }
 
-// 添加搜索框事件监听器
-    const searchInput = document.getElementById('search-input');
-    if (searchInput && !searchInput.hasAttribute('data-event-added')) {
-        searchInput.setAttribute('data-event-added', 'true');
+// 添加事件监听器
+function addFilterEventListeners() {
+    // 添加搜索框事件监听器
+    const searchInput = $('#search-input');
+    if (searchInput.length && !searchInput.attr('data-event-added')) {
+        searchInput.attr('data-event-added', 'true');
         // 移除实时筛选，改为由查询按钮触发
-        // searchInput.addEventListener('input', () => renderTaskList(tasks));
+        // searchInput.on('input', () => renderTaskList(tasks));
     }
 
     // 添加查询按钮事件监听器
-    const filterSearchBtn = document.getElementById('filter-search-btn');
-    if (filterSearchBtn && !filterSearchBtn.hasAttribute('data-event-added')) {
-        filterSearchBtn.setAttribute('data-event-added', 'true');
-        filterSearchBtn.addEventListener('click', performFiltering);
+    const filterSearchBtn = $('#filter-search-btn');
+    if (filterSearchBtn.length && !filterSearchBtn.attr('data-event-added')) {
+        filterSearchBtn.attr('data-event-added', 'true');
+        filterSearchBtn.on('click', performFiltering);
     }
+}
+
+// 确保在DOM加载完成后添加事件监听器
+$(document).ready(addFilterEventListeners);
 
 // 筛选任务
 
@@ -511,8 +509,8 @@ export function setAllFiltersToDefault() {
     const filterIds = ['priority-filter', 'status-filter', 'date-filter', 'project-filter', 'context-filter'];
     
     filterIds.forEach(filterId => {
-        const filterElement = document.getElementById(filterId);
-        if (filterElement) {
+        const filterElement = $('#' + filterId);
+        if (filterElement.length) {
             // 对于项目和上下文筛选器，需要延迟执行以确保选项已生成
             if (filterId === 'project-filter' || filterId === 'context-filter') {
                 setTimeout(() => {
@@ -528,48 +526,43 @@ export function setAllFiltersToDefault() {
 // 重置单个筛选器到页面初始化时记录的默认值
 function resetFilterToDefaultValue(filterElement, filterId) {
     // 取消所有选项的选中状态
-    for (let i = 0; i < filterElement.options.length; i++) {
-        filterElement.options[i].selected = false;
-    }
+    filterElement.find('option').prop('selected', false);
     
     // 检查是否有记录的默认值
     if (defaultFilterValues[filterId] && defaultFilterValues[filterId].length > 0) {
         // 使用记录的默认值
         defaultFilterValues[filterId].forEach(defaultValue => {
-            const option = filterElement.querySelector(`option[value="${defaultValue}"]`);
-            if (option) {
-                option.selected = true;
+            const option = filterElement.find(`option[value="${defaultValue}"]`);
+            if (option.length) {
+                option.prop('selected', true);
             }
         });
     } else {
         // 如果没有记录的默认值，则尝试选中"全部"选项
-        const allOption = filterElement.querySelector('option[value="all"]');
-        if (allOption) {
-            allOption.selected = true;
+        const allOption = filterElement.find('option[value="all"]');
+        if (allOption.length) {
+            allOption.prop('selected', true);
         } else {
             // 如果没有"全部"选项，则选中所有选项
-            for (let i = 0; i < filterElement.options.length; i++) {
-                filterElement.options[i].selected = true;
-            }
+            filterElement.find('option').prop('selected', true);
         }
     }
     
     // 触发change事件以更新UI状态
-    const event = new Event('change', { bubbles: true });
-    filterElement.dispatchEvent(event);
+    filterElement.trigger('change');
 }
 
 // 筛选任务
 export function filterTasks(tasks) {
     try {
-        const searchInput = document.getElementById('search-input') || { value: '' };
-        const searchTerm = searchInput.value || '';
+        const searchInput = $('#search-input') || { val: () => '' };
+        const searchTerm = searchInput.val() || '';
         
         // 获取多选下拉框选中的值，添加空值检查以避免运行时错误
         const getFilterValues = (filterId) => {
-            const element = document.getElementById(filterId);
-            if (!element) return ['all']; // 元素不存在时返回默认值
-            return Array.from(element.selectedOptions || []).map(option => option.value);
+            const element = $('#' + filterId);
+            if (!element.length) return ['all']; // 元素不存在时返回默认值
+            return Array.from(element[0].selectedOptions || []).map(option => option.value);
         };
         
         const priorityFilter = getFilterValues('priority-filter');

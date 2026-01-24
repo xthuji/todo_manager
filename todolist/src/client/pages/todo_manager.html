@@ -872,36 +872,36 @@
 
     <script>
         // Tab切换逻辑
-        document.addEventListener('DOMContentLoaded', function() {
-            const tabList = document.getElementById('tab-list');
-            const tabCalendar = document.getElementById('tab-calendar');
-            const listView = document.getElementById('list-view');
-            const calendarView = document.getElementById('calendar-view');
+        $(document).ready(function() {
+            const tabList = $('#tab-list');
+            const tabCalendar = $('#tab-calendar');
+            const listView = $('#list-view');
+            const calendarView = $('#calendar-view');
 
-            tabList.addEventListener('click', function() {
-                listView.classList.remove('hidden');
-                calendarView.classList.add('hidden');
+            tabList.on('click', function() {
+                listView.removeClass('hidden');
+                calendarView.addClass('hidden');
                 
                 // 更新任务列表Tab样式
-                tabList.classList.add('text-blue-600', 'bg-white', 'border-b-white');
-                tabList.classList.remove('text-gray-500', 'bg-gray-50', 'border-b-gray-200');
+                tabList.addClass('text-blue-600 bg-white border-b-white');
+                tabList.removeClass('text-gray-500 bg-gray-50 border-b-gray-200');
                 
                 // 更新任务日历Tab样式
-                tabCalendar.classList.remove('text-blue-600', 'bg-white', 'border-b-white');
-                tabCalendar.classList.add('text-gray-500', 'bg-gray-50', 'border-b-gray-200');
+                tabCalendar.removeClass('text-blue-600 bg-white border-b-white');
+                tabCalendar.addClass('text-gray-500 bg-gray-50 border-b-gray-200');
             });
 
-            tabCalendar.addEventListener('click', function() {
-                listView.classList.add('hidden');
-                calendarView.classList.remove('hidden');
+            tabCalendar.on('click', function() {
+                listView.addClass('hidden');
+                calendarView.removeClass('hidden');
                 
                 // 更新任务日历Tab样式
-                tabCalendar.classList.add('text-blue-600', 'bg-white', 'border-b-white');
-                tabCalendar.classList.remove('text-gray-500', 'bg-gray-50', 'border-b-gray-200');
+                tabCalendar.addClass('text-blue-600 bg-white border-b-white');
+                tabCalendar.removeClass('text-gray-500 bg-gray-50 border-b-gray-200');
                 
                 // 更新任务列表Tab样式
-                tabList.classList.remove('text-blue-600', 'bg-white', 'border-b-white');
-                tabList.classList.add('text-gray-500', 'bg-gray-50', 'border-b-gray-200');
+                tabList.removeClass('text-blue-600 bg-white border-b-white');
+                tabList.addClass('text-gray-500 bg-gray-50 border-b-gray-200');
             });
         });
     </script>
