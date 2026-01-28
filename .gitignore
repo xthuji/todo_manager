@@ -124,3 +124,6 @@ dist
 # TodoList cache directory
 cache/
 
+# API 测试报告
+api_comparison_report.md
+api_comparison_result.json
