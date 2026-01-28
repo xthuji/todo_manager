@@ -4,7 +4,7 @@
 
 ## 规则配置文件
 
-- 配置文件路径：`/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/ai_coding_rules.json`
+- 配置文件路径：`~/work/MyProject/code_mine/gitee/node_app/todolist/ai_coding_rules.json`
 - 包含编码规则、文件结构规范和项目信息
 
 ## 核心编码规则
@@ -48,29 +48,29 @@
 ## 文件结构规范
 
 ### 测试文件
-- **路径**：`/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/src/tests/`
+- **路径**：`~/work/MyProject/code_mine/gitee/node_app/todolist/src/tests/`
 - **文件格式**：所有测试JavaScript文件
 - **示例**：`test_weather.js`, `test_calendar_full.js`
 
 ### HTML页面文件
-- **路径**：`/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/src/client/pages/`
+- **路径**：`~/work/MyProject/code_mine/gitee/node_app/todolist/src/client/pages/`
 - **文件格式**：所有HTML文件
 - **示例**：`weather_view.html`, `todo_manager.html`
 
 ### 静态资源文件
-- **路径**：`/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/src/client/assets/`
+- **路径**：`~/work/MyProject/code_mine/gitee/node_app/todolist/src/client/assets/`
 - **子目录**：
   - `css/` - 样式文件
   - `js/` - JavaScript文件
   - `fonts/` - 字体文件
 
 ### 数据和配置文件
-- **路径**：`/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/data/`
+- **路径**：`~/work/MyProject/code_mine/gitee/node_app/todolist/data/`
 - **文件类型**：JSON、TXT、配置文件等
 - **示例**：`weather_area_codes.json`, `todo.txt`, `config/festival_config.json`
 
 ### 日志文件
-- **路径**：`/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/logs/`
+- **路径**：`~/work/MyProject/code_mine/gitee/node_app/todolist/logs/`
 - **用途**：存储所有应用程序生成的日志输出
 - **注意事项**：确保日志文件有适当的权限设置
 
@@ -83,7 +83,7 @@
 ## 项目信息
 
 - **项目名称**：todolist
-- **项目根路径**：`/Users/huji/work/MyProject/code_mine/gitee/node_app/todolist/`
+- **项目根路径**：`~/work/MyProject/code_mine/gitee/node_app/todolist/`
 - **规则版本**：1.0.0
 
 ---

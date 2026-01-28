@@ -3,38 +3,17 @@
 
 const { exec } = require('child_process');
 const util = require('util');
-const fs = require('fs').promises; // 使用 promise 版 fs
-const path = require('path');
 const fetch = require('node-fetch');
+const { configManager } = require('../utils/configManager');
 
-// 将exec转换为Promise
 const execPromise = util.promisify(exec);
 
-// 全局配置数据
-let notifyConfig = null;
-
-/**
- * 获取通知配置（同步）
- */
 function getNotifyConfig() {
-    return notifyConfig;
+    return configManager.getConfigSync('notify');
 }
 
-/**
- * 加载通知配置 (异步)
- */
 async function loadNotifyConfig() {
-    if (notifyConfig) return notifyConfig;
-    
-    try {
-        const configData = await fs.readFile(path.join(__dirname, '../../../data/config/notify_config.json'), 'utf8');
-        notifyConfig = JSON.parse(configData);
-        console.log('[Config] 加载通知配置成功');
-        return notifyConfig;
-    } catch (error) {
-        console.error(`[Config] 加载失败: ${error.message}`);
-    return null;
-    }
+    return configManager.getConfig('notify');
 }
 /**
  * 发送通知
@@ -45,8 +24,8 @@ async function loadNotifyConfig() {
 async function sendMessage(type, targetUserInfo, message) {
     console.log(`准备发送 ${type} 通知到 ${targetUserInfo.phoneNumber}/${targetUserInfo.wechatOpenId}, 内容: \n${message}`);
     let statusList = [], messageList = [];
-    const config = notifyConfig[type];
-    if (config?.notifyTypes?.includes('sms')) {
+    const config = configManager.getConfigSync('notify');
+    if (config?.weather?.notifyTypes?.includes('sms')) {
         const smsResult = await sendSmsMessage(targetUserInfo.phoneNumber, message);
         statusList.push(smsResult.success);
         if (!smsResult.success) {
@@ -55,7 +34,7 @@ async function sendMessage(type, targetUserInfo, message) {
     } else {
         messageList.push('短信通知未启用，跳过发送');
     }
-    if (config?.notifyTypes?.includes('wechat')) {
+    if (config?.weather?.notifyTypes?.includes('wechat')) {
         const wechatResult = await sendWechatMessage(targetUserInfo.wechatOpenId, message);
         statusList.push(wechatResult.success);
         if (!wechatResult.success) {
@@ -128,25 +107,19 @@ let accessTokenExpireTime = 0;
  */
 async function getWechatAccessToken() {
     try {
-        // 检查是否有缓存且未过期（预留10分钟过期时间）
         const now = Date.now();
         if (wechatAccessToken && accessTokenExpireTime > now + 600000) {
             console.log('使用缓存的微信公众号access_token');
             return wechatAccessToken;
         }
         
-        // 获取配置
-        if (!notifyConfig) {
-            await loadNotifyConfig();
-        }
-        
+        const notifyConfig = configManager.getConfigSync('notify');
         const { wechatAppId, wechatAppSecret } = notifyConfig?.weather || {};
         if (!wechatAppId || !wechatAppSecret) {
             console.error('微信公众号配置不完整，缺少appId或appSecret');
             return null;
         }
         
-        // 调用微信API获取access_token
         const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${wechatAppId}&secret=${wechatAppSecret}`;
         console.log(`正在请求微信公众号access_token，appId: ${wechatAppId}`);
         
@@ -155,7 +128,6 @@ async function getWechatAccessToken() {
         
         if (data.access_token) {
             wechatAccessToken = data.access_token;
-            // 设置过期时间（微信返回的是秒，转换为毫秒）
             accessTokenExpireTime = now + (data.expires_in * 1000);
             console.log(`微信公众号access_token获取成功，有效期至: ${new Date(accessTokenExpireTime).toLocaleString()}`);
             return wechatAccessToken;

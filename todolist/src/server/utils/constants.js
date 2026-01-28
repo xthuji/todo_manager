@@ -1,16 +1,15 @@
 const path = require("path");
+const { configManager } = require('./configManager');
 
 const CACHE_DIR = path.join(__dirname, '../../../data/cache');
 const MOCK_DIR = path.join(__dirname, '../../../data/mock');
+const DATA_DIR = path.join(__dirname, '../../../data');
 
-// 是否mock接口数据
-const USE_MOCK = false;
-// 是否使用接口缓存数据
-const USE_CACHE = true;
-// 是否打印接口结果数据
-const PRINT_API_DATA = false;
-// 是否打印数据日志
-const PRINT_DATA_LOG = false;
+// 从配置文件中读取配置项
+const USE_MOCK = configManager.getConfigValue('app', 'features.mock.enabled', false);
+const USE_CACHE = configManager.getConfigValue('app', 'features.cache.enabled', true);
+const PRINT_API_DATA = configManager.getConfigValue('app', 'logs.printApiData', false);
+const PRINT_DATA_LOG = configManager.getConfigValue('app', 'logs.printDataLog', false);
 
 // 设置通用请求头
 const WEATHER_HEADERS = {
@@ -26,6 +25,6 @@ module.exports = {
     PRINT_DATA_LOG,
     CACHE_DIR,
     MOCK_DIR,
+    DATA_DIR,
     WEATHER_HEADERS
 };
-

@@ -88,6 +88,17 @@ class CacheUtil {
   }
 
   /**
+   * 生成文件缓存键
+   * @param {string} filename 文件名
+   * @returns {string} 安全的文件缓存键
+   */
+  generateFileCacheKey(filename) {
+    // 生成安全的文件名，确保点被替换为下划线
+    const safeFilename = filename.replace(/\./g, '_');
+    return `file_read_${safeFilename}`;
+  }
+
+  /**
    * 获取缓存文件路径
    * @param {string} key 缓存键
    * @returns {string} 文件路径

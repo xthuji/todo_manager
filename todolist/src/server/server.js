@@ -1,8 +1,12 @@
-// 引入Express模块
 const express = require('express');
 const path = require('path');
+const { configManager } = require('./utils/configManager');
+
 const app = express();
-const port = 3000;
+
+const appConfig = configManager.getConfigSync('app');
+const port = appConfig.server?.ports?.node || 3000;
+console.log(`从配置文件读取端口号: ${port}`);
 
 // 导入路由模块
 const fileRoutes = require('./routes/fileRoutes');

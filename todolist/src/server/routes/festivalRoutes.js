@@ -1,18 +1,9 @@
-const fs = require('fs').promises;
-const path = require('path');
 const router = require('express').Router();
 const {cacheUtil} = require('../utils/cacheUtil');
-
-// 配置路径
-const FESTIVAL_CONFIG_PATH = path.join(__dirname, '../../../data/config/festival_config.json');
+const {configManager} = require('../utils/configManager');
 
 // 缓存配置
 const CACHE_KEY = 'festival_config';
-let FESTIVAL_OPTIONS = {
-    sourceFile: FESTIVAL_CONFIG_PATH,
-    ttl: 0
-};
-
 
 /**
  * 清除配置缓存
@@ -30,23 +21,21 @@ async function clearConfigCache() {
 
 /**
  * 获取节日配置接口
- * 使用cacheUtil.getWrappedData配合sourceFile参数自动处理缓存和文件读取
+ * 使用cacheUtil.getWrappedData配合configManager获取配置
  */
 router.get('/config', async (req, res) => {
     try {
-        // 使用getWrappedData并设置sourceFile参数，自动处理缓存逻辑和文件读取
-        const wrappedData = cacheUtil.getWrappedData(CACHE_KEY, FESTIVAL_OPTIONS);
-
-        if (wrappedData) {
-            console.log('从缓存获取节日配置');
+        const config = await configManager.getConfig('festival');
+        
+        if (config) {
+            console.log('获取节日配置成功');
             return res.json({
-                data: wrappedData.data,
-                timestamp: wrappedData.timestamp,
+                data: config,
+                timestamp: Date.now(),
                 error: null
             });
         }
 
-        // 如果getWrappedData返回null，表示文件不存在或读取失败
         console.error('节日配置文件不存在或无法读取');
         res.status(404).json({
             data: null,
@@ -85,31 +74,11 @@ router.post('/save', async (req, res) => {
             });
         }
 
-        // 写入配置文件
-        try {
-            // 确保目录存在
-            const configDir = path.dirname(FESTIVAL_CONFIG_PATH);
-            try {
-                await fs.access(configDir);
-            } catch (error) {
-                await fs.mkdir(configDir, {recursive: true});
-            }
+        await configManager.saveConfig('festival', configData);
+        await clearConfigCache();
 
-            await fs.writeFile(FESTIVAL_CONFIG_PATH, JSON.stringify(configData, null, 2), 'utf8');
-
-            // 清除缓存，确保下次读取时获取最新数据
-            await clearConfigCache();
-
-            console.log('节日配置文件保存成功，缓存已清除');
-            res.json({data: {success: true, message: '节日配置保存成功'}, timestamp: Date.now()});
-        } catch (error) {
-            console.error('写入节日配置文件失败:', error);
-            res.status(500).json({
-                data: null,
-                timestamp: Date.now(),
-                error: {message: '写入配置文件失败: ' + error.message}
-            });
-        }
+        console.log('节日配置文件保存成功，缓存已清除');
+        res.json({data: {success: true, message: '节日配置保存成功'}, timestamp: Date.now()});
     } catch (error) {
         console.error('保存节日配置失败:', error);
         res.status(500).json({
