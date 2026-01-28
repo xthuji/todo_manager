@@ -6,8 +6,6 @@ const {cacheUtil} = require('../utils/cacheUtil');
 
 // 数据目录配置
 const DATA_DIR = path.join(__dirname, '../../../data');
-// 缓存目录
-const CACHE_DIR = path.join(__dirname, '../../../data/cache');
 
 // 缓存配置
 const FILE_OPTIONS = {
