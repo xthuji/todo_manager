@@ -91,7 +91,8 @@ router.get('/read/:filename', async (req, res) => {
             return res.status(403).json({success: false, message: '不允许访问此文件'});
         }
 
-        const responseData = await cacheUtil.getWrappedDataAsync(`file_read_${filename}`, {
+        const cacheKey = cacheUtil.generateFileCacheKey(filename);
+        const responseData = await cacheUtil.getWrappedDataAsync(cacheKey, {
             ... FILE_OPTIONS,
             loadDataFn: async () => await readFile(filename)
         })
@@ -112,7 +113,8 @@ function clearFileCache(specificFile = null) {
     try {
         if (specificFile) {
             // 清除特定文件的读取缓存
-            cacheUtil.delete(`file_read_${specificFile}`);
+            const cacheKey = cacheUtil.generateFileCacheKey(specificFile);
+            cacheUtil.delete(cacheKey);
         }
         // 总是清除文件列表缓存
         cacheUtil.delete(`file_list`);
