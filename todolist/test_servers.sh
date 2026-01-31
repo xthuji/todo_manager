@@ -81,6 +81,22 @@ if curl -s "http://localhost:$PORT1/api/check-status" > /dev/null && curl -s "ht
   echo "服务器启动成功，开始运行测试脚本..."
   echo ""
   
+  # 清理项目缓存目录
+  echo "清理项目缓存目录..."
+  # 清理Node.js项目缓存
+  NODE_CACHE_DIR="$NODE_PROJECT_DIR/data/cache"
+  if [ -d "$NODE_CACHE_DIR" ]; then
+    rm -rf "$NODE_CACHE_DIR"/* 2>/dev/null
+    echo "已清理Node.js项目缓存目录"
+  fi
+  # 清理Python项目缓存
+  PYTHON_CACHE_DIR="$PYTHON_PROJECT_DIR/data/cache"
+  if [ -d "$PYTHON_CACHE_DIR" ]; then
+    rm -rf "$PYTHON_CACHE_DIR"/* 2>/dev/null
+    echo "已清理Python项目缓存目录"
+  fi
+  echo ""
+  
   # 运行测试脚本
   cd "$NODE_PROJECT_DIR" && node test_api_comparison.js
   
@@ -121,15 +137,15 @@ if curl -s "http://localhost:$PORT1/api/check-status" > /dev/null && curl -s "ht
   fi
   
   # 清理日志文件
-    # if [ -f "$SERVER1_LOG" ]; then
-    #     rm -f "$SERVER1_LOG"
-    #     echo "清理 Node.js 项目服务器日志"
-    # fi
-    # 
-    # if [ -f "$SERVER2_LOG" ]; then
-    #     rm -f "$SERVER2_LOG"
-    #     echo "清理 Python 项目服务器日志"
-    # fi
+  if [ -f "$SERVER1_LOG" ]; then
+      rm -f "$SERVER1_LOG"
+      echo "清理 Node.js 项目服务器日志"
+  fi
+  
+  if [ -f "$SERVER2_LOG" ]; then
+      rm -f "$SERVER2_LOG"
+      echo "清理 Python 项目服务器日志"
+  fi
   
   echo ""
   echo "测试流程完成！"

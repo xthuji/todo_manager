@@ -42,11 +42,36 @@ else
     echo "依赖安装成功！"
 fi
 
+# 读取配置文件中的端口号
+PORT=$(jq -r '.server.ports.node' "$SCRIPT_DIR/data/config/app_config.json")
+if [ "$PORT" == "null" ]; then
+    echo "使用默认端口号: $PORT"
+    PORT=3000
+fi
+
 function openUrlInBrowser(){
-    sleep 2 && open http://localhost:3000/
+    sleep 2 && open http://localhost:$PORT/
 }
+
+# 检查服务端口是否被占用
+echo "检查服务端口 $PORT 是否被占用..."
+if lsof -i :$PORT > /dev/null 2>&1; then
+    echo "⚠️  服务端口 $PORT 已被占用，正在关闭占用进程..."
+    # 关闭占用端口的进程
+    lsof -i :$PORT | grep LISTEN | awk '{print $2}' | xargs kill -9 > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo "✅ 成功关闭占用端口的进程"
+    else
+        echo "❌ 关闭占用端口的进程失败，请手动关闭"
+        exit 1
+    fi
+fi
+
 # 启动应用
-echo "正在启动待办事项管理系统..."
+echo "🚀 启动待办事项管理系统..."
+echo "访问地址: http://localhost:$PORT"
+echo "按 Ctrl+C 停止服务"
+echo ""
 # 判断当前运行环境是否为 macOS 终端类 App（Terminal.app / iTerm.app / Alacritty 等）
 case "$TERM_PROGRAM" in
     "Apple_Terminal"|"iTerm.app"|"Alacritty"|"Hyper"|"WezTerm")

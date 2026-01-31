@@ -116,7 +116,7 @@ function filterTimestampFields(obj) {
   }
   
   // 时间戳字段列表
-  const timestampFields = ['timestamp', 'time', 'updatedAt', 'createdAt', 'expireAt'];
+  const timestampFields = ['timestamp', 'time', 'updatedAt', 'createdAt', 'expireAt', 'mtime', 'ttl'];
   
   const filteredObj = {};
   for (const key in obj) {
@@ -196,19 +196,19 @@ function compareObjects(obj1, obj2) {
 async function runInterfaceTest(testInterface) {
   console.log(`测试接口: ${testInterface.name}`);
   
-  // 从端口1获取数据
-  const result1 = await makeRequest(
-    `${BASE_URL1}${testInterface.path}`,
-    testInterface.method,
-    testInterface.body
-  );
-
-  // 从端口2获取数据
-  const result2 = await makeRequest(
-    `${BASE_URL2}${testInterface.path}`,
-    testInterface.method,
-    testInterface.body
-  );
+  // 并行从两个端口获取数据
+  const [result1, result2] = await Promise.all([
+    makeRequest(
+      `${BASE_URL1}${testInterface.path}`,
+      testInterface.method,
+      testInterface.body
+    ),
+    makeRequest(
+      `${BASE_URL2}${testInterface.path}`,
+      testInterface.method,
+      testInterface.body
+    )
+  ]);
 
   // 对比结果
   let differences = {};
@@ -286,14 +286,17 @@ async function runApiComparisonTest() {
   console.log(`测试端口2: ${PORT2}`);
   console.log('------------------------');
 
-  const testResults = [];
-
-  for (const testInterface of TEST_INTERFACES) {
-    const result = await runInterfaceTest(testInterface);
-    testResults.push(result);
-    console.log(`测试完成: ${testInterface.name} ${result.hasDifferences ? '【有差异】' : '【无差异】'}`);
-    console.log('------------------------');
-  }
+  // 并行运行所有接口测试
+  console.log('并行测试中...');
+  const testResults = await Promise.all(
+    TEST_INTERFACES.map(async (testInterface) => {
+      console.log(`开始测试: ${testInterface.name}`);
+      const result = await runInterfaceTest(testInterface);
+      console.log(`测试完成: ${testInterface.name} ${result.hasDifferences ? '【有差异】' : '【无差异】'}`);
+      console.log('------------------------');
+      return result;
+    })
+  );
 
   // 保存测试结果
   const testResultData = {
