@@ -205,9 +205,14 @@
             <!-- 底部控制区域 - 添加重新定位按钮和省市区选择 -->
             <div class="bg-gradient-to-r from-blue-400 to-purple-400 p-4">
                 <div class="flex flex-wrap items-center justify-between">
-                    <button id="relocate-btn" class="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-6 rounded-full transition-all flex items-center shadow-md hover:shadow-lg">
-                        <i class="fa fa-crosshairs mr-2"></i>重新定位
-                    </button>
+                    <div class="flex space-x-3">
+                        <button id="relocate-btn" class="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-6 rounded-full transition-all flex items-center shadow-md hover:shadow-lg">
+                            <i class="fa fa-crosshairs mr-2"></i>重新定位
+                        </button>
+                        <button id="force-refresh-btn" class="bg-white/20 hover:bg-white/30 text-white font-medium py-2 px-6 rounded-full transition-all flex items-center shadow-md hover:shadow-lg">
+                            <i class="fa fa-refresh mr-2"></i>刷新天气数据
+                        </button>
+                    </div>
                     
                     <!-- 省市区三级联动选择区域 -->
                     <div class="flex items-center space-x-2 mt-2 sm:mt-0">

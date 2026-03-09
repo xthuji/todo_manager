@@ -1405,10 +1405,11 @@ window.WeatherModule.initFestivals = async function() {
 /**
  * 加载天气数据 (核心入口)
  * @param {string} weatherCode - 天气代码
+ * @param {boolean} [forceRefresh=false] - 是否强制刷新数据
  * @param {number} [retryCount=0] - 重试次数
  */
-function loadWeatherData(weatherCode, retryCount = 0) {
-    logStep(`加载天气数据，代码: ${weatherCode}, 重试次数: ${retryCount}`);
+function loadWeatherData(weatherCode, forceRefresh = false, retryCount = 0) {
+    logStep(`加载天气数据，代码: ${weatherCode}, 强制刷新: ${forceRefresh}, 重试次数: ${retryCount}`);
 
     if (!weatherCode) {
         logStep('错误: 缺少必要的天气代码参数');
@@ -1420,6 +1421,9 @@ function loadWeatherData(weatherCode, retryCount = 0) {
     window.WeatherModule.View.showLoading(true);
 
     let url = `${WEATHER_API.WEATHER_INFO}?weatherCode=${encodeURIComponent(weatherCode)}`;
+    if (forceRefresh) {
+        url += `&forceRefresh=true`;
+    }
     logStep(`发送天气数据请求: ${url}`);
 
     // 发送请求
@@ -1470,7 +1474,7 @@ function loadWeatherData(weatherCode, retryCount = 0) {
                 if (retryCount < 2) {
                     logStep(`尝试重新获取天气数据，当前重试次数: ${retryCount + 1}`);
                     setTimeout(() => {
-                    loadWeatherData(weatherCode, retryCount + 1); // 递归调用全局函数
+                    loadWeatherData(weatherCode, forceRefresh, retryCount + 1); // 递归调用全局函数
                 }, 1000);
                 } else {
                     window.WeatherModule.View.showError('获取天气数据失败，请稍后重试'); // 调用 View 模块
@@ -1488,7 +1492,7 @@ function loadWeatherData(weatherCode, retryCount = 0) {
             if (retryCount < 2) {
                 logStep(`因错误尝试重新获取天气数据，当前重试次数: ${retryCount + 1}`);
                 setTimeout(() => {
-                    loadWeatherData(weatherCode, retryCount + 1); // 递归调用全局函数
+                    loadWeatherData(weatherCode, forceRefresh, retryCount + 1); // 递归调用全局函数
                 }, 1000);
             } else {
                 window.WeatherModule.View.showError(errorMessage); // 调用 View 模块

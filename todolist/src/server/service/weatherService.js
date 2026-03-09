@@ -150,11 +150,15 @@ function buildWeatherData(mojiWeatherData, todayWeatherData, todayDetailWeatherD
 
 // https://weather.cma.cn/web/weather/58459.html
 async function queryWeatherData(weatherAreaCodeParams) {
-    // 尝试从缓存获取数据
-    const cachedWeatherData = cacheWeatherInfo(weatherAreaCodeParams);
-    if (cachedWeatherData) {
-        console.log('使用缓存的天气数据');
-        return cachedWeatherData; // 直接返回缓存工具提供的格式
+    // 尝试从缓存获取数据，但如果是强制刷新则跳过缓存
+    if (!weatherAreaCodeParams.forceRefresh) {
+        const cachedWeatherData = cacheWeatherInfo(weatherAreaCodeParams);
+        if (cachedWeatherData) {
+            console.log('使用缓存的天气数据');
+            return cachedWeatherData; // 直接返回缓存工具提供的格式
+        }
+    } else {
+        console.log('强制刷新，跳过缓存');
     }
 
     // 创建并行请求的Promise数组

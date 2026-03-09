@@ -65,6 +65,7 @@ router.get('/weather-info', async (req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     console.log('收到今日天气请求，查询参数:', req.query);
     const weatherCode = req.query.weatherCode;
+    const forceRefresh = req.query.forceRefresh === 'true';
 
     let districtAreaCode = getDistrictAreaCodes(weatherCode);
     // 验证必要参数
@@ -73,7 +74,7 @@ router.get('/weather-info', async (req, res) => {
     }
 
     try {
-        let weatherAreaCodeParams = {weatherCode, ... districtAreaCode};
+        let weatherAreaCodeParams = {weatherCode, forceRefresh, ... districtAreaCode};
         let weatherData = await getWeatherData(weatherAreaCodeParams);
         return res.status(200).json(weatherData);
     } catch (error) {

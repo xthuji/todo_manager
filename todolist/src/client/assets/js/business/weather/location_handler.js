@@ -642,6 +642,13 @@ const WEATHER_API = {
             if (relocateBtn) {
                 relocateBtn.addEventListener('click', () => this.onRelocateClick());
             }
+            
+            // 绑定强制刷新按钮事件
+            const forceRefreshBtn = document.getElementById('force-refresh-btn');
+            if (forceRefreshBtn) {
+                forceRefreshBtn.addEventListener('click', () => this.onForceRefreshClick());
+            }
+            
             this._log('事件监听器绑定完成');
         },
 
@@ -661,6 +668,26 @@ const WEATHER_API = {
             } catch (error) {
                 this._log(`重新定位失败: ${error.message}`);
                 this.uiManager.updateCityDisplay({ name: '定位失败，请重试', code: '定位错误' });
+            }
+        },
+
+        /**
+         * [事件] 强制刷新按钮点击
+         */
+        onForceRefreshClick: function () {
+            this._log('强制刷新按钮点击');
+            
+            // 获取当前选中的区县代码
+            const { districtSelect } = this.uiManager.elements;
+            const selectedDistrictCode = districtSelect.value;
+            
+            if (selectedDistrictCode) {
+                // 调用加载天气数据函数，传入 forceRefresh=true
+                loadWeatherData(selectedDistrictCode, true);
+            } else {
+                // 如果没有选中区县，提示用户
+                this._log('未选择区县，无法强制刷新天气数据');
+                this.uiManager.updateCityDisplay({ name: '请先选择地区', code: '未选择' });
             }
         },
 
