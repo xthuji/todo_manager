@@ -2,23 +2,15 @@
 
 # 启动服务脚本
 
-# 获取脚本所在目录的绝对路径
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 引入公共配置读取脚本
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/config_utils.sh"
 
-# 配置文件路径（使用Python项目自己的配置文件）
-CONFIG_FILE="$SCRIPT_DIR/data/config/app_config.json"
+# 读取配置
+PORT=$(read_server_port)
+PYTHON_EXECUTABLE=$(read_python_executable)
 
-# 读取配置文件中的端口号
-PORT=$(jq -r '.server.ports.python' "$CONFIG_FILE")
-PYTHON_EXECUTABLE=$(jq -r '.python.executable_path' "$CONFIG_FILE" | sed "s#^~#$HOME#")
-if [ "$PORT" == "null" ]; then
-    PORT=3001
-    echo "使用默认端口号: $PORT"
-fi
-if [ "$PYTHON_EXECUTABLE" == "null" ]; then
-    PYTHON_EXECUTABLE="$HOME/miniconda3/envs/python39/bin/python3"
-    echo "使用默认Python路径: $PYTHON_EXECUTABLE"
-fi
+echo "使用端口号: $PORT"
+echo "使用Python路径: $PYTHON_EXECUTABLE"
 
 echo "🚀 待办事项管理系统启动脚本"
 echo "============================"
@@ -52,6 +44,8 @@ echo "🚀 启动待办事项管理系统..."
 echo "访问地址: http://localhost:$PORT"
 echo "按 Ctrl+C 停止服务"
 echo ""
+# 获取当前脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 判断当前运行环境是否为 macOS 终端类 App（Terminal.app / iTerm.app / Alacritty 等）
 case "$TERM_PROGRAM" in
     "Apple_Terminal"|"iTerm.app"|"Alacritty"|"Hyper"|"WezTerm")
