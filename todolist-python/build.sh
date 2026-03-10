@@ -22,6 +22,9 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly VERSION=$(grep -E '^VERSION = ' "${SCRIPT_DIR}/version.txt" | cut -d ' ' -f 3)
 readonly BUILD_DIR="${SCRIPT_DIR}/build"
 readonly DIST_DIR="${SCRIPT_DIR}/dist"
+# 保留的文件和目录模式
+readonly RESERVE_FILE_ARRAY=(-macos.dmg -windows.zip -linux.tar.gz)
+readonly RESERVE_DIR_ARRAY=(".app")
 
 # 读取配置
 PYTHON_PATH=$(read_python_executable)
@@ -168,6 +171,31 @@ create_zip() {
     (cd "${DIST_DIR}" && zip -rq "${PROJECT_NAME}-${VERSION}-windows.zip" "${PROJECT_NAME}")
 }
 
+# 保留指定文件和目录
+keep_artifact() {
+    # 创建临时目录存储要保留的文件
+    local tmp=$(mktemp -d)
+    
+    # 保留匹配 RESERVE_FILE_ARRAY 模式的文件
+    for pattern in "${RESERVE_FILE_ARRAY[@]}"; do
+        find "${DIST_DIR}" -type f -name "*${pattern}" -exec mv {} "$tmp/" 2>/dev/null 
+    done
+    
+    # 保留匹配 RESERVE_DIR_ARRAY 模式的目录
+    for pattern in "${RESERVE_DIR_ARRAY[@]}"; do
+        find "${DIST_DIR}" -type d -name "*${pattern}" -exec mv {} "$tmp/" 2>/dev/null 
+    done
+    
+    # 清理 dist 目录
+    rm -rf "${DIST_DIR:?}"/*
+    
+    # 移回保留的文件和目录
+    mv "$tmp"/* "${DIST_DIR}/" 2>/dev/null
+    
+    # 清理临时目录
+    rm -rf "$tmp"
+}
+
 # 最终清理
 final_cleanup() {
     # 清理临时文件
@@ -177,6 +205,9 @@ final_cleanup() {
     
     # 清理构建目录
     rm -rf "${BUILD_DIR}"
+    
+    # 保留指定的文件和目录
+    keep_artifact
 }
 
 # 构建 macOS 版本
