@@ -225,11 +225,17 @@ async def query_weather_data(weather_area_code_params):
     Returns:
         天气数据
     """
-    # 尝试从缓存获取数据
-    cached_weather_data = cache_weather_info(weather_area_code_params)
-    if cached_weather_data:
-        print("使用缓存的天气数据")
-        return cached_weather_data
+    # 检查是否强制刷新
+    force_refresh = weather_area_code_params.get('forceRefresh', False)
+    
+    # 尝试从缓存获取数据，但如果是强制刷新则跳过缓存
+    if not force_refresh:
+        cached_weather_data = cache_weather_info(weather_area_code_params)
+        if cached_weather_data:
+            print("使用缓存的天气数据")
+            return cached_weather_data
+    else:
+        print("强制刷新，跳过缓存")
     
     # 定义要执行的函数
     async def fetch_moji():

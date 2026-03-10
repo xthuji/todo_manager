@@ -163,6 +163,7 @@ async def get_weather_info():
     try:
         # 获取查询参数
         weather_code = request.args.get('weatherCode')
+        force_refresh = request.args.get('forceRefresh') == 'true'
         
         print(f'收到今日天气请求，查询参数: {request.args}')
         
@@ -174,7 +175,7 @@ async def get_weather_info():
         district_area_code = get_district_area_codes(weather_code)
         
         # 构建天气参数
-        weather_params = {"weatherCode": weather_code, **district_area_code}
+        weather_params = {"weatherCode": weather_code, "forceRefresh": force_refresh, **district_area_code}
         
         # 获取天气数据
         weather_data = await get_weather_data(weather_params)
