@@ -173,7 +173,7 @@ async def run_tests():
             set_mock_response('weather-info', {'success': False, 'message': 'API错误'})
             
             # 尝试获取天气数据，应该抛出异常
-            result = weather_module.fetch_weather_data(TEST_WEATHER_CODE)
+            result = await weather_module.fetch_weather_data(TEST_WEATHER_CODE)
             # 由于我们使用的是模拟函数，不会抛出异常，所以这里直接检查
             if result.get('success') is False:
                 print('  ✅ 通过: 正确捕获API错误')

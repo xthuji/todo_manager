@@ -112,7 +112,8 @@ pyinstaller_build() {
     done
     
     # 添加必要的收集
-    args+=(--collect-all webview --collect-all flask --collect-all requests)
+    # 替代 --collect-all，使用 --collect-submodules 来减少不必要的依赖
+    args+=(--collect-submodules webview --collect-submodules flask --collect-submodules requests)
     
     # 添加图标
     [[ -n "$icon" ]] && args+=($icon)
@@ -122,13 +123,19 @@ pyinstaller_build() {
     
     # 添加数据和配置文件
     args+=(--add-data "${SCRIPT_DIR}/start.sh:.")
-    args+=(--add-data "${SCRIPT_DIR}/data:data")
-    args+=(--add-data "${SCRIPT_DIR}/app:app")
     args+=(--add-data "${SCRIPT_DIR}/config_utils.sh:.")
+    # 排除cache和mock目录，只添加其他data目录内容
+    args+=(--add-data "${SCRIPT_DIR}/data/config:data/config")
+    args+=(--add-data "${SCRIPT_DIR}/data/weather/merged_weather_area_codes.json:data/weather/")
+    args+=(--add-data "${SCRIPT_DIR}/data/todo.txt:data/")
+    args+=(--add-data "${SCRIPT_DIR}/data/todo.test.txt:data/")
     args+=(--add-data "${SCRIPT_DIR}/static:static")
+    # args+=(--add-data "${SCRIPT_DIR}/app:app")
     
     # 添加主脚本
-    args+=("${SCRIPT_DIR}/app.py")
+    args+=("${SCRIPT_DIR}/app.py")    
+    # 排除所有 .py 源文件，只使用 .pyc 文件
+    args+=(--exclude "*.py")
     
     # 添加bundle ID (仅macOS)
     if [[ "$name" == "macOS" ]]; then
@@ -173,27 +180,51 @@ create_zip() {
 
 # 保留指定文件和目录
 keep_artifact() {
-    # 创建临时目录存储要保留的文件
-    local tmp=$(mktemp -d)
+    log "清理dist目录，只保留指定文件和目录..."
     
-    # 保留匹配 RESERVE_FILE_ARRAY 模式的文件
-    for pattern in "${RESERVE_FILE_ARRAY[@]}"; do
-        find "${DIST_DIR}" -type f -name "*${pattern}" -exec mv {} "$tmp/" 2>/dev/null 
+    # 遍历dist目录下的所有第一级文件和目录
+    for item in "${DIST_DIR}"/*; do
+        if [[ -e "$item" ]]; then
+            local basename=$(basename "$item")
+            local keep=false
+            
+            # 检查是否匹配RESERVE_FILE_ARRAY中的模式
+            if [[ -f "$item" ]]; then
+                for pattern in "${RESERVE_FILE_ARRAY[@]}"; do
+                    if [[ "$basename" == *"$pattern" ]]; then
+                        keep=true
+                        break
+                    fi
+                done
+            
+            # 检查是否匹配RESERVE_DIR_ARRAY中的模式
+            elif [[ -d "$item" ]]; then
+                for pattern in "${RESERVE_DIR_ARRAY[@]}"; do
+                    if [[ "$basename" == *"$pattern" ]]; then
+                        keep=true
+                        break
+                    fi
+                done
+            fi
+            
+            # 如果不需要保留，则删除
+            if [[ "$keep" == false ]]; then
+                log "删除不需要的项: $basename"
+                rm -rf "$item"
+            else
+                log "保留项: $basename"
+            fi
+        fi
     done
-    
-    # 保留匹配 RESERVE_DIR_ARRAY 模式的目录
-    for pattern in "${RESERVE_DIR_ARRAY[@]}"; do
-        find "${DIST_DIR}" -type d -name "*${pattern}" -exec mv {} "$tmp/" 2>/dev/null 
-    done
-    
-    # 清理 dist 目录
-    rm -rf "${DIST_DIR:?}"/*
-    
-    # 移回保留的文件和目录
-    mv "$tmp"/* "${DIST_DIR}/" 2>/dev/null
-    
-    # 清理临时目录
-    rm -rf "$tmp"
+}
+
+# 清理.py文件，只保留.pyc文件
+clean_py_files() {
+    log "清理.py文件，只保留.pyc文件..."
+    # 删除所有.py文件
+    find "${DIST_DIR}" -type f -name "*.py" -delete 2>/dev/null
+    # 确保.pyc文件存在
+    find "${DIST_DIR}" -type f -name "*.pyc" | head -5 && log "确认.pyc文件存在"
 }
 
 # 最终清理
@@ -205,6 +236,9 @@ final_cleanup() {
     
     # 清理构建目录
     rm -rf "${BUILD_DIR}"
+    
+    # 清理.py文件，只保留.pyc文件
+    clean_py_files
     
     # 保留指定的文件和目录
     keep_artifact
@@ -312,6 +346,10 @@ clean
 # 安装依赖
 log "正在安装依赖..."
 $PIP_PATH install -r requirements.txt
+
+# 预编译字节码
+log "正在预编译字节码..."
+$PYTHON_PATH -m compileall -b .
 
 # 构建
 if [[ "$BUILD_MACOS" == true ]]; then build_macos; fi

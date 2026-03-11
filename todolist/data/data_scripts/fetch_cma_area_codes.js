@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 // 结果路径
-const AREA_CODES_FILE_PATH = path.resolve(__dirname, '../../../../todolist/data/weather/cma_weather_area_codes.json');
-const PROVINCES_FILE_PATH = path.resolve(__dirname, '../../../../todolist/data/weather/cma_china_provinces.json');
+const AREA_CODES_FILE_PATH = path.resolve(__dirname, '../weather/cma_weather_area_codes.json');
+const PROVINCES_FILE_PATH = path.resolve(__dirname, '../weather/cma_china_provinces.json');
 
 // 发送HTTP请求并处理响应
 function sendRequest(url) {

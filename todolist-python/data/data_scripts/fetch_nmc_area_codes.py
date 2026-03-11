@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 # 结果路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-AREA_CODES_FILE_PATH = os.path.join(BASE_DIR, 'data', 'weather', 'nmc_weather_area_codes.json')
+AREA_CODES_FILE_PATH = os.path.join(BASE_DIR, 'weather', 'nmc_weather_area_codes.json')
 
 # 获取时间戳
 def get_timestamp():

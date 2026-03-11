@@ -6,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 # 结果路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-AREA_CODES_FILE_PATH = os.path.join(BASE_DIR, 'data', 'weather', 'cma_weather_area_codes.json')
-PROVINCES_FILE_PATH = os.path.join(BASE_DIR, 'data', 'weather', 'cma_china_provinces.json')
+AREA_CODES_FILE_PATH = os.path.join(BASE_DIR, 'weather', 'cma_weather_area_codes.json')
+PROVINCES_FILE_PATH = os.path.join(BASE_DIR, 'weather', 'cma_china_provinces.json')
 
 # 发送HTTP请求并处理响应
 def send_request(url):

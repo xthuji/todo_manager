@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, request
 import os
-import json
 import time
 from app.utils.cache_util import CacheUtil
 from app.utils.config_util import config_util
@@ -12,8 +11,6 @@ bp = Blueprint('holiday_routes', __name__)
 cache_util = CacheUtil()
 
 # 数据目录配置
-DATA_DIR = config_util.get_data_dir()
-CONFIG_DIR = config_util.get_config_dir()
 CACHE_DIR = config_util.get_cache_dir()
 
 # 缓存配置
@@ -51,85 +48,87 @@ def fetch_holiday_data(api_url=DEFAULT_HOLIDAY_API_URL):
         return data
     except Exception as e:
         print(f"[节假日服务] API获取数据失败: {str(e)}")
-        # 构建与Node.js一致的空数据结构作为兜底
-        return {
-            "Author": "ShuYZ.com",
-            "URL": "https://github.com/lanceliao/china-holiday-calender",
-            "Years": {}
-        }
+        raise e
+
+# 清除节假日缓存
+def clear_holiday_cache():
+    try:
+        cache_util.delete(CACHE_KEY)
+        print('[节假日服务] 缓存已清除')
+        return True
+    except Exception as error:
+        print(f'[节假日服务] 缓存清除失败或缓存不存在: {error}')
+        return False
 
 # 获取节假日数据
 def get_holiday_data(api_url=DEFAULT_HOLIDAY_API_URL):
     try:
-        # 直接从Node.js的缓存文件中读取数据，确保与Node.js返回的数据完全一致
-        node_cache_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'todolist', 'data', 'cache', 'holiday_cache.json')
+        # 使用get_wrapped_data获取缓存，并提供load_data_fn选项用于缓存未命中时的数据加载
+        def load_data_fn():
+            print('[节假日服务] 缓存未命中或需要更新，从API获取数据')
+            return fetch_holiday_data(api_url)
         
-        if os.path.exists(node_cache_file):
-            with open(node_cache_file, 'r', encoding='utf-8') as f:
-                node_data = json.load(f)
-            
-            timestamp = time.time() * 1000
-            
-            return {
-                "data": node_data.get('data', {}),
-                "timestamp": timestamp,
-                "apiUrl": api_url,
-                "expireAt": timestamp + TTL
-            }
+        wrapped_data = cache_util.get_wrapped_data(CACHE_KEY, {
+            "allow_expired": True,  # 允许使用过期缓存作为兜底
+            "sourceFile": os.path.join(CACHE_DIR, 'holiday_cache.json'),
+            "ttl": TTL,
+            "load_data_fn": load_data_fn
+        })
         
-        # 如果Node.js的缓存文件不存在，则使用Python的模拟数据
-        data = fetch_holiday_data(api_url)
-        timestamp = time.time() * 1000
-        
-        # 设置缓存
-        cache_util.set(CACHE_KEY, data, HOLIDAY_OPTIONS.get('ttl', 300000))
-        
+        # 处理缓存结果
+        if not wrapped_data:
+            # 如果没有获取到缓存数据，抛出错误
+            raise Exception('无法获取节假日数据')
+
+        holiday_data = wrapped_data.get('data')
+        # 检查是否使用了过期缓存
+        if wrapped_data.get('expired'):
+            print('[节假日服务] 使用过期缓存数据')
+
+        # 返回标准格式的响应
         return {
-            "data": data,
-            "timestamp": timestamp,
+            "data": holiday_data,
+            "timestamp": wrapped_data.get('timestamp'),
             "apiUrl": api_url,
-            "expireAt": timestamp + TTL
+            "expireAt": not wrapped_data.get('expired') and (wrapped_data.get('timestamp') + TTL) or time.time() * 1000
         }
     except Exception as e:
-        raise Exception(f"获取节假日数据失败: {str(e)}")
-
-# 获取节假日数据接口
-
-@bp.route('/data', methods=['GET'])
-
-def get_holidays():
-    try:
-        holiday_data = get_holiday_data()
-        return jsonify(holiday_data)
-    except Exception as e:
-        return jsonify({"error": {"message": str(e)}}), 500
+        print(f"[节假日服务] 获取数据失败: {e}")
+        raise e
 
 # 管理节假日缓存接口
-
 @bp.route('/cache', methods=['GET'])
-
 def manage_holiday_cache():
     try:
+        # 获取节假日数据（内部已处理缓存和兜底逻辑）
         holiday_data = get_holiday_data()
+        
+        # 返回标准格式的数据
         return jsonify(holiday_data)
     except Exception as e:
-        return jsonify({"error": {"message": str(e)}}), 500
+        # 最后的兜底方案
+        return jsonify({
+            "data": None,
+            "timestamp": time.time() * 1000,
+            "error": {
+                "message": "获取节假日数据失败",
+                "details": str(e)
+            }
+        }), 500
 
 # 刷新节假日缓存接口
 @bp.route('/refresh-cache', methods=['POST'])
 def refresh_holiday_cache():
     try:
-        # 检查请求体是否为 None
-        if request.json is None:
-            api_url = DEFAULT_HOLIDAY_API_URL
-        else:
-            api_url = request.json.get('apiUrl', DEFAULT_HOLIDAY_API_URL)
+        # 获取请求参数
+        api_url = request.json.get('apiUrl') if request.json else None
+        final_api_url = api_url and api_url.strip() or DEFAULT_HOLIDAY_API_URL
         
         # 清除现有缓存
-        cache_util.delete(CACHE_KEY)
+        clear_holiday_cache()
         
         # 从API获取并保存新数据
-        cache_data = get_holiday_data(api_url)
+        cache_data = get_holiday_data(final_api_url)
         
         # 返回成功响应
         return jsonify({
@@ -138,6 +137,8 @@ def refresh_holiday_cache():
             "message": "节假日缓存刷新成功",
         })
     except Exception as e:
+        print(f"[节假日服务] 刷新缓存失败: {e}")
+        
         return jsonify({
             "success": False,
             "message": "刷新节假日缓存失败",

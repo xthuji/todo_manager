@@ -2,15 +2,15 @@ const fs = require('fs');
 const path = require('path');
 
 // 基础目录
-const BASE_DIR = path.join(__dirname, '../../../');
+const BASE_DIR = path.join(__dirname, '../');
 
 // 文件路径
-const tianqiAreaCodesPath = path.join(BASE_DIR, 'data/weather/tianqi_area_codes.json');
-const mojiWeatherAreaCodesPath = path.join(BASE_DIR, 'data/weather/moji_weather_area_codes.json');
-const nmcWeatherAreaCodesPath = path.join(BASE_DIR, 'data/weather/nmc_weather_area_codes.json');
-const cmaWeatherAreaCodesPath = path.join(BASE_DIR, 'data/weather/cma_weather_area_codes.json');
-const outputFilePath = path.join(BASE_DIR, 'data/weather/merged_weather_area_codes.json');
-const logFilePath = path.join(BASE_DIR, 'logs/weather_codes_merge_log.txt');
+const tianqiAreaCodesPath = path.join(BASE_DIR, 'weather/tianqi_area_codes.json');
+const mojiWeatherAreaCodesPath = path.join(BASE_DIR, 'weather/moji_weather_area_codes.json');
+const nmcWeatherAreaCodesPath = path.join(BASE_DIR, 'weather/nmc_weather_area_codes.json');
+const cmaWeatherAreaCodesPath = path.join(BASE_DIR, 'weather/cma_weather_area_codes.json');
+const outputFilePath = path.join(BASE_DIR, 'weather/merged_weather_area_codes.json');
+const logFilePath = path.join(BASE_DIR, '../logs/weather_codes_merge_log.txt');
 
 // 确保logs目录存在
 function ensureLogsDir() {

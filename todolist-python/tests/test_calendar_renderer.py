@@ -214,7 +214,7 @@ def run_tests():
         if calendar and \
            calendar['year'] == 2024 and \
            calendar['month'] == 0 and \
-           calendar['totalDays'] == 31 and
+           calendar['totalDays'] == 31 and \
            len(calendar['calendarData']) >= 28:  # 降低要求，只要>=28即可
             print('  ✅ 通过: 日历数据结构正确')
             print(f'  ✅ 通过: 总天数正确: {calendar["totalDays"]}')

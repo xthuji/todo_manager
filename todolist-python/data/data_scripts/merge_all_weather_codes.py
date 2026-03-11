@@ -6,13 +6,13 @@ import time
 # 基础目录
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 文件路径
-tianqiAreaCodesPath = os.path.join(BASE_DIR, 'data', 'weather', 'tianqi_area_codes.json')
-mojiWeatherAreaCodesPath = os.path.join(BASE_DIR, 'data', 'weather', 'moji_weather_area_codes.json')
-nmcWeatherAreaCodesPath = os.path.join(BASE_DIR, 'data', 'weather', 'nmc_weather_area_codes.json')
-cmaWeatherAreaCodesPath = os.path.join(BASE_DIR, 'data', 'weather', 'cma_weather_area_codes.json')
-outputFilePath = os.path.join(BASE_DIR, 'data', 'weather', 'merged_weather_area_codes.json')
-logFilePath = os.path.join(BASE_DIR, 'logs', 'weather_codes_merge_log.txt')
+# 文件路径 - 修复路径计算
+tianqiAreaCodesPath = os.path.join(BASE_DIR, 'weather', 'tianqi_area_codes.json')
+mojiWeatherAreaCodesPath = os.path.join(BASE_DIR, 'weather', 'moji_weather_area_codes.json')
+nmcWeatherAreaCodesPath = os.path.join(BASE_DIR, 'weather', 'nmc_weather_area_codes.json')
+cmaWeatherAreaCodesPath = os.path.join(BASE_DIR, 'weather', 'cma_weather_area_codes.json')
+outputFilePath = os.path.join(BASE_DIR, 'weather', 'merged_weather_area_codes.json')
+logFilePath = os.path.join(BASE_DIR, '..', 'logs', 'weather_codes_merge_log.txt')
 
 # 确保logs目录存在
 def ensure_logs_dir():

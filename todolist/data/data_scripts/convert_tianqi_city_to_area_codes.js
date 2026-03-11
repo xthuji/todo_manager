@@ -1,10 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const BASE_DIR = path.join(__dirname, '../../../');
+const BASE_DIR = path.join(__dirname, '../');
 // 读取源文件
-const tianqiCityPath = path.join(BASE_DIR, 'data/weather/tianqi_city.json');
-const outputPath = path.join(BASE_DIR, 'data/weather/tianqi_area_codes.json');
+const tianqiCityPath = path.join(BASE_DIR, 'weather/tianqi_city.json');
+const outputPath = path.join(BASE_DIR, 'weather/tianqi_area_codes.json');
 
 try {
     console.log('正在读取源文件...');

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // 结果路径
-const AREA_CODES_FILE_PATH = path.resolve(__dirname, '../../../../todolist/data/weather/nmc_weather_area_codes.json');
+const AREA_CODES_FILE_PATH = path.resolve(__dirname, '../weather/nmc_weather_area_codes.json');
 
 // 获取时间戳
 function getTimestamp() {

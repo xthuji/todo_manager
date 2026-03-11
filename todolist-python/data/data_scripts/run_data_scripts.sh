@@ -6,7 +6,7 @@
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 项目根目录
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../../" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../" && pwd)"
 # Python 路径
 PYTHON_PATH=$(which python3 || echo "python3")
 

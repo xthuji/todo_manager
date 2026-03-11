@@ -7,7 +7,12 @@
 """
 
 import os
+import sys
 import time
+
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from app.utils.cache_util import CacheUtil
 
 # 创建缓存工具实例
@@ -32,12 +37,14 @@ def test_cache():
         
         # 测试2: 读取缓存
         print('测试2: 读取缓存...')
-        cached_data = cache_util.get(TEST_KEY)
+        cached_data = cache_util.get(TEST_KEY, {})
         print('读取到的缓存数据:', cached_data)
         
         # 测试3: 验证数据一致性
         print('测试3: 验证数据一致性...')
-        if cached_data and cached_data.get('name') == test_value.get('name'):
+        # 从缓存数据中提取实际数据
+        actual_data = cached_data.get('data') if isinstance(cached_data, dict) else cached_data
+        if actual_data and actual_data.get('name') == test_value.get('name'):
             print('✓ 数据一致性验证通过')
         else:
             print('✗ 数据一致性验证失败')
@@ -52,8 +59,10 @@ def test_cache():
         cache_util.delete(TEST_KEY)
         
         # 验证缓存已清除
-        deleted_data = cache_util.get(TEST_KEY)
-        if deleted_data is None:
+        deleted_data = cache_util.get(TEST_KEY, {})
+        # 检查缓存数据是否为空或不包含预期数据
+        actual_deleted_data = deleted_data.get('data') if isinstance(deleted_data, dict) else deleted_data
+        if not actual_deleted_data:
             print('✓ 缓存清除验证通过')
         else:
             print('✗ 缓存清除验证失败')

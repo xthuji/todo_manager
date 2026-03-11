@@ -4,8 +4,8 @@ import time
 
 # 路径配置
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-tianqiCityPath = os.path.join(BASE_DIR, 'data', 'weather', 'tianqi_city.json')
-outputPath = os.path.join(BASE_DIR, 'data', 'weather', 'tianqi_area_codes.json')
+tianqiCityPath = os.path.join(BASE_DIR, 'weather', 'tianqi_city.json')
+outputPath = os.path.join(BASE_DIR, 'weather', 'tianqi_area_codes.json')
 
 try:
     print('正在读取源文件...')

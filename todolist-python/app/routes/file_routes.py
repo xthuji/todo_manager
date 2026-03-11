@@ -106,7 +106,8 @@ def read(filename):
             return jsonify({"success": False, "message": "不允许访问此文件"}), 403
 
         # 尝试从缓存获取
-        cached_data = cache_util.get_wrapped_data(f"file_read_{filename}", FILE_OPTIONS)
+        cache_key = cache_util.generate_file_cache_key(filename)
+        cached_data = cache_util.get_wrapped_data(cache_key, FILE_OPTIONS)
         if cached_data is not None:
             # 确保返回的结构与Node.js服务器一致
             return jsonify(cached_data)
@@ -119,9 +120,9 @@ def read(filename):
             "content": data.get("content", "")
         }
         # 设置缓存
-        cache_util.set_data(f"file_read_{filename}", response_data, FILE_OPTIONS)
+        cache_util.set_data(cache_key, response_data, FILE_OPTIONS)
         # 再次从缓存获取，确保返回的结构与Node.js服务器一致
-        cached_data = cache_util.get_wrapped_data(f"file_read_{filename}", FILE_OPTIONS)
+        cached_data = cache_util.get_wrapped_data(cache_key, FILE_OPTIONS)
         return jsonify(cached_data)
     except Exception as e:
         return jsonify({"error": {"message": f"读取文件失败: {str(e)}"}}), 500
@@ -131,7 +132,8 @@ def clear_file_cache(specific_file=None):
     try:
         if specific_file:
             # 清除特定文件的读取缓存
-            cache_util.delete(f'file_read_{specific_file}')
+            cache_key = cache_util.generate_file_cache_key(specific_file)
+            cache_util.delete(cache_key)
         # 总是清除文件列表缓存
         cache_util.delete('file_list')
     except Exception as e:

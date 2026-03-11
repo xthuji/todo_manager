@@ -36,9 +36,12 @@ def check_status():
 @bp.route('/shutdown', methods=['POST'])
 def shutdown():
     try:
+        print('收到关闭服务器请求')
+        
         # 异步关闭服务器
         def shutdown_server():
             time.sleep(1)
+            print('正在关闭服务器...')
             if server_instance:
                 server_instance.shutdown()
             else:
@@ -48,12 +51,6 @@ def shutdown():
         import threading
         threading.Thread(target=shutdown_server, daemon=True).start()
         
-        return jsonify({
-            "data": {
-                "success": True,
-                "message": "服务器正在关闭"
-            },
-            "timestamp": time.time() * 1000
-        })
+        return jsonify({"success": True, "message": "服务器将在1秒后关闭"})
     except Exception as e:
         return jsonify({"error": {"message": f"关闭服务器失败: {str(e)}"}}), 500
