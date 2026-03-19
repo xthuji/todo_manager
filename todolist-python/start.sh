@@ -46,6 +46,9 @@ echo "按 Ctrl+C 停止服务"
 echo ""
 # 获取当前脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 设置 Python 路径，确保能找到 app 模块
+export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
+echo "设置 PYTHONPATH: $PYTHONPATH"
 # 判断当前运行环境是否为 macOS 终端类 App（Terminal.app / iTerm.app / Alacritty 等）
 case "$TERM_PROGRAM" in
     "Apple_Terminal"|"iTerm.app"|"Alacritty"|"Hyper"|"WezTerm")

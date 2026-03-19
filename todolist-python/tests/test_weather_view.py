@@ -1,5 +1,6 @@
 import time
 import datetime
+from app.utils.logger_util import logger
 
 # 设置环境变量和全局配置
 API_BASE_URL = 'http://localhost:3000/api/weather'  # 假设服务运行在3000端口
@@ -66,7 +67,7 @@ class WeatherModule:
                 raise Exception(f'获取天气数据失败')
             return response['json']()
         except Exception as e:
-            print(f'获取天气数据错误: {e}')
+            logger.error(f'获取天气数据错误: {e}')
             raise
     
     # 获取IP位置信息
@@ -78,7 +79,7 @@ class WeatherModule:
                 raise Exception(f'获取IP位置信息失败')
             return response['json']()
         except Exception as e:
-            print(f'获取IP位置信息错误: {e}')
+            logger.error(f'获取IP位置信息错误: {e}')
             raise
 
 # 创建实例
@@ -123,7 +124,7 @@ async def run_tests():
     passed_tests = 0
     total_tests = 0
     
-    print('=== 开始天气功能测试 ===\n')
+    logger.info('=== 开始天气功能测试 ===')
     
     try:
         # 设置模拟响应
@@ -133,42 +134,42 @@ async def run_tests():
         # 测试1: IP定位获取省市县信息
         total_tests += 1
         try:
-            print('\n测试1: IP定位获取省市县信息')
+            logger.info('\n测试1: IP定位获取省市县信息')
             location_data = await weather_module.get_location_by_ip()
             validate_location_data(location_data)
-            print('  ✅ 通过: 成功获取IP位置信息')
-            print('  ✅ 通过: 位置信息格式正确，包含必要字段')
-            print(f'  ✅ 通过: 获取到的城市: {location_data["city"]}')
-            print(f'  ✅ 通过: 获取到的天气代码: {location_data["weatherCode"]}')
+            logger.info('  ✅ 通过: 成功获取IP位置信息')
+            logger.info('  ✅ 通过: 位置信息格式正确，包含必要字段')
+            logger.info(f'  ✅ 通过: 获取到的城市: {location_data["city"]}')
+            logger.info(f'  ✅ 通过: 获取到的天气代码: {location_data["weatherCode"]}')
             passed_tests += 1
         except Exception as e:
-            print(f'  ❌ 失败: {e}')
+            logger.error(f'  ❌ 失败: {e}')
         
         # 测试2: 获取天气数据
         total_tests += 1
         try:
-            print('\n测试2: 根据城市代码获取天气数据')
+            logger.info('\n测试2: 根据城市代码获取天气数据')
             # 直接使用MOCK_WEATHER_DATA进行测试，简化逻辑
-            print('  ✅ 通过: 成功获取天气数据')
+            logger.info('  ✅ 通过: 成功获取天气数据')
             
             # 验证天气数据格式
             validate_weather_data(MOCK_WEATHER_DATA)
-            print('  ✅ 通过: 响应格式正确')
-            print(f'  ✅ 通过: 天气数据长度: {len(MOCK_WEATHER_DATA)} 天')
-            print('  ✅ 通过: 天气数据格式验证通过')
+            logger.info('  ✅ 通过: 响应格式正确')
+            logger.info(f'  ✅ 通过: 天气数据长度: {len(MOCK_WEATHER_DATA)} 天')
+            logger.info('  ✅ 通过: 天气数据格式验证通过')
             
             # 验证第一条数据
             first_day = MOCK_WEATHER_DATA[0]
-            print(f'  ✅ 通过: 第一天天气: {first_day["date"]} {first_day["weather"]} {first_day["minTemp"]}°C~{first_day["maxTemp"]}°C')
+            logger.info(f'  ✅ 通过: 第一天天气: {first_day["date"]} {first_day["weather"]} {first_day["minTemp"]}°C~{first_day["maxTemp"]}°C')
             
             passed_tests += 1
         except Exception as e:
-            print(f'  ❌ 失败: {e}')
+            logger.error(f'  ❌ 失败: {e}')
         
         # 测试3: 错误处理测试
         total_tests += 1
         try:
-            print('\n测试3: 错误处理测试')
+            logger.info('\n测试3: 错误处理测试')
             # 设置失败的模拟响应
             set_mock_response('weather-info', {'success': False, 'message': 'API错误'})
             
@@ -176,27 +177,27 @@ async def run_tests():
             result = await weather_module.fetch_weather_data(TEST_WEATHER_CODE)
             # 由于我们使用的是模拟函数，不会抛出异常，所以这里直接检查
             if result.get('success') is False:
-                print('  ✅ 通过: 正确捕获API错误')
+                logger.info('  ✅ 通过: 正确捕获API错误')
                 passed_tests += 1
             else:
                 raise Exception('应该捕获到错误但没有')
         except Exception as e:
             if '应该捕获到错误但没有' in str(e):
-                print(f'  ❌ 失败: {e}')
+                logger.error(f'  ❌ 失败: {e}')
             else:
-                print('  ✅ 通过: 正确捕获API错误')
+                logger.info('  ✅ 通过: 正确捕获API错误')
                 passed_tests += 1
         
         # 测试4: 数据边界测试
         total_tests += 1
         try:
-            print('\n测试4: 数据边界测试')
+            logger.info('\n测试4: 数据边界测试')
             
             # 直接使用MOCK_WEATHER_DATA进行数组格式验证
             if not isinstance(MOCK_WEATHER_DATA, list):
                 raise ValueError('天气数据必须是数组格式')
             
-            print('  ✅ 通过: 天气数据格式正确')
+            logger.info('  ✅ 通过: 天气数据格式正确')
             
             # 测试空数据处理
             empty_data = []
@@ -205,26 +206,26 @@ async def run_tests():
                 raise ValueError('应当检测到空数据错误')
             except ValueError as e:
                 if str(e) == '天气数据不能为空数组':
-                    print('  ✅ 通过: 正确检测到空数据错误')
+                    logger.info('  ✅ 通过: 正确检测到空数据错误')
                 else:
                     raise
             
             passed_tests += 1
         except Exception as e:
-            print(f'  ❌ 失败: {e}')
+            logger.error(f'  ❌ 失败: {e}')
     finally:
         # 重置模拟
         reset_mocks()
     
     # 输出测试结果
-    print('\n=== 测试结果汇总 ===')
-    print(f'通过测试: {passed_tests}/{total_tests}')
+    logger.info('\n=== 测试结果汇总 ===')
+    logger.info(f'通过测试: {passed_tests}/{total_tests}')
     
     if passed_tests == total_tests:
-        print('🎉 所有测试通过!')
+        logger.info('🎉 所有测试通过!')
         return True
     else:
-        print('❌ 测试未全部通过，请检查错误信息。')
+        logger.error('❌ 测试未全部通过，请检查错误信息。')
         return False
 
 # 运行测试

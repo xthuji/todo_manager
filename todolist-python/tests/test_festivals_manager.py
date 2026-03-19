@@ -1,5 +1,6 @@
 import time
 import datetime
+from app.utils.logger_util import logger
 
 # 模拟节日配置数据
 MOCK_FESTIVAL_CONFIG = {
@@ -69,7 +70,7 @@ def mock_is_chinese_holiday(date, festival_config):
 
 # 测试1: 测试单个节日识别
 def test_single_festival():
-    print('\n测试1: 测试单个节日识别')
+    logger.info('\n测试1: 测试单个节日识别')
     
     # 使用模拟的节日配置
     festival_config = MOCK_FESTIVAL_CONFIG
@@ -96,21 +97,21 @@ def test_single_festival():
             success = all_expected_found and no_unexpected_found
             
             if success:
-                print(f'✓ {date_str}: 成功识别到预期节日: {", ".join(found_names)}')
+                logger.info(f'✓ {date_str}: 成功识别到预期节日: {{", ".join(found_names)}}')
                 passed += 1
             else:
-                print(f'✗ {date_str}: 节日识别错误')
-                print(f'  期望: [{", ".join(test_case["expected_names"])}]')
-                print(f'  实际: [{", ".join(found_names)}]')
+                logger.error(f'✗ {date_str}: 节日识别错误')
+                logger.error(f'  期望: [{{", ".join(test_case["expected_names"])}}]')
+                logger.error(f'  实际: [{{", ".join(found_names)}}]')
         except Exception as e:
-            print(f'✗ 处理 {test_case["month"]}-{test_case["day"]} 时出错: {e}')
+            logger.error(f'✗ 处理 {{test_case["month"]}}-{{test_case["day"]}} 时出错: {{e}}')
     
-    print(f'测试1结果: {passed}/{len(test_cases)} 通过')
+    logger.info(f'测试1结果: {{passed}}/{{len(test_cases)}} 通过')
     return {'success': passed == len(test_cases), 'passed': passed, 'total': len(test_cases)}
 
 # 测试2: 中国节假日判断
 def test_holiday_judgment():
-    print('\n测试2: 中国节假日判断')
+    logger.info('\n测试2: 中国节假日判断')
     
     festival_config = MOCK_FESTIVAL_CONFIG
     test_cases = [
@@ -129,19 +130,19 @@ def test_holiday_judgment():
             date_str = format_date(test['date'])
             
             if result == test['expected']:
-                print(f'✓ {date_str} ({test["name"]}): 正确识别为{"节假日" if result else "非节假日"}')
+                logger.info(f'✓ {date_str} ({test["name"]}): 正确识别为{"节假日" if result else "非节假日"}')
                 passed += 1
             else:
-                print(f'✗ {date_str} ({test["name"]}): 判断错误，期望{"节假日" if test["expected"] else "非节假日"}，实际{"节假日" if result else "非节假日"}')
+                logger.error(f'✗ {date_str} ({test["name"]}): 判断错误，期望{"节假日" if test["expected"] else "非节假日"}，实际{"节假日" if result else "非节假日"}')
         except Exception as e:
-            print(f'✗ {format_date(test["date"])} ({test["name"]}): 测试异常: {e}')
+            logger.error(f'✗ {format_date(test["date"])} ({test["name"]}): 测试异常: {e}')
     
-    print(f'测试2结果: {passed}/{len(test_cases)} 通过')
+    logger.info(f'测试2结果: {passed}/{len(test_cases)} 通过')
     return {'success': passed == len(test_cases), 'passed': passed, 'total': len(test_cases)}
 
 # 测试3: 边界条件测试
 def test_edge_cases():
-    print('\n测试3: 边界条件测试')
+    logger.info('\n测试3: 边界条件测试')
     
     festival_config = MOCK_FESTIVAL_CONFIG
     passed = 0
@@ -149,35 +150,35 @@ def test_edge_cases():
     # 测试1: 无效日期参数
     try:
         mock_get_festivals(None, festival_config)
-        print('✗ 无效日期参数测试失败: 未能捕获空日期参数')
+        logger.error('✗ 无效日期参数测试失败: 未能捕获空日期参数')
     except Exception as e:
-        print(f'✓ 无效日期参数测试通过: 成功捕获错误: {e}')
+        logger.info(f'✓ 无效日期参数测试通过: 成功捕获错误: {e}')
         passed += 1
     
     # 测试2: 无效配置参数
     try:
         test_date = generate_test_date(1, 1)
         result = mock_get_festivals(test_date, None)
-        print(f'✓ 无效配置参数测试通过: 返回 {len(result)} 个节日')
+        logger.info(f'✓ 无效配置参数测试通过: 返回 {len(result)} 个节日')
         passed += 1
     except Exception as e:
-        print(f'✗ 无效配置参数测试失败: {e}')
+        logger.error(f'✗ 无效配置参数测试失败: {e}')
     
     # 测试3: 特殊日期
     try:
         test_date = datetime.date(datetime.datetime.now().year, 12, 31)  # 12月31日
         festivals = mock_get_festivals(test_date, festival_config)
-        print(f'✓ 特殊日期测试通过: 12月31日识别到 {len(festivals)} 个节日')
+        logger.info(f'✓ 特殊日期测试通过: 12月31日识别到 {len(festivals)} 个节日')
         passed += 1
     except Exception as e:
-        print(f'✗ 特殊日期测试失败: {e}')
+        logger.error(f'✗ 特殊日期测试失败: {e}')
     
-    print(f'测试3结果: {passed}/3 通过')
+    logger.info(f'测试3结果: {passed}/3 通过')
     return {'success': passed == 3, 'passed': passed, 'total': 3}
 
 # 测试4: 全年节日计算测试
 def test_yearly_calculation():
-    print('\n测试4: 全年节日计算测试')
+    logger.info('\n测试4: 全年节日计算测试')
     
     festival_config = MOCK_FESTIVAL_CONFIG
     current_year = datetime.datetime.now().year
@@ -195,20 +196,20 @@ def test_yearly_calculation():
             festivals = mock_get_festivals(test_date, festival_config)
             
             if any(f['name'] == holiday['name'] for f in festivals):
-                print(f'✓ {current_year}-{holiday["month"]}-{holiday["day"]}: 成功识别 {holiday["name"]}')
+                logger.info(f'✓ {current_year}-{holiday["month"]}-{holiday["day"]}: 成功识别 {holiday["name"]}')
                 passed_holidays += 1
             else:
-                print(f'✗ {current_year}-{holiday["month"]}-{holiday["day"]}: 未能识别 {holiday["name"]}')
+                logger.error(f'✗ {current_year}-{holiday["month"]}-{holiday["day"]}: 未能识别 {holiday["name"]}')
         except Exception as e:
-            print(f'✗ 处理 {holiday["name"]} 时出错: {e}')
+            logger.error(f'✗ 处理 {holiday["name"]} 时出错: {e}')
     
-    print(f'测试4结果: {passed_holidays}/{len(key_holidays)} 个关键节日识别通过')
+    logger.info(f'测试4结果: {passed_holidays}/{len(key_holidays)} 个关键节日识别通过')
     return {'success': passed_holidays == len(key_holidays), 'passed': passed_holidays, 'total': len(key_holidays)}
 
 # 执行所有测试
 def run_all_tests():
     try:
-        print('\n===== 开始测试节日相关功能 =====')
+        logger.info('\n===== 开始测试节日相关功能 =====')
         test_results = [
             test_single_festival(),
             test_holiday_judgment(),
@@ -226,19 +227,19 @@ def run_all_tests():
             total_passed += result['passed']
             all_success = all_success and result['success']
         
-        print('\n\n===== 总体测试结果 =====')
-        print(f'总测试用例数: {total_tests}')
-        print(f'通过数: {total_passed} ({(total_passed/total_tests*100):.1f}%)')
+        logger.info('\n\n===== 总体测试结果 =====')
+        logger.info(f'总测试用例数: {total_tests}')
+        logger.info(f'通过数: {total_passed} ({(total_passed/total_tests*100):.1f}%)')
         
         if all_success:
-            print('🎉 所有测试均已通过!')
+            logger.info('🎉 所有测试均已通过!')
         else:
-            print('❌ 部分测试失败，请检查代码')
+            logger.error('❌ 部分测试失败，请检查代码')
         
         return all_success
         
     except Exception as e:
-        print(f'运行测试时发生错误: {e}')
+        logger.error(f'运行测试时发生错误: {e}')
         import traceback
         traceback.print_exc()
         return False

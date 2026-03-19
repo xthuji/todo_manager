@@ -3,6 +3,7 @@ import os
 import time
 from app.utils.cache_util import CacheUtil
 from app.utils.config_util import config_util
+from app.utils.logger_util import logger
 
 # 创建蓝图
 bp = Blueprint('holiday_routes', __name__)
@@ -27,7 +28,7 @@ HOLIDAY_OPTIONS = {
 def fetch_holiday_data(api_url=DEFAULT_HOLIDAY_API_URL):
     try:
         import requests
-        print(f"[节假日服务] 从API获取数据: {api_url}")
+        logger.info(f"[节假日服务] 从API获取数据: {api_url}")
         response = requests.get(api_url, timeout=10, headers={'Content-Type': 'application/json'})
         
         if not response.ok:
@@ -44,20 +45,20 @@ def fetch_holiday_data(api_url=DEFAULT_HOLIDAY_API_URL):
         if not years:
             years = {k: v for k, v in data.items() if k.isdigit()}
         
-        print(f"[节假日服务] 成功获取数据，包含{len(years)}个年份")
+        logger.info(f"[节假日服务] 成功获取数据，包含{len(years)}个年份")
         return data
     except Exception as e:
-        print(f"[节假日服务] API获取数据失败: {str(e)}")
+        logger.error(f"[节假日服务] API获取数据失败: {str(e)}")
         raise e
 
 # 清除节假日缓存
 def clear_holiday_cache():
     try:
         cache_util.delete(CACHE_KEY)
-        print('[节假日服务] 缓存已清除')
+        logger.info('[节假日服务] 缓存已清除')
         return True
     except Exception as error:
-        print(f'[节假日服务] 缓存清除失败或缓存不存在: {error}')
+        logger.warning(f'[节假日服务] 缓存清除失败或缓存不存在: {error}')
         return False
 
 # 获取节假日数据
@@ -65,7 +66,7 @@ def get_holiday_data(api_url=DEFAULT_HOLIDAY_API_URL):
     try:
         # 使用get_wrapped_data获取缓存，并提供load_data_fn选项用于缓存未命中时的数据加载
         def load_data_fn():
-            print('[节假日服务] 缓存未命中或需要更新，从API获取数据')
+            logger.info('[节假日服务] 缓存未命中或需要更新，从API获取数据')
             return fetch_holiday_data(api_url)
         
         wrapped_data = cache_util.get_wrapped_data(CACHE_KEY, {
@@ -83,7 +84,7 @@ def get_holiday_data(api_url=DEFAULT_HOLIDAY_API_URL):
         holiday_data = wrapped_data.get('data')
         # 检查是否使用了过期缓存
         if wrapped_data.get('expired'):
-            print('[节假日服务] 使用过期缓存数据')
+            logger.warning('[节假日服务] 使用过期缓存数据')
 
         # 返回标准格式的响应
         return {
@@ -93,7 +94,7 @@ def get_holiday_data(api_url=DEFAULT_HOLIDAY_API_URL):
             "expireAt": not wrapped_data.get('expired') and (wrapped_data.get('timestamp') + TTL) or time.time() * 1000
         }
     except Exception as e:
-        print(f"[节假日服务] 获取数据失败: {e}")
+        logger.error(f"[节假日服务] 获取数据失败: {e}")
         raise e
 
 # 管理节假日缓存接口
@@ -137,7 +138,7 @@ def refresh_holiday_cache():
             "message": "节假日缓存刷新成功",
         })
     except Exception as e:
-        print(f"[节假日服务] 刷新缓存失败: {e}")
+        logger.error(f"[节假日服务] 刷新缓存失败: {e}")
         
         return jsonify({
             "success": False,

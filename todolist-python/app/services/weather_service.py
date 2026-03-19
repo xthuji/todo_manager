@@ -16,6 +16,7 @@ from app.services.weather.weather_moji_service import fetch_moji_weather
 from app.services.weather.weather_tianqi_service import fetch_today_weather, fetch_recent_days_weather, fetch_today_detail_weather, fetch_calendar_and_history_weather
 from app.services.weather.weather_nmc_service import fetch_nmc_weather
 from app.services.weather.weather_cma_service import fetch_cma_weather
+from app.utils.logger_util import logger
 
 # 缓存配置
 WEATHER_OPTIONS = {
@@ -49,17 +50,17 @@ def cache_weather_info(area_code_info=None, weather_data=None):
     full_cache_key = f"weather_{cache_key}"
     
     if weather_data is not None:
-        print(f"缓存天气信息: {cache_key}")
+        logger.info(f"缓存天气信息: {cache_key}")
         try:
             cache_util.set_data(full_cache_key, weather_data, WEATHER_OPTIONS)
         except Exception as e:
-            print(f"缓存天气数据失败: {e}")
+            logger.error(f"缓存天气数据失败: {e}")
         return None
     else:
         try:
             return cache_util.get_wrapped_data(full_cache_key, WEATHER_OPTIONS)
         except Exception as e:
-            print(f"获取缓存天气数据失败: {e}")
+            logger.error(f"获取缓存天气数据失败: {e}")
             return None
 
 
@@ -175,13 +176,13 @@ def build_weather_data(moji_weather_data, today_weather_data, today_detail_weath
     }
     
     if PRINT_DATA_LOG:
-        print('墨迹天气数据:', json.dumps(moji_weather_data))
-        print('今日天气数据:', json.dumps(today_weather_data))
-        print('今日天气补充数据:', json.dumps(today_detail_weather_data))
-        print('近几日天气数据:', json.dumps(recent_days_weather_data))
-        print('天气历史数据:', json.dumps(calendar_and_history_weather_data))
-        print('CMA(中国气象局)天气数据:', json.dumps(cma_weather_data))
-        print('NMC(中央气象台)天气数据:', json.dumps(nmc_weather_data))
+        logger.debug(f'墨迹天气数据: {json.dumps(moji_weather_data)}')
+        logger.debug(f'今日天气数据: {json.dumps(today_weather_data)}')
+        logger.debug(f'今日天气补充数据: {json.dumps(today_detail_weather_data)}')
+        logger.debug(f'近几日天气数据: {json.dumps(recent_days_weather_data)}')
+        logger.debug(f'天气历史数据: {json.dumps(calendar_and_history_weather_data)}')
+        logger.debug(f'CMA(中国气象局)天气数据: {json.dumps(cma_weather_data)}')
+        logger.debug(f'NMC(中央气象台)天气数据: {json.dumps(nmc_weather_data)}')
     
     if PRINT_API_DATA:
         weather_data['apiData'] = {
@@ -207,10 +208,10 @@ def build_weather_data(moji_weather_data, today_weather_data, today_detail_weath
     
     # 只有在所有数据都有效时才缓存
     if has_moji and has_today and has_today_live_weather and has_today_hourly_weather and has_today_life_helper and has_detail and has_recent_days and has_calendar:
-        print('所有API结果数据完整，缓存天气数据')
+        logger.info('所有API结果数据完整，缓存天气数据')
         cache_weather_info(weather_area_code_params, weather_data)
     
-    print("天气数据提取完成")
+    logger.info("天气数据提取完成")
     
     return weather_data
 
@@ -232,10 +233,10 @@ async def query_weather_data(weather_area_code_params):
     if not force_refresh:
         cached_weather_data = cache_weather_info(weather_area_code_params)
         if cached_weather_data:
-            print("使用缓存的天气数据")
+            logger.info("使用缓存的天气数据")
             return cached_weather_data
     else:
-        print("强制刷新，跳过缓存")
+        logger.info("强制刷新，跳过缓存")
     
     # 定义要执行的函数
     async def fetch_moji():
@@ -278,7 +279,7 @@ async def query_weather_data(weather_area_code_params):
             fetch_nmc()
         )
     except Exception as e:
-        print(f"获取天气数据失败: {e}")
+        logger.error(f"获取天气数据失败: {e}")
         return {"error": {"message": str(e) or "获取天气数据失败"}}
     
     # 检查各数据源的错误信息并记录
@@ -299,7 +300,7 @@ async def query_weather_data(weather_area_code_params):
         errors.append(f"TodayDetail: {today_detail_weather_data['error']}")
     
     if errors:
-        print(f"部分天气服务出错，但尝试继续处理数据: {errors}")
+        logger.warning(f"部分天气服务出错，但尝试继续处理数据: {errors}")
     
     # 构建天气数据
     weather_data = build_weather_data(
@@ -329,7 +330,7 @@ async def get_weather_data(weather_area_code_params):
     if not weather_area_code_params:
         return {"error": {"message": "参数weather_area_code_params不能为空"}}
     
-    print(f'USE_MOCK: {USE_MOCK}')
+    logger.info(f'USE_MOCK: {USE_MOCK}')
     # 如果启用了mock数据，直接使用mock数据，与Node.js项目完全一致
     if USE_MOCK:
         mock_file_path = os.path.join(MOCK_DIR, 'mock_weather_info.json')
@@ -340,17 +341,17 @@ async def get_weather_data(weather_area_code_params):
                 'ttl': 0,
             })
             if mock_data:
-                print('使用mock天气数据')
+                logger.info('使用mock天气数据')
                 return mock_data
         except Exception as e:
-            print(f'读取mock天气数据失败: {e}')
+            logger.error(f'读取mock天气数据失败: {e}')
     
-    print(f"天气请求参数: {weather_area_code_params}")
+    logger.info(f"天气请求参数: {weather_area_code_params}")
     
     try:
         # 直接返回与Node.js项目相同的数据结构
         weather_data = await query_weather_data(weather_area_code_params)
         return weather_data
     except Exception as e:
-        print(f"获取天气数据失败: {e}")
+        logger.error(f"获取天气数据失败: {e}")
         return {"error": {"message": str(e) or "获取天气数据失败"}}

@@ -34,6 +34,10 @@ LOGS_DIR="$PROJECT_DIR/logs"
 # 确保日志目录存在
 mkdir -p "$LOGS_DIR"
 
+# 设置 Python 路径，确保能找到 app 模块
+export PYTHONPATH="$PROJECT_DIR:$PYTHONPATH"
+echo "设置 PYTHONPATH: $PYTHONPATH"
+
 # 清除之前的测试标志
 rm -f "$TEST_DIR/.test_success"
 

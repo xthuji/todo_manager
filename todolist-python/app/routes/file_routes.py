@@ -3,6 +3,7 @@ import os
 import time
 from app.utils.cache_util import CacheUtil
 from app.utils.config_util import config_util
+from app.utils.logger_util import logger
 
 # 创建蓝图
 bp = Blueprint('file_routes', __name__)
@@ -91,7 +92,7 @@ def read_file(filename):
 
         with open(file_path, 'r', encoding='utf8') as f:
             content = f.read()
-        print(f"读取文件 {filename}")
+        logger.info(f"读取文件 {filename}")
         return {"success": True, "content": content}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -137,7 +138,7 @@ def clear_file_cache(specific_file=None):
         # 总是清除文件列表缓存
         cache_util.delete('file_list')
     except Exception as e:
-        print(f'清除文件缓存失败: {str(e)}')
+        logger.error(f'清除文件缓存失败: {str(e)}')
 
 # 写入文件内容接口
 @bp.route('/write/<filename>', methods=['POST'])
@@ -155,7 +156,7 @@ def write(filename):
 
         # 清除相关缓存，确保下次读取时获取最新数据
         clear_file_cache(filename)
-        print(f"文件 {filename} 保存成功，相关缓存已清除")
+        logger.info(f"文件 {filename} 保存成功，相关缓存已清除")
 
         return jsonify({"success": True, "message": "文件保存成功"})
     except Exception as e:

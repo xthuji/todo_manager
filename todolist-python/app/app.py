@@ -5,6 +5,7 @@ import sys
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from app.utils.logger_util import logger
 from app.routes import register_routes
 from app.services.auto_weather_notify_service import start_weather_notify_timer
 from app.routes.status_routes import set_server_instance

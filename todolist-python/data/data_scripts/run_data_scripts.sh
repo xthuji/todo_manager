@@ -44,6 +44,8 @@ execute_script() {
     print_blue "正在执行: ${script_name}"
     
     if [ -f "${script_path}" ]; then
+        # 设置 Python 路径，确保能找到 app 模块
+        export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH}"
         "${PYTHON_PATH}" "${script_path}"
         if [ $? -eq 0 ]; then
             print_green "✓ ${script_name} 执行成功"

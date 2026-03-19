@@ -8,6 +8,7 @@
 
 import requests
 import time
+from app.utils.logger_util import logger
 
 
 # 天气请求头
@@ -118,7 +119,7 @@ def fetch_nmc_weather(nmc_api_code):
         # 仅使用指定的URL接口，使用当前时间戳
         timestamp = int(time.time() * 1000)
         nmc_weather_url = f"https://www.nmc.cn/rest/weather?stationid={nmc_api_code}&_={timestamp}"
-        print(f"开始获取中央气象台天气数据，正在访问: {nmc_weather_url}")
+        logger.info(f"开始获取中央气象台天气数据，正在访问: {nmc_weather_url}")
         
         response = requests.get(nmc_weather_url, headers=WEATHER_HEADERS, timeout=5)
         
@@ -127,9 +128,9 @@ def fetch_nmc_weather(nmc_api_code):
         
         nmc_data = response.json()
         nmc_weather_data = extract_nmc_weather_data(nmc_data)
-        print("成功提取中央气象台天气数据")
+        logger.info("成功提取中央气象台天气数据")
         
         return nmc_weather_data
     except Exception as e:
-        print(f"获取中央气象台天气数据失败: {e}")
+        logger.error(f"获取中央气象台天气数据失败: {e}")
         return {"error": {"message": str(e) or "获取中央气象台天气数据失败"}}

@@ -1,10 +1,16 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
 import threading
 import time
 import socket
+import platform
+import webbrowser
 import webview
 from typing import Optional
 from app.app import app as flask_app
+from app.utils.logger_util import logger
 
 class TodoApp:
     def __init__(self):
@@ -58,7 +64,32 @@ class TodoApp:
         else:
             self.splash_window.evaluate_js("document.querySelector('.msg').innerText = '启动超时，请重试';")
 
+    def _check_system_compatibility(self, system: str, version: str = None):
+        """检查系统兼容性"""
+        if system == 'Darwin':  # macOS
+            version_parts = version.split('.')
+            # 确保版本号至少有两个部分
+            if len(version_parts) >= 2:
+                major = int(version_parts[0])
+                minor = int(version_parts[1])
+                # 检查是否是 macOS 10.15 或更早版本，这些版本的 WebKit 可能与 pywebview 不兼容
+                if major == 10 and minor <= 15:
+                    return False
+        return True
+
     def run(self):
+        # 检查系统兼容性
+        system = platform.system()
+        version = platform.mac_ver()[0]
+        if not self._check_system_compatibility(system, version):
+            logger.info(f"检测到 webview 不兼容的系统版本 {system}-{version}，使用系统默认浏览器打开应用...")
+            # 启动后端线程
+            threading.Thread(target=self._run_flask, daemon=True).start()
+            # 等待服务响应
+            if self._wait_for_server():
+                webbrowser.open(self.url)
+                return
+        
         # 现代化的 Splash HTML 样式
         splash_html = """
         <!DOCTYPE html>

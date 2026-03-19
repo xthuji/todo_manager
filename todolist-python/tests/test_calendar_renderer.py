@@ -1,5 +1,6 @@
 import time
 import datetime
+from app.utils.logger_util import logger
 
 # 模拟日历渲染模块
 class CalendarRenderer:
@@ -107,56 +108,56 @@ def run_tests():
     passed_tests = 0
     total_tests = 0
     
-    print('=== 开始日历渲染核心功能测试 ===\n')
+    logger.info('=== 开始日历渲染核心功能测试 ===')
     
     # 测试1: 计算月份天数
     total_tests += 1
     try:
-        print('测试1: 计算月份天数')
+        logger.info('测试1: 计算月份天数')
         days_in_january = calendar_renderer.get_days_in_month(2024, 0)  # 1月
         days_in_february = calendar_renderer.get_days_in_month(2024, 1)  # 2月（闰年）
         
         if days_in_january == 31 and days_in_february == 29:
-            print(f'  ✅ 通过: 1月天数计算正确: {days_in_january}')
-            print(f'  ✅ 通过: 2月天数计算正确: {days_in_february}')
+            logger.info(f'  ✅ 通过: 1月天数计算正确: {days_in_january}')
+            logger.info(f'  ✅ 通过: 2月天数计算正确: {days_in_february}')
             passed_tests += 1
         else:
             raise ValueError(f'月份天数计算错误，1月: {days_in_january}, 2月: {days_in_february}')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试2: 获取月份第一天是星期几
     total_tests += 1
     try:
-        print('\n测试2: 获取月份第一天是星期几')
+        logger.info('\n测试2: 获取月份第一天是星期几')
         first_day_202401 = calendar_renderer.get_first_day_of_month(2024, 0)  # 2024年1月1日是星期一
         
         if first_day_202401 == 0:  # 0是星期一
-            print(f'  ✅ 通过: 2024年1月1日是星期{first_day_202401}')
+            logger.info(f'  ✅ 通过: 2024年1月1日是星期{first_day_202401}')
             passed_tests += 1
         else:
             raise ValueError(f'星期计算错误，期望0，实际{first_day_202401}')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试3: 日期格式化
     total_tests += 1
     try:
-        print('\n测试3: 日期格式化')
+        logger.info('\n测试3: 日期格式化')
         formatted_date = calendar_renderer.format_date(2024, 0, 5)
         
         if formatted_date == '2024-01-05':
-            print(f'  ✅ 通过: 日期格式化正确: {formatted_date}')
+            logger.info(f'  ✅ 通过: 日期格式化正确: {formatted_date}')
             passed_tests += 1
         else:
             raise ValueError(f'日期格式化错误，期望"2024-01-05"，实际"{formatted_date}"')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试4: 检查是否为今天
     total_tests += 1
     try:
-        print('\n测试4: 检查是否为今天')
+        logger.info('\n测试4: 检查是否为今天')
         today = datetime.date.today()
         is_today = calendar_renderer.is_today(
             today.year, 
@@ -166,49 +167,49 @@ def run_tests():
         is_not_today = calendar_renderer.is_today(2024, 0, 1)
         
         if is_today and not is_not_today:
-            print('  ✅ 通过: 今天日期检查正确')
-            print('  ✅ 通过: 非今天日期检查正确')
+            logger.info('  ✅ 通过: 今天日期检查正确')
+            logger.info('  ✅ 通过: 非今天日期检查正确')
             passed_tests += 1
         else:
             raise ValueError('今天检查功能异常')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试5: 获取日期类型
     total_tests += 1
     try:
-        print('\n测试5: 获取日期类型（工作日/周末）')
+        logger.info('\n测试5: 获取日期类型（工作日/周末）')
         weekday_type = calendar_renderer.get_date_type('2024-01-01')  # 星期一
         weekend_type = calendar_renderer.get_date_type('2024-01-06')  # 星期六
         
         if weekday_type == 'workday' and weekend_type == 'weekend':
-            print(f'  ✅ 通过: 工作日类型识别正确: {weekday_type}')
-            print(f'  ✅ 通过: 周末类型识别正确: {weekend_type}')
+            logger.info(f'  ✅ 通过: 工作日类型识别正确: {weekday_type}')
+            logger.info(f'  ✅ 通过: 周末类型识别正确: {weekend_type}')
             passed_tests += 1
         else:
             raise ValueError(f'日期类型识别错误，工作日: {weekday_type}, 周末: {weekend_type}')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试6: 渲染日期格子
     total_tests += 1
     try:
-        print('\n测试6: 渲染日期格子')
+        logger.info('\n测试6: 渲染日期格子')
         cell_data = calendar_renderer.render_date_cell(2024, 0, 1)
         
         if cell_data and cell_data['date'] == '2024-01-01' and len(cell_data['festivals']) > 0:
-            print('  ✅ 通过: 日期格子数据正确')
-            print(f'  ✅ 通过: 节日数据识别正确: {cell_data["festivals"][0]["name"]}')
+            logger.info('  ✅ 通过: 日期格子数据正确')
+            logger.info(f'  ✅ 通过: 节日数据识别正确: {cell_data["festivals"][0]["name"]}')
             passed_tests += 1
         else:
             raise ValueError('日期格子渲染失败')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试7: 渲染完整日历
     total_tests += 1
     try:
-        print('\n测试7: 渲染完整日历')
+        logger.info('\n测试7: 渲染完整日历')
         calendar = calendar_renderer.render_calendar(2024, 0)
         
         if calendar and \
@@ -216,24 +217,24 @@ def run_tests():
            calendar['month'] == 0 and \
            calendar['totalDays'] == 31 and \
            len(calendar['calendarData']) >= 28:  # 降低要求，只要>=28即可
-            print('  ✅ 通过: 日历数据结构正确')
-            print(f'  ✅ 通过: 总天数正确: {calendar["totalDays"]}')
-            print(f'  ✅ 通过: 日历格子数: {len(calendar["calendarData"])}')
+            logger.info('  ✅ 通过: 日历数据结构正确')
+            logger.info(f'  ✅ 通过: 总天数正确: {calendar["totalDays"]}')
+            logger.info(f'  ✅ 通过: 日历格子数: {len(calendar["calendarData"])}')
             passed_tests += 1
         else:
             raise ValueError('日历渲染失败')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 输出测试结果
-    print('\n=== 测试结果汇总 ===')
-    print(f'通过测试: {passed_tests}/{total_tests}')
+    logger.info('\n=== 测试结果汇总 ===')
+    logger.info(f'通过测试: {passed_tests}/{total_tests}')
     
     if passed_tests == total_tests:
-        print('🎉 所有日历渲染核心功能测试通过!')
+        logger.info('🎉 所有日历渲染核心功能测试通过!')
         return True
     else:
-        print('❌ 测试未全部通过，请检查错误信息。')
+        logger.error('❌ 测试未全部通过，请检查错误信息。')
         return False
 
 # 运行测试

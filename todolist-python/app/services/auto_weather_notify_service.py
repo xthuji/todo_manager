@@ -22,6 +22,7 @@ from app.utils.constants import USE_CACHE
 from app.services.weather_service import get_weather_data
 from app.services.notify_service import load_notify_config, send_message, get_notify_config
 from app.services.location_service import get_district_area_codes
+from app.utils.logger_util import logger
 
 
 class AutoWeatherNotify:
@@ -186,13 +187,13 @@ class AutoWeatherNotify:
             error_text = f"❌ 天气服务异常\n时间: {self.format_date_time()}\n原因: {message}"
             await send_message('weather', target_user_info, error_text)
         except Exception as e:
-            print(f"警报通知发送失败: {e}")
+            logger.error(f"警报通知发送失败: {e}")
     
     async def send_weather_notify_on_timer(self):
         """
         执行通知任务
         """
-        print("天气通知任务启动...")
+        logger.info("天气通知任务启动...")
         if self.is_sending:
             return
         
@@ -215,7 +216,7 @@ class AutoWeatherNotify:
             if not weather_code:
                 raise Exception("天气代码未配置")
             
-            print(f"[Task] 正在获取 [{weather_code}] 的天气数据...")
+            logger.info(f"[Task] 正在获取 [{weather_code}] 的天气数据...")
             
             # 获取区县级别区域编码
             district_area_code = get_district_area_codes(weather_code)
@@ -236,9 +237,9 @@ class AutoWeatherNotify:
             result = await send_message('weather', config, weather_text)
             
             text = "天气通知发送成功" if result.get('success') else f"天气通知发送失败: {result.get('message', '未知错误')}"
-            print(text)
+            logger.info(text)
         except Exception as e:
-            print(f"[Error] 任务失败: {e}")
+            logger.error(f"[Error] 任务失败: {e}")
             await self.send_error_notify(config, str(e))
         finally:
             self.is_sending = False
@@ -254,7 +255,7 @@ def start_weather_notify_timer():
     启动天气通知定时器
     使用schedule库来管理定时任务
     """
-    print('初始化天气通知定时器...')
+    logger.info('初始化天气通知定时器...')
     
     # 加载配置
     import asyncio
@@ -282,26 +283,26 @@ def start_weather_notify_timer():
                     if minute == '0' and hour.isdigit():
                         # 设置每天固定时间
                         schedule.every().day.at(f"{hour}:00").do(run_send_task)
-                        print(f"定时器已启动，每天 {hour}:00 发送天气通知")
+                        logger.info(f"定时器已启动，每天 {hour}:00 发送天气通知")
                     else:
                         # 默认每天8点
                         schedule.every().day.at("08:00").do(run_send_task)
-                        print("定时器已启动，每天 08:00 发送天气通知")
+                        logger.info("定时器已启动，每天 08:00 发送天气通知")
                 else:
                     # 默认每天8点
                     schedule.every().day.at("08:00").do(run_send_task)
-                    print("定时器已启动，每天 08:00 发送天气通知")
+                    logger.info("定时器已启动，每天 08:00 发送天气通知")
             except:
                 # 默认每天8点
                 schedule.every().day.at("08:00").do(run_send_task)
-                print("定时器已启动，每天 08:00 发送天气通知")
+                logger.info("定时器已启动，每天 08:00 发送天气通知")
         
         # 启动时即时通知
         if config.get('startupNotifyEnabled'):
-            print('执行启动时即时通知...')
+            logger.info('执行启动时即时通知...')
             run_send_task()
     else:
-        print('天气通知功能未启用')
+        logger.info('天气通知功能未启用')
     
     # 启动定时任务线程
     def run_schedule():
@@ -312,7 +313,7 @@ def start_weather_notify_timer():
     scheduler_thread = threading.Thread(target=run_schedule, daemon=True)
     scheduler_thread.start()
     
-    print('天气通知定时器已启动')
+    logger.info('天气通知定时器已启动')
 
 
 def run_send_task():

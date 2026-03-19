@@ -8,6 +8,7 @@
 
 import os
 import json
+from .logger_util import logger
 
 
 class ConfigUtil:
@@ -138,10 +139,10 @@ class ConfigUtil:
             if os.path.exists(config_path):
                 with open(config_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            print(f"Config file not found: {config_path}")
+            logger.warning(f"Config file not found: {config_path}")
             return {}
         except Exception as e:
-            print(f"读取配置文件失败: {str(e)}")
+            logger.error(f"读取配置文件失败: {str(e)}")
             return {}
     
     def get_config(self, config_name, default=None):
@@ -160,7 +161,7 @@ class ConfigUtil:
             config = self._read_config_file(config_path)
             return config or default
         except Exception as e:
-            print(f"获取配置失败: {str(e)}")
+            logger.error(f"获取配置失败: {str(e)}")
             return default
     
     def get_config_sync(self, config_name, default=None):
@@ -197,10 +198,10 @@ class ConfigUtil:
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config_data, f, ensure_ascii=False, indent=2)
             
-            print(f"Config saved successfully: {config_name}")
+            logger.info(f"Config saved successfully: {config_name}")
             return True
         except Exception as e:
-            print(f"保存配置文件失败: {str(e)}")
+            logger.error(f"保存配置文件失败: {str(e)}")
             return False
     
     def get_config_value(self, config_name, key_path, default=None):
@@ -227,7 +228,7 @@ class ConfigUtil:
             
             return value if value is not None else default
         except Exception as e:
-            print(f"获取配置值失败: {str(e)}")
+            logger.error(f"获取配置值失败: {str(e)}")
             return default
     
     def get_available_configs(self):

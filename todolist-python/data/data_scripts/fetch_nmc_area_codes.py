@@ -5,6 +5,11 @@ import time
 import re
 from concurrent.futures import ThreadPoolExecutor
 
+# 添加项目根目录到 Python 路径
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from app.utils.logger_util import logger
+
 # 结果路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AREA_CODES_FILE_PATH = os.path.join(BASE_DIR, 'weather', 'nmc_weather_area_codes.json')
@@ -41,7 +46,7 @@ def clean_encoding(text):
 
 # 抓取所有省份的编码数据
 def fetch_provinces():
-    print('开始抓取省份编码数据...')
+    logger.info('开始抓取省份编码数据...')
     url = f"https://www.nmc.cn/rest/province/all?_={get_timestamp()}"
     provinces = send_request(url)
     
@@ -53,7 +58,7 @@ def fetch_provinces():
 
 # 抓取指定省份的地区编码数据
 def fetch_cities_by_province(province):
-    print(f"正在抓取省份编码 {province['code']} 的地区数据...")
+    logger.info(f"正在抓取省份编码 {province['code']} 的地区数据...")
     url = f"https://www.nmc.cn/rest/province/{province['code']}?_={get_timestamp()}"
     
     try:
@@ -70,10 +75,10 @@ def fetch_cities_by_province(province):
             } for city in cities]
         }
         
-        print(f"成功抓取 {province['name']} 的 {len(cities)} 个地区")
+        logger.info(f"成功抓取 {province['name']} 的 {len(cities)} 个地区")
         return province_data
     except Exception as e:
-        print(f"抓取 {province['name']} 的地区数据失败: {str(e)}")
+        logger.error(f"抓取 {province['name']} 的地区数据失败: {str(e)}")
         return None
 
 # 主函数
@@ -81,7 +86,7 @@ def main():
     try:
         # 1. 抓取所有省份
         provinces = fetch_provinces()
-        print(f"成功抓取到 {len(provinces)} 个省份")
+        logger.info(f"成功抓取到 {len(provinces)} 个省份")
         
         # 2. 并行抓取每个省份的地区数据
         result = {
@@ -113,15 +118,15 @@ def main():
         output_dir = os.path.dirname(AREA_CODES_FILE_PATH)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
-            print(f"创建目录: {output_dir}")
+            logger.info(f"创建目录: {output_dir}")
         
         with open(AREA_CODES_FILE_PATH, 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
-        print(f"数据已保存到: {AREA_CODES_FILE_PATH}")
-        print(f"总共成功抓取 {len(result['data'])} 个省份的地区数据")
+        logger.info(f"数据已保存到: {AREA_CODES_FILE_PATH}")
+        logger.info(f"总共成功抓取 {len(result['data'])} 个省份的地区数据")
         
     except Exception as e:
-        print(f"抓取过程中发生错误: {str(e)}")
+        logger.error(f"抓取过程中发生错误: {str(e)}")
         exit(1)
 
 # 执行主函数

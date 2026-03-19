@@ -1,5 +1,6 @@
 import time
 import datetime
+from app.utils.logger_util import logger
 
 # 模拟任务解析器
 class TaskParser:
@@ -187,85 +188,85 @@ async def run_tests():
     passed_tests = 0
     total_tests = 0
     
-    print('=== 开始核心业务流程集成测试 ===\n')
+    logger.info('=== 开始核心业务流程集成测试 ===')
     
     # 测试1: 应用初始化完整流程
     total_tests += 1
     try:
-        print('测试1: 应用初始化完整流程')
+        logger.info('测试1: 应用初始化完整流程')
         result = await business_process.initialize_app()
         
         if result['success'] and \
            result['taskCount'] > 0 and \
            result['calendarRendered'] and \
            result['calendarRendered']['year'] == datetime.datetime.now().year:
-            print('  ✅ 通过: 应用初始化成功')
-            print(f'  ✅ 通过: 任务加载成功，共{result["taskCount"]}个任务')
-            print('  ✅ 通过: 日历渲染成功')
+            logger.info('  ✅ 通过: 应用初始化成功')
+            logger.info(f'  ✅ 通过: 任务加载成功，共{result["taskCount"]}个任务')
+            logger.info('  ✅ 通过: 日历渲染成功')
             passed_tests += 1
         else:
             raise Exception('应用初始化流程失败')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试2: 节假日任务处理流程
     total_tests += 1
     try:
-        print('\n测试2: 节假日任务处理流程')
+        logger.info('\n测试2: 节假日任务处理流程')
         holiday_tasks = await business_process.process_holiday_tasks()
         
         if holiday_tasks and \
            holiday_tasks[0]['festivals'] and \
            'urgencyLevel' in holiday_tasks[0]['task']:
-            print('  ✅ 通过: 成功识别节假日任务')
-            print(f'  ✅ 通过: 节假日任务数量: {len(holiday_tasks)}')
-            print(f'  ✅ 通过: 紧急程度计算正确: {holiday_tasks[0]["task"]["urgencyLevel"]}')
+            logger.info('  ✅ 通过: 成功识别节假日任务')
+            logger.info(f'  ✅ 通过: 节假日任务数量: {len(holiday_tasks)}')
+            logger.info(f'  ✅ 通过: 紧急程度计算正确: {holiday_tasks[0]["task"]["urgencyLevel"]}')
             passed_tests += 1
         else:
             raise Exception('节假日任务处理失败')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试3: 按项目筛选任务并渲染日历
     total_tests += 1
     try:
-        print('\n测试3: 按项目筛选任务并渲染日历')
+        logger.info('\n测试3: 按项目筛选任务并渲染日历')
         result = await business_process.filter_tasks_by_project_and_render('project1')
         
         if result['projectName'] == 'project1' and \
            result['filteredTasksCount'] > 0 and \
            result['calendarResult']:
-            print('  ✅ 通过: 项目筛选成功')
-            print(f'  ✅ 通过: 筛选后任务数量: {result["filteredTasksCount"]}')
-            print('  ✅ 通过: 筛选后日历渲染成功')
+            logger.info('  ✅ 通过: 项目筛选成功')
+            logger.info(f'  ✅ 通过: 筛选后任务数量: {result["filteredTasksCount"]}')
+            logger.info('  ✅ 通过: 筛选后日历渲染成功')
             passed_tests += 1
         else:
             raise Exception('项目筛选和日历渲染失败')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试4: 任务状态计算集成
     total_tests += 1
     try:
-        print('\n测试4: 任务状态计算集成')
+        logger.info('\n测试4: 任务状态计算集成')
         # 简化测试，只验证函数能返回有效状态字符串
         test_task = {'status': 'pending', 'dueDate': '2024-12-31'}
         task_status = business_process.task_parser.calculate_task_display_status(test_task)
         
         # 检查是否返回了字符串且不为空
         if isinstance(task_status, str) and task_status.strip():
-            print('  ✅ 通过: 任务状态计算集成成功')
-            print(f'  ✅ 通过: 成功获取任务状态: {task_status}')
+            logger.info('  ✅ 通过: 任务状态计算集成成功')
+            logger.info(f'  ✅ 通过: 成功获取任务状态: {task_status}')
             passed_tests += 1
         else:
             raise Exception(f'任务状态计算返回无效值: {task_status}')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 测试5: 日期导航与日历更新流程
     total_tests += 1
     try:
-        print('\n测试5: 日期导航与日历更新流程')
+        logger.info('\n测试5: 日期导航与日历更新流程')
         target_date = '2024-01-01'  # 2024年1月1日
         business_process.todo_manager.go_to_date(target_date)
         tasks = business_process.todo_manager.get_tasks()
@@ -276,24 +277,24 @@ async def run_tests():
         if calendar_result['year'] == 2024 and \
            calendar_result['month'] == 0 and \
            calendar_result['holidayTasksCount'] > 0:
-            print('  ✅ 通过: 日期导航成功')
-            print('  ✅ 通过: 节假日任务识别成功')
-            print('  ✅ 通过: 日历更新成功')
+            logger.info('  ✅ 通过: 日期导航成功')
+            logger.info('  ✅ 通过: 节假日任务识别成功')
+            logger.info('  ✅ 通过: 日历更新成功')
             passed_tests += 1
         else:
             raise Exception('日期导航与日历更新失败')
     except Exception as e:
-        print(f'  ❌ 失败: {e}')
+        logger.error(f'  ❌ 失败: {e}')
     
     # 输出测试结果
-    print('\n=== 测试结果汇总 ===')
-    print(f'通过测试: {passed_tests}/{total_tests}')
+    logger.info('\n=== 测试结果汇总 ===')
+    logger.info(f'通过测试: {passed_tests}/{total_tests}')
     
     if passed_tests == total_tests:
-        print('🎉 所有核心业务流程集成测试通过!')
+        logger.info('🎉 所有核心业务流程集成测试通过!')
         return True
     else:
-        print('❌ 测试未全部通过，请检查错误信息。')
+        logger.error('❌ 测试未全部通过，请检查错误信息。')
         return False
 
 # 运行测试

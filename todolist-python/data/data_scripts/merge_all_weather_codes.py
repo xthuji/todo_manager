@@ -3,6 +3,11 @@ import os
 import re
 import time
 
+# 添加项目根目录到 Python 路径
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from app.utils.logger_util import logger
+
 # 基础目录
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -92,7 +97,7 @@ def fuzzy_match(target_name, item):
 # 合并所有天气数据源
 def merge_all_weather_codes():
     try:
-        print('开始读取数据源文件...')
+        logger.info('开始读取数据源文件...')
         
         # 读取并解析JSON文件
         with open(tianqiAreaCodesPath, 'r', encoding='utf-8') as f:
@@ -107,7 +112,7 @@ def merge_all_weather_codes():
         with open(cmaWeatherAreaCodesPath, 'r', encoding='utf-8') as f:
             cmaData = json.load(f)
         
-        print('文件读取完成，开始构建各数据源按省份分类的数据...')
+        logger.info('文件读取完成，开始构建各数据源按省份分类的数据...')
         
         # 按省份分类的数据结构
         provinceData = {}
@@ -128,7 +133,7 @@ def merge_all_weather_codes():
                         for district in city['children']:
                             provinceData[cleanedProvinceName]['districts'].append(district['name'])
         
-        print(f"省份数据构建完成，共{len(provinceData)}个省份")
+        logger.info(f"省份数据构建完成，共{len(provinceData)}个省份")
         
         # 为各数据源按省份分类
         def categorize_by_province(data, source_name):
@@ -182,7 +187,7 @@ def merge_all_weather_codes():
             
             collect_and_categorize(data['data'])
             
-            print(f"{source_name} - 分类完成: {len([p for p in categorized if categorized[p]])}个省份有数据，{len(uncategorized)}个未分类")
+            logger.info(f"{source_name} - 分类完成: {len([p for p in categorized if categorized[p]])}个省份有数据，{len(uncategorized)}个未分类")
             return {'categorized': categorized, 'uncategorized': uncategorized}
         
         # 分类各数据源
@@ -276,7 +281,7 @@ def merge_all_weather_codes():
                 min_required_similarity = 0.9 if len(target_name) <= 2 else 0.8
                 
                 if best_similarity >= min_required_similarity:
-                    print(f"{source_name} - 区县({province_name}) {target_name} 模糊匹配到多个结果，选择相似度最高的: {fuzzy_matches[0]['name']}")
+                    logger.info(f"{source_name} - 区县({province_name}) {target_name} 模糊匹配到多个结果，选择相似度最高的: {fuzzy_matches[0]['name']}")
                     return {
                         'code': fuzzy_matches[0]['code'], 
                         'nameCode': fuzzy_matches[0].get('nameCode', ''), 
@@ -349,7 +354,7 @@ def merge_all_weather_codes():
                     district_processed += 1
                     
                     if not province_name:
-                        print(f"区县 {item['name']} 缺少省份信息，跳过匹配")
+                        logger.warning(f"区县 {item['name']} 缺少省份信息，跳过匹配")
                         return
                     
                     # 严格按照省份+地区进行匹配
@@ -402,7 +407,7 @@ def merge_all_weather_codes():
                 if item.get('children'):
                     process_data(item['children'], level + 1, item['name'] if level == 0 else province_name)
         
-        print('开始处理数据结构，严格按照省份+地区进行匹配合并...')
+        logger.info('开始处理数据结构，严格按照省份+地区进行匹配合并...')
         
         # 处理数据
         process_data(tianqiData['data'])
@@ -410,7 +415,7 @@ def merge_all_weather_codes():
         # 更新时间戳
         tianqiData['timestamp'] = int(time.time() * 1000)
         
-        print('数据处理完成，开始写入文件...')
+        logger.info('数据处理完成，开始写入文件...')
         
         # 确保输出目录存在
         output_dir = os.path.dirname(outputFilePath)
@@ -457,22 +462,22 @@ def merge_all_weather_codes():
             f.write('\n'.join(log_content))
         
         # 显示统计信息
-        print('========================================')
-        print('合并统计信息:')
-        print(f'- 总共处理的地区数量: {total_processed}')
-        print(f'- 省份数量: {province_processed}')
-        print(f'- 区县数量: {district_processed}')
-        print('----------------------------------------')
-        print(f'- Moji Weather 匹配: 省份 {province_moji_code_found}/{province_processed}, 区县 {district_moji_code_found}/{district_processed}')
-        print(f'- NMC 匹配: 省份 {province_nmc_code_found}/{province_processed}, 区县 {district_nmc_code_found}/{district_processed}')
-        print(f'- CMA 匹配: 省份 {province_cma_code_found}/{province_processed}, 区县 {district_cma_code_found}/{district_processed}')
-        print('----------------------------------------')
-        print(f'- 合并后的数据已保存至: {outputFilePath}')
-        print(f'- 合并日志已保存至: {logFilePath}')
-        print('========================================')
+        logger.info('========================================')
+        logger.info('合并统计信息:')
+        logger.info(f'- 总共处理的地区数量: {total_processed}')
+        logger.info(f'- 省份数量: {province_processed}')
+        logger.info(f'- 区县数量: {district_processed}')
+        logger.info('----------------------------------------')
+        logger.info(f'- Moji Weather 匹配: 省份 {province_moji_code_found}/{province_processed}, 区县 {district_moji_code_found}/{district_processed}')
+        logger.info(f'- NMC 匹配: 省份 {province_nmc_code_found}/{province_processed}, 区县 {district_nmc_code_found}/{district_processed}')
+        logger.info(f'- CMA 匹配: 省份 {province_cma_code_found}/{province_processed}, 区县 {district_cma_code_found}/{district_processed}')
+        logger.info('----------------------------------------')
+        logger.info(f'- 合并后的数据已保存至: {outputFilePath}')
+        logger.info(f'- 合并日志已保存至: {logFilePath}')
+        logger.info('========================================')
         
     except Exception as e:
-        print(f"合并过程中发生错误：{str(e)}")
+        logger.error(f"合并过程中发生错误：{str(e)}")
         import traceback
         traceback.print_exc()
         exit(1)

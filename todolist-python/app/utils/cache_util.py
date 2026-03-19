@@ -3,6 +3,7 @@ import json
 import time
 from app.utils.config_util import config_util
 from app.utils.constants import USE_CACHE, CACHE_DIR
+from app.utils.logger_util import logger
 
 class CacheUtil:
     """
@@ -39,15 +40,16 @@ class CacheUtil:
             return
         
         if level == "error":
-            print(f"ERROR: {message}")
             if "error" in meta and os.environ.get("NODE_ENV") != "production":
-                print(f"ERROR: {str(meta['error'])}")
+                logger.error(f"{message}: {str(meta['error'])}")
+            else:
+                logger.error(message)
         elif level == "warn":
-            print(f"WARN: {message}")
+            logger.warning(message)
         elif level == "debug":
-            print(f"DEBUG: {message}")
+            logger.debug(message)
         else:
-            print(f"INFO: {message}")
+            logger.info(message)
     
     # 创建缓存项的通用方法
     def _create_cache_item(self, data, options, timestamp=None):

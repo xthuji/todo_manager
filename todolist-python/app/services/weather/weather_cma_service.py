@@ -7,6 +7,7 @@
 """
 
 import requests
+from app.utils.logger_util import logger
 
 
 # 天气请求头
@@ -58,7 +59,7 @@ def fetch_cma_weather(cma_area_code):
     try:
         # 仅使用指定的URL接口
         cma_weather_url = f"https://weather.cma.cn/api/now/{cma_area_code}"
-        print(f"开始获取中国气象局天气数据，正在访问: {cma_weather_url}")
+        logger.info(f"开始获取中国气象局天气数据，正在访问: {cma_weather_url}")
         
         response = requests.get(cma_weather_url, headers=WEATHER_HEADERS, timeout=5)
         
@@ -67,9 +68,9 @@ def fetch_cma_weather(cma_area_code):
         
         cma_data = response.json()
         cma_weather_data = extract_cma_weather_data(cma_data)
-        print("成功提取中国气象局天气数据")
+        logger.info("成功提取中国气象局天气数据")
         
         return cma_weather_data
     except Exception as e:
-        print(f"获取中国气象局天气数据失败: {e}")
+        logger.error(f"获取中国气象局天气数据失败: {e}")
         return {"error": {"message": str(e) or "获取中国气象局天气数据失败"}}

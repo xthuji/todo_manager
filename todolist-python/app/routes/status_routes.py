@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 import os
 import signal
 import time
+from app.utils.logger_util import logger
 
 # 创建蓝图
 bp = Blueprint('status_routes', __name__)
@@ -20,28 +21,28 @@ def set_server_instance(server):
 
 def check_status():
     try:
-        print("check_status function is called!")
+        logger.info("check_status function is called!")
         # 确保返回的结构与Node.js服务器一致
         response = {
             "success": True,
             "message": "服务正在运行"
         }
-        print(f"Response: {response}")
+        logger.debug(f"Response: {response}")
         return jsonify(response)
     except Exception as e:
-        print(f"Error: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         return jsonify({"success": False, "message": f"检查服务状态失败: {str(e)}"}), 500
 
 # 关闭服务器接口
 @bp.route('/shutdown', methods=['POST'])
 def shutdown():
     try:
-        print('收到关闭服务器请求')
+        logger.info('收到关闭服务器请求')
         
         # 异步关闭服务器
         def shutdown_server():
             time.sleep(1)
-            print('正在关闭服务器...')
+            logger.info('正在关闭服务器...')
             if server_instance:
                 server_instance.shutdown()
             else:

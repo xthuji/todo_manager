@@ -4,6 +4,7 @@ import json
 import time
 from app.utils.cache_util import CacheUtil
 from app.utils.config_util import config_util
+from app.utils.logger_util import logger
 from app.services.location_service import get_location, get_curr_location, get_all_area_codes, get_district_area_codes
 from app.services.weather_service import get_weather_data
 
@@ -47,7 +48,7 @@ def get_ip_location():
         client_ip = get_client_ip(request)
         # 获取forceRefresh参数
         force_refresh = request.args.get('forceRefresh') == 'true'
-        print(f'接收到IP位置信息请求，客户端IP: {client_ip}，是否强制刷新: {force_refresh}')
+        logger.info(f'接收到IP位置信息请求，客户端IP: {client_ip}，是否强制刷新: {force_refresh}')
         
         # 获取位置信息
         location_result = get_location(client_ip, force_refresh)
@@ -65,11 +66,11 @@ def get_weather_area_codes():
         # 调用get_all_area_codes函数获取缓存的天气区域编码数据
         area_codes_data = get_all_area_codes()
         if area_codes_data:
-            print('使用缓存的天气区域编码数据')
+            logger.info('使用缓存的天气区域编码数据')
             return jsonify(area_codes_data)
         
         # 如果获取失败，返回默认的空数据结构
-        print('地区编码数据文件不存在或无法读取')
+        logger.warning('地区编码数据文件不存在或无法读取')
         return jsonify({
             "data": [],
             "timestamp": int(time.time() * 1000),
@@ -77,7 +78,7 @@ def get_weather_area_codes():
             "permanent": True
         })
     except Exception as e:
-        print(f'get_weather_area_codes: error = {e}')
+        logger.error(f'get_weather_area_codes: error = {e}')
         return jsonify({"success": False, "message": "获取数据失败", "error": str(e)}), 500
 
 
@@ -153,7 +154,7 @@ def get_district_area_codes(area_code):
                     else:
                         traverse_areas(data)
             except Exception as e:
-                print(f'读取地区编码数据失败: {e}')
+                logger.error(f'读取地区编码数据失败: {e}')
     
     return area_codes_map.get(area_code, {})
 
@@ -165,7 +166,7 @@ async def get_weather_info():
         weather_code = request.args.get('weatherCode')
         force_refresh = request.args.get('forceRefresh') == 'true'
         
-        print(f'收到今日天气请求，查询参数: {request.args}')
+        logger.info(f'收到今日天气请求，查询参数: {request.args}')
         
         # 验证必要参数
         if not weather_code:

@@ -15,6 +15,7 @@ import asyncio
 from app.utils.cache_util import cache_util
 from app.utils.config_util import config_util
 from app.utils.constants import USE_MOCK, USE_CACHE, MOCK_DIR, DATA_DIR, PRINT_API_DATA, PRINT_DATA_LOG
+from app.utils.logger_util import logger
 
 # 数据目录配置
 WEATHER_DIR = config_util.get_weather_dir()
@@ -94,7 +95,7 @@ def get_location1():
     """
     try:
         cma_url = 'https://weather.cma.cn/api/weather/view'
-        print(f'开始调用气象局天气接口获取位置信息，正在访问: {cma_url}')
+        logger.info(f'开始调用气象局天气接口获取位置信息，正在访问: {cma_url}')
         
         response = requests.get(cma_url, timeout=10)
         
@@ -102,7 +103,7 @@ def get_location1():
             raise Exception(f'气象局天气接口响应状态码: {response.status_code}')
         
         weather_location_data = response.json()
-        print('成功获取气象局天气接口数据')
+        logger.info('成功获取气象局天气接口数据')
         
         # 位置数据 - 使用正则表达式替换，确保与Node.js一致
         district_name = weather_location_data.get('data', {}).get('location', {}).get('name', '')
@@ -124,7 +125,7 @@ def get_location1():
             'district': district_name if district_name else '未知区县'
         }
     except Exception as e:
-        print(f'气象局天气接口获取和处理位置信息时发生错误: {e}')
+        logger.error(f'气象局天气接口获取和处理位置信息时发生错误: {e}')
         return None
 
 
@@ -138,7 +139,7 @@ def get_location2():
     try:
         # 1. 调用ip-api获取基础位置信息
         ip_api_url = 'http://ip-api.com/json/?lang=zh-CN'
-        print(f'开始调用ip-api获取位置信息，正在访问: {ip_api_url}')
+        logger.info(f'开始调用ip-api获取位置信息，正在访问: {ip_api_url}')
         
         ip_api_response = requests.get(ip_api_url, timeout=5)
         
@@ -146,7 +147,7 @@ def get_location2():
             raise Exception(f'ip-api响应状态码: {ip_api_response.status_code}')
         
         ip_location_data = ip_api_response.json()
-        print('成功获取ip-api位置数据')
+        logger.info('成功获取ip-api位置数据')
         
         # 2. 使用从ip-api获取的IP地址调用美团API获取省市区县信息
         weather_location_data = None
@@ -154,7 +155,7 @@ def get_location2():
             ip_address = ip_location_data.get('query')
             # 从ip-api获取的IP地址，传递给美团API
             meituan_url = f'https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip={ip_address}'
-            print(f'开始根据IP调用美团API获取位置信息，正在访问: {meituan_url}')
+            logger.info(f'开始根据IP调用美团API获取位置信息，正在访问: {meituan_url}')
             
             meituan_response = requests.get(meituan_url, timeout=5, headers={
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -165,7 +166,7 @@ def get_location2():
                 raise Exception(f'美团地理位置服务响应状态码: {meituan_response.status_code}')
             
             weather_location_data = meituan_response.json()
-            print('成功获取美团地理位置服务数据')
+            logger.info('成功获取美团地理位置服务数据')
         
         # 3. 综合两个API的数据，只返回省市区县信息
         # 使用正则表达式替换，确保与Node.js一致
@@ -181,7 +182,7 @@ def get_location2():
             'district': district_name if district_name else '未知区县'
         }
     except Exception as e:
-        print(f'ip-api&美团位置接口获取和处理位置信息时发生错误: {e}')
+        logger.error(f'ip-api&美团位置接口获取和处理位置信息时发生错误: {e}')
         return None
 
 
@@ -195,7 +196,7 @@ def get_curr_location(force_refresh):
     Returns:
         位置信息
     """
-    print('正在调用接口获取位置信息...')
+    logger.info('正在调用接口获取位置信息...')
     
     # 尝试从多个API获取位置信息
     import concurrent.futures
@@ -213,12 +214,12 @@ def get_curr_location(force_refresh):
         try:
             address_data1 = future1.result(timeout=10)
         except Exception as e:
-            print(f'获取位置信息1失败: {e}')
+            logger.error(f'获取位置信息1失败: {e}')
         
         try:
             address_data2 = future2.result(timeout=10)
         except Exception as e:
-            print(f'获取位置信息2失败: {e}')
+            logger.error(f'获取位置信息2失败: {e}')
     
     # 根据force_refresh参数决定使用哪个API的数据
     if force_refresh:
@@ -229,16 +230,16 @@ def get_curr_location(force_refresh):
         address_data = address_data2 if address_data2 else address_data1
     
     if PRINT_DATA_LOG:
-        print(f'接口获取位置信息结果1: {json.dumps(address_data1)}')
-        print(f'接口获取位置信息结果2: {json.dumps(address_data2)}')
+        logger.info(f'接口获取位置信息结果1: {json.dumps(address_data1)}')
+        logger.info(f'接口获取位置信息结果2: {json.dumps(address_data2)}')
     
     # 如果所有API都失败，使用默认数据
     if not address_data:
-        print('所有位置API都失败，使用默认数据')
+        logger.info('所有位置API都失败，使用默认数据')
         address_data = default_location_info
     else:
         if PRINT_DATA_LOG:
-            print(f'使用真实API获取的位置数据: {json.dumps(address_data)}')
+            logger.info(f'使用真实API获取的位置数据: {json.dumps(address_data)}')
     
     # 读取地区编码数据，用于查找完整的省市县信息
     all_area_codes = get_all_area_codes()
@@ -252,7 +253,7 @@ def get_curr_location(force_refresh):
             address_data['code'] = district_info.get('code')
     
     if PRINT_DATA_LOG:
-        print(f'返回完整的位置数据: {json.dumps(address_data)}')
+        logger.info(f'返回完整的位置数据: {json.dumps(address_data)}')
     return address_data
 
 
@@ -268,10 +269,10 @@ def get_location(client_ip, force_refresh=False):
         位置信息
     """
     try:
-        print(f'USE_MOCK: {USE_MOCK}')
+        logger.info(f'USE_MOCK: {USE_MOCK}')
         if USE_MOCK:
             # 使用mock数据，确保与Node.js项目一致
-            print('使用mock位置数据，确保与Node.js项目一致')
+            logger.info('使用mock位置数据，确保与Node.js项目一致')
             mock_file_path = os.path.join(MOCK_DIR, 'mock_ip_area.json')
             mock_data = cache_util.get_wrapped_data('mock_ip_area', {
                 'source_file': mock_file_path,
@@ -279,11 +280,11 @@ def get_location(client_ip, force_refresh=False):
                 'ttl': 0,
             })
             if mock_data:
-                print(f'mock位置数据: {mock_data}')
+                logger.info(f'mock位置数据: {mock_data}')
                 return mock_data
             
             # 如果mock数据获取失败，使用默认位置数据
-            print('mock位置数据获取失败，使用默认位置数据')
+            logger.info('mock位置数据获取失败，使用默认位置数据')
             return {
                 "data": default_location_info,
                 "timestamp": int(time.time() * 1000),
@@ -293,7 +294,7 @@ def get_location(client_ip, force_refresh=False):
         
         # 如果强制刷新，则直接获取新数据，不使用缓存
         if force_refresh:
-            print('强制刷新位置信息，跳过缓存')
+            logger.info('强制刷新位置信息，跳过缓存')
             new_data = get_curr_location(force_refresh)
             # 更新缓存，但仍使用forceRefresh参数标记此次请求
             cache_util.set_data(f'ip_{client_ip}', new_data, {'ttl': 3600000})
@@ -311,7 +312,7 @@ def get_location(client_ip, force_refresh=False):
             'loadDataFn': lambda: get_curr_location(force_refresh)
         })
     except Exception as e:
-        print(f'获取位置信息失败: {e}')
+        logger.error(f'获取位置信息失败: {e}')
         return {
             'data': None,
             'timestamp': int(time.time() * 1000)
@@ -336,7 +337,7 @@ def get_all_area_codes():
         if result:
             return result
         # 如果文件不存在或读取失败
-        print('地区编码数据文件不存在或无法读取')
+        logger.warning('地区编码数据文件不存在或无法读取')
         return {
             'data': [],
             'timestamp': int(time.time() * 1000),
@@ -344,7 +345,7 @@ def get_all_area_codes():
             'permanent': True
         }
     except Exception as e:
-        print(f'获取省市县编码数据失败: {e}')
+        logger.error(f'获取省市县编码数据失败: {e}')
         return {
             'data': [],
             'timestamp': int(time.time() * 1000),

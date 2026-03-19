@@ -9,6 +9,7 @@
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+from app.utils.logger_util import logger
 
 
 # 天气请求头
@@ -133,7 +134,7 @@ def fetch_moji_weather(moji_area_code):
     
     try:
         weather_url = f"https://tianqi.moji.com/weather/china/{moji_area_code}"
-        print(f"开始获取墨迹天气数据，正在访问: {weather_url}")
+        logger.info(f"开始获取墨迹天气数据，正在访问: {weather_url}")
         
         response = requests.get(weather_url, headers=WEATHER_HEADERS, timeout=5)
         
@@ -143,9 +144,9 @@ def fetch_moji_weather(moji_area_code):
         # 明确指定编码为utf-8，避免编码问题
         weather_html = response.content.decode('utf-8')
         moji_weather_data = extract_moji_weather_data(weather_html)
-        print("成功提取墨迹天气数据")
+        logger.info("成功提取墨迹天气数据")
         
         return moji_weather_data
     except Exception as e:
-        print(f"获取墨迹天气数据失败: {e}")
+        logger.error(f"获取墨迹天气数据失败: {e}")
         return {"error": str(e) or "获取墨迹天气数据失败"}

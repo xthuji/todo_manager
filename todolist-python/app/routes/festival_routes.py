@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 import time
 from app.utils.cache_util import CacheUtil
 from app.utils.config_util import config_util
+from app.utils.logger_util import logger
 
 # 创建蓝图
 bp = Blueprint('festival_routes', __name__)
@@ -18,7 +19,7 @@ def clear_config_cache():
         cache_util.delete(CACHE_KEY)
         return True
     except Exception as error:
-        print(f'清除节日配置缓存失败: {error}')
+        logger.error(f'清除节日配置缓存失败: {error}')
         return False
 
 # 获取节日配置接口
@@ -28,21 +29,21 @@ def get_festival_config():
         config = config_util.get_config('festival')
         
         if config:
-            print('获取节日配置成功')
+            logger.info('获取节日配置成功')
             return jsonify({
                 "data": config,
                 "timestamp": time.time() * 1000,
                 "error": None
             })
 
-        print('节日配置文件不存在或无法读取')
+        logger.warning('节日配置文件不存在或无法读取')
         return jsonify({
             "data": None,
             "timestamp": time.time() * 1000,
             "error": {"message": "节日配置文件不存在或无法读取"}
         }), 404
     except Exception as error:
-        print(f'获取节日配置失败: {error}')
+        logger.error(f'获取节日配置失败: {error}')
         return jsonify({
             "data": None,
             "timestamp": time.time() * 1000,
@@ -70,10 +71,10 @@ def save_festival_config():
         config_util.save_config('festival', config_data)
         clear_config_cache()
 
-        print('节日配置文件保存成功，缓存已清除')
+        logger.info('节日配置文件保存成功，缓存已清除')
         return jsonify({"data": {"success": True, "message": "节日配置保存成功"}, "timestamp": time.time() * 1000})
     except Exception as error:
-        print(f'保存节日配置失败: {error}')
+        logger.error(f'保存节日配置失败: {error}')
         return jsonify({
             "data": None,
             "timestamp": time.time() * 1000,

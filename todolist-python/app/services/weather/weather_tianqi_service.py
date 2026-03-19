@@ -12,6 +12,7 @@ import json
 import time
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+from app.utils.logger_util import logger
 
 
 # 天气请求头
@@ -115,7 +116,7 @@ def extract_today_weather_data(html):
                         "humidity": forecast_default.get('humidity', '')
                     }
                 except Exception as e:
-                    print(f"解析forecast_default失败: {e}")
+                    logger.error(f"解析forecast_default失败: {e}")
             
             if match_forecast_1h:
                 try:
@@ -130,7 +131,7 @@ def extract_today_weather_data(html):
                         for item in forecast_1h
                     ]
                 except Exception as e:
-                    print(f"解析forecast_1h失败: {e}")
+                    logger.error(f"解析forecast_1h失败: {e}")
     
     # 从页面中获取生活助手数据
     life_title_elem = soup.select('div.weather_shzs_1d > ul > li')
@@ -163,7 +164,7 @@ def fetch_today_weather(weather_code):
     
     try:
         today_weather_url = f"https://forecast.weather.com.cn/town/weather1dn/{weather_code}.shtml"
-        print(f"开始获取今日天气数据，正在访问: {today_weather_url}")
+        logger.info(f"开始获取今日天气数据，正在访问: {today_weather_url}")
         
         response = requests.get(today_weather_url, headers=WEATHER_HEADERS, timeout=5)
         
@@ -172,11 +173,11 @@ def fetch_today_weather(weather_code):
         
         weather_content = response.content.decode('utf-8')
         weather_data = extract_today_weather_data(weather_content)
-        print("成功提取今日天气数据")
+        logger.info("成功提取今日天气数据")
         
         return weather_data
     except Exception as e:
-        print(f"获取今日天气数据失败: {e}")
+        logger.error(f"获取今日天气数据失败: {e}")
         return {"error": {"message": str(e) or "获取天气数据失败"}}
 
 
@@ -209,7 +210,7 @@ def extract_today_detail_weather_data(html):
                 "limit": detail_weather.get('limitnumber', '')
             }
         except Exception as e:
-            print(f"解析今日天气补充数据失败: {e}")
+            logger.error(f"解析今日天气补充数据失败: {e}")
     
     return weather_data
 
@@ -230,7 +231,7 @@ def fetch_today_detail_weather(weather_code):
     try:
         timestamp = int(time.time() * 1000)
         today_weather_url = f"https://d1.weather.com.cn/sk_2d/{weather_code}.html?_={timestamp}"
-        print(f"开始获取今日天气补充数据，正在访问: {today_weather_url}")
+        logger.info(f"开始获取今日天气补充数据，正在访问: {today_weather_url}")
         
         headers = WEATHER_HEADERS.copy()
         headers['Referer'] = 'https://www.weather.com.cn/'
@@ -242,11 +243,11 @@ def fetch_today_detail_weather(weather_code):
         
         weather_content = response.content.decode('utf-8')
         weather_data = extract_today_detail_weather_data(weather_content)
-        print("成功提取今日天气补充数据")
+        logger.info("成功提取今日天气补充数据")
         
         return weather_data
     except Exception as e:
-        print(f"获取今日天气补充数据失败: {e}")
+        logger.error(f"获取今日天气补充数据失败: {e}")
         return {"error": {"message": str(e) or "获取天气数据失败"}}
 
 
@@ -337,7 +338,7 @@ def fetch_recent_days_weather(weather_code):
     
     try:
         days_weather_url = f"https://www.weather.com.cn/weather/{weather_code}.shtml"
-        print(f"开始获取近几日天气数据，正在访问: {days_weather_url}")
+        logger.info(f"开始获取近几日天气数据，正在访问: {days_weather_url}")
         
         response = requests.get(days_weather_url, headers=WEATHER_HEADERS, timeout=5)
         
@@ -347,11 +348,11 @@ def fetch_recent_days_weather(weather_code):
         # 明确指定编码为utf-8，避免编码问题
         weather_content = response.content.decode('utf-8')
         weather_data = extract_recent_days_weather_data(weather_content)
-        print("成功提取近几日天气数据")
+        logger.info("成功提取近几日天气数据")
         
         return weather_data
     except Exception as e:
-        print(f"获取近几日天气数据失败: {e}")
+        logger.error(f"获取近几日天气数据失败: {e}")
         return {"error": {"message": str(e) or "获取近几日天气数据失败"}}
 
 
@@ -401,7 +402,7 @@ def extract_calendar_and_history_weather_data(html):
                         "tempMax": item.get('max', '')
                     })
         except Exception as e:
-            print(f"解析日历和历史天气数据失败: {e}")
+            logger.error(f"解析日历和历史天气数据失败: {e}")
     
     return weather_data
 
@@ -426,7 +427,7 @@ def fetch_calendar_and_history_weather(weather_code):
         
         timestamp = int(time.time() * 1000)
         history_weather_url = f"https://d1.weather.com.cn/calendarFromMon/{year}/{weather_code}_{year_month}.html?_={timestamp}"
-        print(f"开始获取天气历史数据，正在访问: {history_weather_url}")
+        logger.info(f"开始获取天气历史数据，正在访问: {history_weather_url}")
         
         headers = WEATHER_HEADERS.copy()
         headers['Referer'] = 'https://www.weather.com.cn/'
@@ -438,9 +439,9 @@ def fetch_calendar_and_history_weather(weather_code):
         
         weather_content = response.content.decode('utf-8')
         weather_data = extract_calendar_and_history_weather_data(weather_content)
-        print("成功提取天气历史数据")
+        logger.info("成功提取天气历史数据")
         
         return weather_data
     except Exception as e:
-        print(f"获取天气历史数据失败: {e}")
+        logger.error(f"获取天气历史数据失败: {e}")
         return {"error": {"message": str(e) or "获取天气历史数据失败"}}

@@ -13,6 +13,7 @@ import subprocess
 from app.utils.config_util import config_util
 from app.utils.cache_util import cache_util
 from app.utils.constants import USE_CACHE
+from app.utils.logger_util import logger
 
 # 全局配置数据
 notify_config = None
@@ -50,19 +51,19 @@ async def load_notify_config():
         config_dir = os.path.join(config_util.get_data_dir(), "config")
         config_file = os.path.join(config_dir, "notify_config.json")
         
-        print(f"[Config] 尝试加载通知配置: {config_file}")
+        logger.info(f"[Config] 尝试加载通知配置: {config_file}")
         
         if not os.path.exists(config_file):
-            print(f"[Config] 配置文件不存在: {config_file}")
+            logger.warning(f"[Config] 配置文件不存在: {config_file}")
             return None
         
         with open(config_file, "r", encoding="utf8") as f:
             notify_config = json.load(f)
         
-        print("[Config] 加载通知配置成功")
+        logger.info("[Config] 加载通知配置成功")
         return notify_config
     except Exception as e:
-        print(f"[Config] 加载失败: {e}")
+        logger.error(f"[Config] 加载失败: {e}")
         return None
 
 
@@ -78,7 +79,7 @@ async def send_message(type_, target_user_info, message):
     Returns:
         发送结果
     """
-    print(f"准备发送 {type_} 通知到 {target_user_info.get('phoneNumber', 'unknown')}/{target_user_info.get('wechatOpenId', 'unknown')}, 内容: \n{message}")
+    logger.info(f"准备发送 {type_} 通知到 {target_user_info.get('phoneNumber', 'unknown')}/{target_user_info.get('wechatOpenId', 'unknown')}, 内容: \n{message}")
     
     status_list = []
     message_list = []
@@ -158,9 +159,9 @@ async def send_sms_message(phone_number, message):
         )
         
         if result.stderr:
-            print(f"发送短信时产生警告: {result.stderr}")
+            logger.warning(f"发送短信时产生警告: {result.stderr}")
         
-        print("短信发送成功!")
+        logger.info("短信发送成功!")
         return {
             "phoneNumber": phone_number,
             "messageLength": len(message),
@@ -168,7 +169,7 @@ async def send_sms_message(phone_number, message):
             "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')
         }
     except Exception as e:
-        print(f"发送短信失败: {e}")
+        logger.error(f"发送短信失败: {e}")
         return {
             "phoneNumber": phone_number,
             "success": False,
@@ -191,7 +192,7 @@ async def get_wechat_access_token():
             if cached_data and cached_data.get('access_token') and cached_data.get('expire_time'):
                 now = time.time() * 1000  # 转换为毫秒
                 if cached_data['expire_time'] > now + 600000:  # 预留10分钟过期时间
-                    print('使用缓存的微信公众号access_token')
+                    logger.info('使用缓存的微信公众号access_token')
                     return cached_data['access_token']
         
         # 加载配置
@@ -203,13 +204,13 @@ async def get_wechat_access_token():
         wechat_app_secret = weather_config.get('wechatAppSecret') if weather_config else None
         
         if not wechat_app_id or not wechat_app_secret:
-            print('微信公众号配置不完整，缺少appId或appSecret')
+            logger.warning('微信公众号配置不完整，缺少appId或appSecret')
             return None
         
         # 调用微信API获取access_token
         import requests
         url = f"https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={wechat_app_id}&secret={wechat_app_secret}"
-        print(f"正在请求微信公众号access_token，appId: {wechat_app_id}")
+        logger.info(f"正在请求微信公众号access_token，appId: {wechat_app_id}")
         
         response = requests.get(url, timeout=10)
         data = response.json()
@@ -219,7 +220,7 @@ async def get_wechat_access_token():
             # 设置过期时间（微信返回的是秒，转换为毫秒）
             now = time.time() * 1000  # 转换为毫秒
             expire_time = now + (data.get('expires_in', 7200) * 1000)
-            print(f"微信公众号access_token获取成功，有效期至: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(expire_time / 1000))}")
+            logger.info(f"微信公众号access_token获取成功，有效期至: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(expire_time / 1000))}")
             
             # 缓存access_token
             if USE_CACHE:
@@ -232,10 +233,10 @@ async def get_wechat_access_token():
             
             return access_token
         else:
-            print(f"获取微信公众号access_token失败: {data}")
+            logger.error(f"获取微信公众号access_token失败: {data}")
             return None
     except Exception as e:
-        print(f"获取微信公众号access_token时发生错误: {e}")
+        logger.error(f"获取微信公众号access_token时发生错误: {e}")
         return None
 
 
@@ -266,7 +267,7 @@ async def send_wechat_message(wechat_open_id, message):
         # 调用微信客服消息API
         import requests
         url = f"https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token={access_token}"
-        print(f"准备发送微信消息到用户: {wechat_open_id}")
+        logger.info(f"准备发送微信消息到用户: {wechat_open_id}")
         
         response = requests.post(
             url,
@@ -282,7 +283,7 @@ async def send_wechat_message(wechat_open_id, message):
         data = response.json()
         
         if data.get('errcode') == 0:
-            print(f"微信消息发送成功，用户: {wechat_open_id}")
+            logger.info(f"微信消息发送成功，用户: {wechat_open_id}")
             return {
                 "wechatOpenId": wechat_open_id,
                 "messageLength": len(message),
@@ -290,7 +291,7 @@ async def send_wechat_message(wechat_open_id, message):
                 "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')
             }
         else:
-            print(f"发送微信消息失败: errcode={data.get('errcode')}, errmsg={data.get('errmsg')}")
+            logger.error(f"发送微信消息失败: errcode={data.get('errcode')}, errmsg={data.get('errmsg')}")
             return {
                 "wechatOpenId": wechat_open_id,
                 "success": False,
@@ -299,7 +300,7 @@ async def send_wechat_message(wechat_open_id, message):
                 "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')
             }
     except Exception as e:
-        print(f"发送微信消息时发生异常: {e}")
+        logger.error(f"发送微信消息时发生异常: {e}")
         return {
             "wechatOpenId": wechat_open_id,
             "success": False,
