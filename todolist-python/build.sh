@@ -22,14 +22,13 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly VERSION=$(grep -E '^VERSION = ' "${SCRIPT_DIR}/version.txt" | cut -d ' ' -f 3)
 readonly BUILD_DIR="${SCRIPT_DIR}/build"
 readonly DIST_DIR="${SCRIPT_DIR}/dist"
+# readonly PYTHON_PATH="$HOME/miniconda3/envs/python39/bin/python3"
+readonly PYTHON_PATH=$(jq -r '.python_path' "${HOME}/common_config.json" | sed "s#~#$HOME#g")
 # 保留的文件和目录模式
 readonly RESERVE_FILE_ARRAY=(-macos.dmg -windows.zip -linux.tar.gz)
 readonly RESERVE_DIR_ARRAY=(".app")
 
-# 读取配置
-PYTHON_PATH=$(read_python_executable)
-PIP_PATH=$(read_pip_path)
-PYINSTALLER_PATH=$(read_pyinstaller_path)
+# 直接使用 PYTHON_PATH 执行 pip 和 pyinstaller 操作
 
 # 平台检测
 PLATFORM="$(uname)"
@@ -84,7 +83,7 @@ clean() {
 # 检查依赖
 check_deps() {
     command -v "$PYTHON_PATH" >/dev/null || { error "Python 3.9+ required"; exit 1; }
-    $PYTHON_PATH -m pip show -q pyinstaller 2>/dev/null || $PYTHON_PATH -m pip install -q pyinstaller
+    ${PYTHON_PATH} -m pip show -q pyinstaller 2>/dev/null || ${PYTHON_PATH} -m pip install -q pyinstaller
 }
 
 # PyInstaller 构建函数
@@ -142,7 +141,7 @@ pyinstaller_build() {
         args+=(--osx-bundle-identifier "${APP_BUNDLE_ID}")
     fi
 
-    $PYINSTALLER_PATH "${args[@]}" || { error "${name} 版本构建失败"; exit 1; }
+    ${PYTHON_PATH} -m PyInstaller "${args[@]}" || { error "${name} 版本构建失败"; exit 1; }
 }
 
 # 创建 DMG（macOS）
@@ -261,7 +260,12 @@ build_macos() {
         error "未找到 Info.plist 文件"
     fi
     
-    create_dmg
+    # 选择是否构建 DMG 安装包
+    read -p "是否构建 DMG 安装包？（y/n 默认n）：" build_type
+    if [[ "$build_type" == "y" ]]; then
+        echo "✅ 构建 DMG 安装包"
+        create_dmg
+    fi
     final_cleanup
     success "${DIST_DIR}/${PROJECT_NAME}-${VERSION}-macos.dmg"
 }
@@ -345,7 +349,7 @@ clean
 
 # 安装依赖
 log "正在安装依赖..."
-$PIP_PATH install -r requirements.txt
+${PYTHON_PATH} -m pip install -r "${SCRIPT_DIR}/requirements.txt"
 
 # 预编译字节码
 log "正在预编译字节码..."
