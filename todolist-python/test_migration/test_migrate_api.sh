@@ -29,8 +29,8 @@ MIGRATE_PORT=3001  # 迁移项目端口
 # 项目元数据
 # 格式：名字 | 目录 | 端口|PID 文件 | 日志文件
 PROJECTS=(
-    "基准项目($BASE_PROJECT_DISPLAY_NAME)|$BASE_PROJECT_DIR|$BASE_PORT|$MIGRATE_PROJECT_DIR/base.pid|$MIGRATE_PROJECT_DIR/base.log"
-    "迁移项目($MIGRATE_PROJECT_DISPLAY_NAME)|$MIGRATE_PROJECT_DIR|$MIGRATE_PORT|$MIGRATE_PROJECT_DIR/migrate.pid|$MIGRATE_PROJECT_DIR/migrate.log"
+    "基准项目($BASE_PROJECT_DISPLAY_NAME)|$BASE_PROJECT_DIR|$BASE_PORT|$SCRIPT_DIR/base.pid|$SCRIPT_DIR/base.log"
+    "迁移项目($MIGRATE_PROJECT_DISPLAY_NAME)|$MIGRATE_PROJECT_DIR|$MIGRATE_PORT|$SCRIPT_DIR/migrate.pid|$SCRIPT_DIR/migrate.log"
 )
 
 # 测试结果文件
@@ -233,7 +233,7 @@ restore_base_port
 
 # 整理收尾
 if [[ $TEST_EXIT_CODE -eq 0 ]]; then
-    rm -f "$MIGRATE_PROJECT_DIR"/*.log
+    rm -f "$SCRIPT_DIR"/*.log "$SCRIPT_DIR"/*.pid
     echo ""
     success "测试完成，日志文件已清理"
 fi
@@ -241,19 +241,5 @@ fi
 echo ""
 echo "=========================================="
 log "流程结束 (退出码：$TEST_EXIT_CODE)"
-
-# 显示测试结果摘要
-if [[ -f "$SCRIPT_DIR/api_comparison_result.json" ]]; then
-    echo ""
-    log "测试结果摘要:"
-    total=$(jq -r '.totalTests' "$SCRIPT_DIR/api_comparison_result.json")
-    passed=$(jq -r '.passedTests' "$SCRIPT_DIR/api_comparison_result.json")
-    failed=$(jq -r '.failedTests' "$SCRIPT_DIR/api_comparison_result.json")
-    echo "  总计测试：$total"
-    echo "  无差异：$passed"
-    echo "  有差异：$failed"
-    echo ""
-    echo "  完整结果：$SCRIPT_DIR/api_comparison_result.json"
-fi
 
 exit $TEST_EXIT_CODE

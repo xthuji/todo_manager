@@ -2,7 +2,8 @@
   "server": {
     "ports": {
       "node": 3000,
-      "python": 3001
+      "python": 3001,
+      "go": 3002
     }
   },
   "python": {

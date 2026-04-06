@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>节日管理系统</title>
+    <script src="/assets/js/third_party/jquery.min.js"></script>
+    <script src="/assets/js/third_party/tailwindcss.js"></script>
+    <!-- 引入节日管理模块 -->
+    <script type="module" src="/src/client/assets/js/business/festival_manager.js"></script>
+    <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    // 节日管理页面不需要特殊的颜色配置
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            /* 自定义工具类 */
+            .btn-primary {
+                @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors;
+            }
+            .btn-secondary {
+                @apply bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors;
+            }
+            .btn-danger {
+                @apply bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors;
+            }
+            .btn-action {
+                @apply p-1.5 rounded hover:bg-gray-100 transition-colors;
+            }
+            .form-input {
+                @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+            }
+            /* 节日类型背景样式 */
+            .bg-festival-traditional { @apply bg-red-400; } /* 传统节日：浅红色 */
+            .bg-festival-common { @apply bg-red-500; } /* 常用节日：红色 */
+            .bg-festival-foreign { @apply bg-purple-500; } /* 国外节日：紫色 */
+            .bg-festival-terms { @apply bg-green-500; } /* 节气：绿色 */
+            .bg-festival-custom { @apply bg-blue-500; } /* 自定义节日：蓝色 */
+
+            /* 节日标签样式增强 */
+            .festival-tag {
+                @apply transition-all duration-200 hover:opacity-90;
+            }
+        }
+    </style>
+    <!-- JavaScript代码已移至festival_manager.js文件中统一管理 -->
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-6xl">
+        <!-- 页面标题和图例区域 -->
+        <header class="mb-8 flex flex-col md:flex-row items-start md:items-center">
+            <div class="flex-1 flex flex-col justify-center items-center mb-4 md:mb-0">
+                <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-gray-800 mb-2">节日管理</h1>
+                <p class="text-gray-600 text-center md:text-left">管理系统中的所有节日和节气信息</p>
+            </div>
+            
+
+        </header>
+
+        <!-- 节假日数据设置区域 -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <div class="text-lg font-medium text-gray-800">节假日休假补班数据设置</div>
+                <div id="holiday-cache-info" class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-sm text-gray-600 transition-all duration-200">
+                    <i class="fa fa-info-circle text-blue-500 mr-2"></i>
+                    节假日缓存尚未加载
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- API地址设置和刷新按钮 -->
+                <div class="flex flex-col md:flex-row gap-4 items-start md:items-center text-sm">
+                    <label for="holiday-api-url" class="md:w-20 text-gray-700 font-medium">API地址：</label>
+                    <div class="flex-grow flex gap-3 flex-col sm:flex-row">
+                        <input type="text" id="holiday-api-url" class="form-input flex-grow bg-gray-50 border-gray-200 focus:bg-white transition-colors duration-200 text-sm" placeholder="请输入节假日API地址" value="https://www.shuyz.com/githubfiles/china-holiday-calender/master/holidayAPI.json">
+                        <button id="btn-refresh-holiday-cache" class="whitespace-nowrap bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 text-sm flex items-center gap-2 shadow-md hover:shadow-lg active:shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 group" onclick="refreshHolidayCache()">
+                            <i class="fa fa-refresh mr-1.5 transition-transform duration-300 group-hover:rotate-180"></i> 刷新节假日缓存
+                        </button>
+                        <button id="btn-view-holiday-info" class="whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 text-sm flex items-center gap-2 shadow-md hover:shadow-lg active:shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2">
+                            <i class="fa fa-calendar mr-1.5"></i> 查看节假日信息
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 节日筛选和管理区域 -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <div class="text-lg font-medium text-gray-800">节日筛选与管理</div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-500" id="festival-count">共 0 个节日</div>
+                    <button id="btn-add-festival" class="bg-green-500 text-white px-4 py-1.5 rounded hover:bg-green-600 transition-colors flex items-center" onclick="addFestival()">
+                        <i class="fa fa-plus mr-1"></i> 新增节日
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 筛选区域 -->
+            <div class="mb-4">
+                <div class="flex flex-col md:flex-row gap-3">
+                    <div class="flex-grow">
+                        <div class="relative">
+                            <input type="text" id="search-input" placeholder="搜索节日名称..." class="form-input pr-8">
+                            <i class="fa fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-w-[200px]">
+                        <select id="type-filter" class="form-input">
+                            <option value="all">所有节日类型</option>
+                            <option value="chinese_common">常用节日</option>
+                            <option value="chinese_traditional">传统节日</option>
+                            <option value="solar_terms">节气</option>
+                            <option value="foreign">国外节日</option>
+                            <option value="custom">自定义节日</option>
+                        </select>
+                        <select id="date-type-filter" class="form-input">
+                            <option value="all">所有日期类型</option>
+                            <option value="solar">公历</option>
+                            <option value="lunar">农历</option>
+                            <option value="week">星期</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 列表标题（固定） -->
+            <div class="grid grid-cols-5 gap-3 p-2 font-medium text-gray-700 border-2 border-gray-200 rounded-t-lg bg-gray-50">
+                <div class="col-span-2 flex items-center">节日名称</div>
+                <div class="col-span-1 flex items-center">节日类型</div>
+                <div class="col-span-1 flex items-center">日期类型</div>
+                <div class="col-span-1 flex items-center justify-end">操作</div>
+            </div>
+            
+            <!-- 节日列表模板 -->
+            <template id="festival-item-template">
+                <div class="grid grid-cols-5 gap-3 p-1 border-2 border-gray-100 hover:bg-gray-50 rounded-lg transition-colors">
+                    <!-- 节日名称 -->
+                    <div class="col-span-2 font-medium flex items-center"></div>
+                    <!-- 节日类型 -->
+                    <div class="col-span-1 text-sm flex items-center"></div>
+                    <!-- 日期类型 -->
+                    <div class="col-span-1 text-sm text-gray-600 flex items-center"></div>
+                    <!-- 操作按钮 -->
+                    <div class="col-span-1 flex justify-end items-center space-x-2">
+                        <button class="btn-action edit-btn">
+                            <i class="fa fa-pencil text-blue-500"></i>
+                        </button>
+                        <button class="btn-action delete-btn">
+                            <i class="fa fa-trash text-red-500"></i>
+                        </button>
+                    </div>
+                </div>
+            </template>
+            
+            <!-- 空状态模板 -->
+            <template id="empty-state-template">
+                <div class="col-span-5 py-10 text-center text-gray-500">
+                    <i class="fa fa-calendar-o text-3xl mb-2"></i><br>暂无节日数据
+                </div>
+            </template>
+            
+            <!-- 节日列表（可滚动） -->
+            <div id="festival-list" class="max-h-[500px] overflow-y-auto pr-2 border-x-2 border-b-2 border-gray-200 rounded-b-lg">
+                <div class="space-y-0">
+                    <!-- 节日列表将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 查看节假日信息浮层模态框 -->
+        <div id="holiday-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 class="text-xl font-bold text-gray-800">节假日信息列表</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeHolidayModal()">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+                <!-- 表格容器 -->
+                <div class="flex-grow">
+                    <!-- 固定表头 -->
+                    <div class="overflow-hidden">
+                        <table class="min-w-full table-fixed">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200">
+                                    <th scope="col" class="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">节日名称</th>
+                                    <th scope="col" class="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">开始日期</th>
+                                    <th scope="col" class="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">结束日期</th>
+                                    <th scope="col" class="w-[10%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">持续天数</th>
+                                    <th scope="col" class="w-[25%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">补班日期</th>
+                                    <th scope="col" class="w-[15%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">年份</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                    <!-- 可滚动的表格内容 -->
+                    <div class="overflow-auto max-h-[calc(90vh-200px)]">
+                        <table class="min-w-full table-fixed divide-y divide-gray-200">
+                            <!-- 节假日列表模板 -->
+                            <template id="holiday-item-template">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="w-[20%] px-6 py-4 text-sm font-medium text-gray-900 truncate"></td>
+                                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate"></td>
+                                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate"></td>
+                                    <td class="w-[10%] px-6 py-4 text-sm text-gray-500 truncate"></td>
+                                    <td class="w-[25%] px-6 py-4 text-sm text-gray-500"></td>
+                                    <td class="w-[15%] px-6 py-4 text-sm text-gray-500 truncate"></td>
+                                </tr>
+                            </template>
+                            
+                            <!-- 节假日空状态模板 -->
+                            <template id="holiday-empty-template">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500"></td>
+                                </tr>
+                            </template>
+                            
+                            <tbody id="holiday-list-body" class="bg-white divide-y divide-gray-200">
+                                <!-- 节假日数据将通过JS动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加/编辑节日模态框 -->
+        <div id="festival-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="modal-title" class="text-xl font-bold text-gray-800">新增节日</h2>
+                    <button class="text-gray-500 hover:text-gray-700" onclick="closeFestivalModal()">
+                            <i class="fa fa-times text-xl"></i>
+                        </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <input type="hidden" id="festival-id">
+                    
+                    <div>
+                        <label for="festival-name" class="block text-sm font-medium text-gray-700 mb-1">节日名称 <span class="text-red-500">*</span></label>
+                        <input type="text" id="festival-name" class="form-input" placeholder="请输入节日名称">
+                    </div>
+                    
+                    <div>
+                        <label for="festival-alias" class="block text-sm font-medium text-gray-700 mb-1">节日别名</label>
+                        <input type="text" id="festival-alias" class="form-input" placeholder="请输入节日别名（选填）">
+                    </div>
+                    
+                    <div>
+                        <label for="festival-type" class="block text-sm font-medium text-gray-700 mb-1">节日类型</label>
+                        <select id="festival-type" class="form-input">
+                            <option value="custom">自定义节日</option>
+                            <option value="chinese_common">常用节日</option>
+                            <option value="chinese_traditional">传统节日</option>
+                            <option value="solar_terms">节气</option>
+                            <option value="foreign">国外节日</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="festival-date-type" class="block text-sm font-medium text-gray-700 mb-1">日期类型</label>
+                        <select id="festival-date-type" class="form-input" onchange="toggleDateTypeInputs(this.value)">
+                            <option value="solar">公历</option>
+                            <option value="lunar">农历</option>
+                            <option value="week">星期</option>
+                            <option value="solar_terms">节气</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 公历日期输入 -->
+                    <div id="solar-date-input" class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="festival-month" class="block text-sm font-medium text-gray-700 mb-1">月份</label>
+                            <select id="festival-month" class="form-input">
+                                <option value="">请选择月份</option>
+                                <option value="01">1月</option>
+                                <option value="02">2月</option>
+                                <option value="03">3月</option>
+                                <option value="04">4月</option>
+                                <option value="05">5月</option>
+                                <option value="06">6月</option>
+                                <option value="07">7月</option>
+                                <option value="08">8月</option>
+                                <option value="09">9月</option>
+                                <option value="10">10月</option>
+                                <option value="11">11月</option>
+                                <option value="12">12月</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="festival-day" class="block text-sm font-medium text-gray-700 mb-1">日期</label>
+                            <select id="festival-day" class="form-input">
+                                <option value="">请选择日期</option>
+                                <option value="01">1日</option>
+                                <option value="02">2日</option>
+                                <option value="03">3日</option>
+                                <option value="04">4日</option>
+                                <option value="05">5日</option>
+                                <option value="06">6日</option>
+                                <option value="07">7日</option>
+                                <option value="08">8日</option>
+                                <option value="09">9日</option>
+                                <option value="10">10日</option>
+                                <option value="11">11日</option>
+                                <option value="12">12日</option>
+                                <option value="13">13日</option>
+                                <option value="14">14日</option>
+                                <option value="15">15日</option>
+                                <option value="16">16日</option>
+                                <option value="17">17日</option>
+                                <option value="18">18日</option>
+                                <option value="19">19日</option>
+                                <option value="20">20日</option>
+                                <option value="21">21日</option>
+                                <option value="22">22日</option>
+                                <option value="23">23日</option>
+                                <option value="24">24日</option>
+                                <option value="25">25日</option>
+                                <option value="26">26日</option>
+                                <option value="27">27日</option>
+                                <option value="28">28日</option>
+                                <option value="29">29日</option>
+                                <option value="30">30日</option>
+                                <option value="31">31日</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 农历日期输入 -->
+                    <div id="lunar-date-input" class="hidden grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="lunar-festival-month" class="block text-sm font-medium text-gray-700 mb-1">农历月份</label>
+                            <select id="lunar-festival-month" class="form-input">
+                                <option value="">请选择月份</option>
+                                <option value="01">1月</option>
+                                <option value="02">2月</option>
+                                <option value="03">3月</option>
+                                <option value="04">4月</option>
+                                <option value="05">5月</option>
+                                <option value="06">6月</option>
+                                <option value="07">7月</option>
+                                <option value="08">8月</option>
+                                <option value="09">9月</option>
+                                <option value="10">10月</option>
+                                <option value="11">11月</option>
+                                <option value="12">12月</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="lunar-festival-day" class="block text-sm font-medium text-gray-700 mb-1">农历日期</label>
+                            <select id="lunar-festival-day" class="form-input">
+                                <option value="">请选择日期</option>
+                                <option value="01">1日</option>
+                                <option value="02">2日</option>
+                                <option value="03">3日</option>
+                                <option value="04">4日</option>
+                                <option value="05">5日</option>
+                                <option value="06">6日</option>
+                                <option value="07">7日</option>
+                                <option value="08">8日</option>
+                                <option value="09">9日</option>
+                                <option value="10">10日</option>
+                                <option value="11">11日</option>
+                                <option value="12">12日</option>
+                                <option value="13">13日</option>
+                                <option value="14">14日</option>
+                                <option value="15">15日</option>
+                                <option value="16">16日</option>
+                                <option value="17">17日</option>
+                                <option value="18">18日</option>
+                                <option value="19">19日</option>
+                                <option value="20">20日</option>
+                                <option value="21">21日</option>
+                                <option value="22">22日</option>
+                                <option value="23">23日</option>
+                                <option value="24">24日</option>
+                                <option value="25">25日</option>
+                                <option value="26">26日</option>
+                                <option value="27">27日</option>
+                                <option value="28">28日</option>
+                                <option value="29">29日</option>
+                                <option value="30">30日</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 星期日期输入 -->
+                    <div id="week-date-input" class="hidden grid grid-cols-3 gap-3">
+                        <div>
+                            <label for="festival-week-month" class="block text-sm font-medium text-gray-700 mb-1">月份</label>
+                            <select id="festival-week-month" class="form-input">
+                                <option value="">请选择月份</option>
+                                <option value="1">1月</option>
+                                <option value="2">2月</option>
+                                <option value="3">3月</option>
+                                <option value="4">4月</option>
+                                <option value="5">5月</option>
+                                <option value="6">6月</option>
+                                <option value="7">7月</option>
+                                <option value="8">8月</option>
+                                <option value="9">9月</option>
+                                <option value="10">10月</option>
+                                <option value="11">11月</option>
+                                <option value="12">12月</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="festival-week-count" class="block text-sm font-medium text-gray-700 mb-1">第几个</label>
+                            <select id="festival-week-count" class="form-input">
+                                <option value="">请选择</option>
+                                <option value="1">第1个</option>
+                                <option value="2">第2个</option>
+                                <option value="3">第3个</option>
+                                <option value="4">第4个</option>
+                                <option value="5">第5个</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="festival-week-day" class="block text-sm font-medium text-gray-700 mb-1">星期几</label>
+                            <select id="festival-week-day" class="form-input">
+                                <option value="">请选择</option>
+                                <option value="1">周一</option>
+                                <option value="2">周二</option>
+                                <option value="3">周三</option>
+                                <option value="4">周四</option>
+                                <option value="5">周五</option>
+                                <option value="6">周六</option>
+                                <option value="7">周日</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 节气输入 -->
+                    <div id="solar-terms-input" class="hidden">
+                        <p class="text-sm text-gray-500">节气日期将根据名称自动设置</p>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button class="btn-secondary" onclick="closeFestivalModal()">取消</button>
+                    <button class="btn-primary" onclick="saveFestival()">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 删除确认模态框 -->
+        <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">确认删除</h2>
+                <p id="delete-confirm-text" class="text-gray-700 mb-6">确定要删除这个节日吗？</p>
+                <input type="hidden" id="delete-festival-id">
+                <div class="flex justify-end space-x-3">
+                    <button class="btn-secondary" onclick="closeDeleteModal()">取消</button>
+                    <button class="btn-danger" onclick="deleteFestival()">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

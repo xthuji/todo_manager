@@ -1,0 +1,33 @@
+{
+  "server": {
+    "ports": {
+      "node": 3000,
+      "python": 3001,
+      "go": 3002
+    },
+    "api_timeout_location": 10,
+    "api_timeout_weather": 10,
+    "api_timeout_weather_utls": 20
+  },
+  "python": {
+    "executable_path": "~/miniconda3/envs/python39/bin/python3"
+  },
+  "features": {
+    "default_location": {
+      "province": "浙江",
+      "city": "杭州",
+      "district": "杭州",
+      "code": "101210101"
+    },
+    "mock": {
+      "enabled": false
+    },
+    "cache": {
+      "enabled": true
+    }
+  },
+  "logs": {
+    "print_api_data": false,
+    "print_data_log": false
+  }
+}

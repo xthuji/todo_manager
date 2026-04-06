@@ -28,7 +28,6 @@ LOCATION_OPTIONS = {
 
 # 全局变量
 area_codes_map = None
-
 default_location_info = {
     'province': '浙江',
     'city': '杭州',
@@ -357,46 +356,96 @@ def get_district_area_codes(area_code):
     """
     获取区县对应的各种天气区域编码数据
     
+    参考Go项目的GetDistrictAreaCodes实现，使用懒加载模式
+
     Args:
         area_code: 地区编码
-    
+
     Returns:
         区县对应的各种天气区域编码数据
     """
     global area_codes_map
-    if not area_codes_map:
-        area_codes_map = {}
-        # 遍历 allAreaCodes 数据，查找叶子节点的数据，将数据中的code作为Map的key，将数据对象作为Map的value
-        all_area_codes = get_all_area_codes()
-        if all_area_codes and isinstance(all_area_codes, dict) and 'data' in all_area_codes:
-            for item in all_area_codes.get('data'):
-                if item.get('children') and isinstance(item.get('children'), list):
-                    # 递归处理子节点
-                    for child in item.get('children'):
-                        if child.get('children') and isinstance(child.get('children'), list):
-                            # 递归处理子节点的子节点
-                            for leaf in child.get('children'):
-                                area_codes_map[leaf.get('code')] = {
-                                    'mojiAreaCode': f"{item.get('mojiCode')}/{leaf.get('mojiCode')}" if leaf.get('mojiCode') else None,
-                                    'nmcApiCode': leaf.get('nmcCode'),
-                                    'nmcAreaCode': f"{item.get('nmcCode')}/{leaf.get('nmcNameCode')}" if leaf.get('nmcNameCode') else None,
-                                    'cmaAreaCode': leaf.get('cmaCode'),
-                                    'areaName': leaf.get('name')
-                                }
-                        else:
-                            # 直接添加子节点到Map
-                            area_codes_map[child.get('code')] = {
-                                'mojiAreaCode': child.get('mojiCode'),
-                                'nmcAreaCode': child.get('nmcCode'),
-                                'cmaAreaCode': child.get('cmaCode'),
-                                'areaName': child.get('name')
-                            }
+    
+    # 如果已缓存，直接返回
+    if area_codes_map is not None:
+        return area_codes_map.get(area_code, {})
+    
+    # 首次加载，构建映射
+    area_codes_map = {}
+    all_area_codes = get_all_area_codes()
+    if not all_area_codes or 'data' not in all_area_codes:
+        return {}
+    
+    def _get_str(item, key, default=''):
+        """安全获取字符串"""
+        val = item.get(key) if isinstance(item, dict) else None
+        return val if val is not None else default
+    
+    for item in all_area_codes.get('data', []):
+        if not isinstance(item, dict):
+            continue
+            
+        children = item.get('children', [])
+        if isinstance(children, list):
+            for child in children:
+                if not isinstance(child, dict):
+                    continue
+                    
+                grandchildren = child.get('children', [])
+                if isinstance(grandchildren, list):
+                    # 处理区县节点
+                    for leaf in grandchildren:
+                        if not isinstance(leaf, dict) or 'code' not in leaf:
+                            continue
+                        
+                        code = _get_str(leaf, 'code')
+                        moji_code = _get_str(leaf, 'mojiCode')
+                        nmc_code = _get_str(leaf, 'nmcCode')
+                        nmc_name_code = _get_str(leaf, 'nmcNameCode')
+                        cma_code = _get_str(leaf, 'cmaCode')
+                        
+                        # 构建mojiAreaCode
+                        moji_area_code = None
+                        if moji_code:
+                            prov_moji = _get_str(item, 'mojiCode')
+                            moji_area_code = f"{prov_moji}/{moji_code}" if prov_moji else moji_code
+                        
+                        # 构建nmcAreaCode
+                        nmc_area_code = None
+                        if nmc_name_code:
+                            prov_nmc = _get_str(item, 'nmcCode')
+                            nmc_area_code = f"{prov_nmc}/{nmc_name_code}" if prov_nmc else nmc_name_code
+                        
+                        area_codes_map[code] = {
+                            "mojiAreaCode": moji_area_code,
+                            "nmcApiCode": nmc_code,
+                            "nmcAreaCode": nmc_area_code,
+                            "cmaAreaCode": cma_code,
+                            "areaName": _get_str(leaf, 'name')
+                        }
                 else:
-                    # 直接添加叶子节点到Map
-                    area_codes_map[item.get('code')] = {
-                        'mojiAreaCode': item.get('mojiCode'),
-                        'nmcAreaCode': item.get('nmcCode'),
-                        'cmaAreaCode': item.get('cmaCode'),
-                        'areaName': item.get('name')
+                    # 处理子节点（二级节点，包含nmcAreaCode但不包含nmcApiCode）
+                    code = _get_str(child, 'code')
+                    if not code:
+                        continue
+                    
+                    area_codes_map[code] = {
+                        "mojiAreaCode": _get_str(child, 'mojiCode') or None,
+                        "nmcAreaCode": _get_str(child, 'nmcCode') or None,
+                        "cmaAreaCode": _get_str(child, 'cmaCode') or None,
+                        "areaName": _get_str(child, 'name')
                     }
+        else:
+            # 直接添加叶子节点（一级节点）
+            code = _get_str(item, 'code')
+            if not code:
+                continue
+            
+            area_codes_map[code] = {
+                "mojiAreaCode": _get_str(item, 'mojiCode') or None,
+                "nmcAreaCode": _get_str(item, 'nmcCode') or None,
+                "cmaAreaCode": _get_str(item, 'cmaCode') or None,
+                "areaName": _get_str(item, 'name')
+            }
+    
     return area_codes_map.get(area_code)
