@@ -36,12 +36,6 @@ read_python_executable() {
   echo "$(echo $python_path | sed "s#^~#$HOME#")"
 }
 
-# 读取服务端口号
-read_server_port() {
-  local port=$(read_config "server.ports.python" "3001")
-  echo "$port"
-}
-
 # 读取 pip 路径
 read_pip_path() {
   local python_path=$(read_python_executable)
@@ -57,6 +51,5 @@ read_pyinstaller_path() {
 # 导出函数供其他脚本使用
 export -f read_config
 export -f read_python_executable
-export -f read_server_port
 export -f read_pip_path
 export -f read_pyinstaller_path

@@ -11,13 +11,16 @@
 #   ./build_app.sh --verbose    # Show detailed output
 #
 
+# 获取当前脚本所在目录（必须在使用前定义）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 切换到脚本所在目录，确保程序能正确找到相对路径的配置文件
+cd "$SCRIPT_DIR" || exit 1
 # 引入公共配置读取脚本
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/config_utils.sh"
+source "$SCRIPT_DIR/config_utils.sh"
 
 # 配置
 readonly PROJECT_NAME="TodoManager"
 readonly APP_BUNDLE_ID="com.xthuji.todoManager"
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 读取版本信息
 readonly VERSION=$(grep -E '^VERSION = ' "${SCRIPT_DIR}/version.txt" | cut -d ' ' -f 3)
 readonly BUILD_DIR="${SCRIPT_DIR}/build"
