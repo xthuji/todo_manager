@@ -4,6 +4,7 @@ import os
 import time
 import argparse
 from datetime import datetime
+import concurrent.futures
 
 # 命令行参数解析
 def parse_args():
@@ -83,7 +84,7 @@ TEST_INTERFACES = [
     },
     {
         "name": "获取天气数据",
-        "path": "/api/weather/weather-info?weatherCode=101010100",
+        "path": "/api/weather/weather-info?weatherCode=101010100&forceRefresh=true",
         "method": "GET",
         "body": None
     },
@@ -120,29 +121,23 @@ TEST_INTERFACES = [
     },
     {
         "name": "访问静态CSS文件",
-        "path": "/css/style.css",
+        "path": "/assets/css/font-awesome.min.css",
         "method": "GET",
         "body": None
     },
     {
         "name": "访问静态JavaScript文件",
-        "path": "/js/main.js",
+        "path": "/assets/js/third_party/jquery.min.js",
         "method": "GET",
         "body": None
     },
     {
         "name": "访问静态图片",
-        "path": "/images/favicon.ico",
+        "path": "/assets/img/moji.ico",
         "method": "GET",
         "body": None
     }
 ]
-
-
-class HTTPError(Exception):
-    """HTTP错误异常"""
-    pass
-
 
 def make_request(host, path, method="GET", body=None):
     """
@@ -153,6 +148,7 @@ def make_request(host, path, method="GET", body=None):
     :param body: 请求体
     :return: 响应数据字典
     """
+    start_time = time.time()
     try:
         # 解析主机和端口
         host_port = host.split(":")
@@ -187,17 +183,20 @@ def make_request(host, path, method="GET", body=None):
             # 图片数据，返回是否成功
             data = response.read()
             conn.close()
+            response_time = (time.time() - start_time) * 1000  # 转换为毫秒
             return {
                 "success": True,
                 "data": f"Image data (length: {len(data)} bytes)",
                 "status": status,
-                "content_type": content_type
+                "content_type": content_type,
+                "response_time": round(response_time, 2)
             }
         else:
             # 文本数据
             try:
                 data = response.read().decode('utf-8')
                 conn.close()
+                response_time = (time.time() - start_time) * 1000  # 转换为毫秒
                 
                 # 尝试解析 JSON
                 if 'application/json' in content_type:
@@ -207,7 +206,8 @@ def make_request(host, path, method="GET", body=None):
                             "success": True,
                             "data": json_data,
                             "status": status,
-                            "content_type": content_type
+                            "content_type": content_type,
+                            "response_time": round(response_time, 2)
                         }
                     except json.JSONDecodeError:
                         # JSON 解析失败但状态码为 200，视为成功（可能是非预期的内容）
@@ -215,7 +215,8 @@ def make_request(host, path, method="GET", body=None):
                             "success": True,
                             "data": data,
                             "status": status,
-                            "content_type": content_type
+                            "content_type": content_type,
+                            "response_time": round(response_time, 2)
                         }
                 else:
                     # 非 JSON 内容，直接返回
@@ -223,22 +224,27 @@ def make_request(host, path, method="GET", body=None):
                         "success": True,
                         "data": data,
                         "status": status,
-                        "content_type": content_type
+                        "content_type": content_type,
+                        "response_time": round(response_time, 2)
                     }
             except UnicodeDecodeError:
                 # 无法解码的内容，返回二进制长度
                 data = response.read()
                 conn.close()
+                response_time = (time.time() - start_time) * 1000  # 转换为毫秒
                 return {
                     "success": True,
                     "data": f"Binary data (length: {len(data)} bytes)",
                     "status": status,
-                    "content_type": content_type
+                    "content_type": content_type,
+                    "response_time": round(response_time, 2)
                 }
     except Exception as e:
+        response_time = (time.time() - start_time) * 1000  # 转换为毫秒
         return {
             "success": False,
-            "error": str(e)
+            "error": str(e),
+            "response_time": round(response_time, 2)
         }
 
 
@@ -252,7 +258,7 @@ def filter_timestamp_fields(obj):
         return obj
     
     # 时间戳字段列表
-    timestamp_fields = ['timestamp', 'time', 'updatedAt', 'createdAt', 'expireAt', 'mtime', 'ttl']
+    timestamp_fields = ['timestamp', 'updatedAt', 'createdAt', 'expireAt', 'mtime', 'ttl']
     
     if isinstance(obj, dict):
         filtered_obj = {}
@@ -283,6 +289,14 @@ def compare_objects(obj1, obj2):
     
     differences = {}
     
+    # 检查类型是否相同
+    if type(filtered_obj1) != type(filtered_obj2):
+        differences["type"] = {
+            "service1": str(type(filtered_obj1)),
+            "service2": str(type(filtered_obj2))
+        }
+        return differences
+    
     # 检查 obj1 中的属性
     if filtered_obj1 and isinstance(filtered_obj1, dict):
         for key, value1 in filtered_obj1.items():
@@ -310,17 +324,35 @@ def compare_objects(obj1, obj2):
                     "service2": value2
                 }
     
+    # 检查列表类型
+    elif isinstance(filtered_obj1, list):
+        if len(filtered_obj1) != len(filtered_obj2):
+            differences["length"] = {
+                "service1": len(filtered_obj1),
+                "service2": len(filtered_obj2)
+            }
+        else:
+            for i, (item1, item2) in enumerate(zip(filtered_obj1, filtered_obj2)):
+                nested_diff = compare_objects(item1, item2)
+                if nested_diff:
+                    differences[f"item_{i}"] = nested_diff
+    
+    # 检查基本类型
+    elif filtered_obj1 != filtered_obj2:
+        differences["value"] = {
+            "service1": filtered_obj1,
+            "service2": filtered_obj2
+        }
+    
     return differences
 
 
-async def run_interface_test(test_interface):
+def run_interface_test(test_interface):
     """
     运行单个接口测试
     :param test_interface: 测试接口配置
     :return: 测试结果
     """
-    print(f"测试接口：{test_interface['name']}")
-    
     # 从两个服务获取数据
     base_result = make_request(BASE_URL, test_interface['path'], test_interface['method'], test_interface['body'])
     migrate_result = make_request(MIGRATE_URL, test_interface['path'], test_interface['method'], test_interface['body'])
@@ -360,25 +392,9 @@ def generate_test_report(test_results):
     print(f'总计测试：{total_tests}')
     print(f'无差异：{passed_tests}')
     print(f'有差异：{failed_tests}')
-    print('\n=== 详细测试结果 ===')
-    
-    for i, result in enumerate(test_results, 1):
-        print(f'\n{i}. {result["interface"]["name"]}')
-        print(f'接口路径：{result["interface"]["path"]}')
-        print(f'请求方法：{result["interface"]["method"]}')
-        
-        if not result["baseService"]["success"]:
-            print(f'**{BASE_NAME} 请求失败**: {result["baseService"]["error"]}')
-        elif not result["migrateService"]["success"]:
-            print(f'**{MIGRATE_NAME} 请求失败**: {result["migrateService"]["error"]}')
-        elif result["hasDifferences"]:
-            print('**发现差异**:')
-            print(json.dumps(result["differences"], ensure_ascii=False, indent=2))
-        else:
-            print('**结果一致**: 两个服务的响应完全相同')
 
 
-async def run_api_comparison_test():
+def run_api_comparison_test():
     """
     主测试函数
     """
@@ -387,15 +403,28 @@ async def run_api_comparison_test():
     print(f'迁移项目: {MIGRATE_NAME} (端口:{MIGRATE_PORT})')
     print('------------------------')
     
-    # 运行所有接口测试
+    # 运行所有接口测试（并行处理）
     print('测试中...')
     test_results = []
-    for test_interface in TEST_INTERFACES:
-        print(f'开始测试：{test_interface["name"]}')
-        result = await run_interface_test(test_interface)
-        print(f'测试完成：{test_interface["name"]} {"【有差异】" if result["hasDifferences"] else "【无差异】"}')
-        print('------------------------')
-        test_results.append(result)
+    
+    # 使用线程池提升并发度
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # 提交所有测试任务
+        future_to_interface = {executor.submit(run_interface_test, test_interface): test_interface for test_interface in TEST_INTERFACES}
+        
+        # 实时输出测试结果
+        for future in concurrent.futures.as_completed(future_to_interface):
+            test_interface = future_to_interface[future]
+            try:
+                result = future.result()
+                test_results.append(result)
+                # 获取响应时间
+                base_time = result["baseService"].get("response_time", 0)
+                migrate_time = result["migrateService"].get("response_time", 0)
+                print(f'测试完成：{result["interface"]["name"]} {"【❌有差异】" if result["hasDifferences"] else "【✅无差异】"} | 响应时间: {BASE_NAME}={base_time}ms, {MIGRATE_NAME}={migrate_time}ms')
+            except Exception as e:
+                print(f'测试 {test_interface["name"]} 失败: {e}')
+    print('------------------------')
     
     # 保存测试结果
     test_result_data = {
@@ -420,11 +449,10 @@ async def run_api_comparison_test():
     print('------------------------')
     print('API 接口对比测试完成!')
     print(f'总计测试：{len(test_results)}')
-    print(f'无差异：{len([r for r in test_results if not r["hasDifferences"]])}')
-    print(f'有差异：{len([r for r in test_results if r["hasDifferences"]])}')
+    print(f'✅无差异：{len([r for r in test_results if not r["hasDifferences"]])}')
+    print(f'❌有差异：{len([r for r in test_results if r["hasDifferences"]])}')
     print(f'测试结果已保存：{TEST_RESULT_FILE}')
 
 
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(run_api_comparison_test())
+    run_api_comparison_test()
