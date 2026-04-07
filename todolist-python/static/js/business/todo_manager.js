@@ -1016,10 +1016,9 @@ export function showNotification(message, duration = 3000, preventReload = false
     }
 }
 
-// 关闭服务器函数
+// 关闭服务器函数 - 只显示确认弹窗
 function shutdownServer() {
     showShutdownModal();
-    performServerShutdown();
 }
 
 // 实际执行关闭服务器的函数
