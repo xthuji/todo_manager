@@ -343,7 +343,7 @@ func GetDistrictAreaCodes(areaCode string) map[string]interface{} {
 						}
 						areaCodesMap[code] = map[string]interface{}{
 							"mojiAreaCode": getStr(childMap, "mojiCode"),
-							"nmcApiCode":   getStr(childMap, "nmcCode"),
+							"nmcAreaCode":  getStr(childMap, "nmcCode"),
 							"cmaAreaCode":  getStr(childMap, "cmaCode"),
 							"areaName":     getStr(childMap, "name"),
 						}
@@ -356,7 +356,7 @@ func GetDistrictAreaCodes(areaCode string) map[string]interface{} {
 				}
 				areaCodesMap[code] = map[string]interface{}{
 					"mojiAreaCode": getStr(itemMap, "mojiCode"),
-					"nmcApiCode":   getStr(itemMap, "nmcCode"),
+					"nmcAreaCode":  getStr(itemMap, "nmcCode"),
 					"cmaAreaCode":  getStr(itemMap, "cmaCode"),
 					"areaName":     getStr(itemMap, "name"),
 				}
