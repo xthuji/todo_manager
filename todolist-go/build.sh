@@ -314,13 +314,13 @@ build_macos() {
     create_macos_app_bundle
 
     # 选择是否构建 DMG 安装包
-    # if [[ "$CLEAN_ONLY" == false ]]; then
-    #     read -p "是否构建 DMG 安装包？（y/n 默认n）：" build_type
-    #     if [[ "$build_type" == "y" ]]; then
-    #         log "构建 DMG 安装包"
-    #         create_dmg
-    #     fi
-    # fi
+    if [[ "$CLEAN_ONLY" == false ]]; then
+        read -p "是否构建 DMG 安装包？（y/n 默认n）：" build_type
+        if [[ "$build_type" == "y" ]]; then
+            log "构建 DMG 安装包"
+            create_dmg
+        fi
+    fi
 
     final_cleanup
     success "macOS 版本构建完成"
