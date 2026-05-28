@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"todolist-go/app/utils"
 
 	utls "github.com/refraction-networking/utls"
 )
@@ -50,7 +51,7 @@ func getCMAHTTPClient() *http.Client {
 				return utsConn, nil
 			},
 		}
-		cmaHTTPClient = &http.Client{Timeout: 20 * time.Second, Transport: transport}
+		cmaHTTPClient = &http.Client{Timeout: utils.ConfigUtilInstance.GetWeatherAPIuTLSTimeoutDuration(), Transport: transport}
 	})
 	return cmaHTTPClient
 }

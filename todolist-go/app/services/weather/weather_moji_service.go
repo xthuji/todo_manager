@@ -30,7 +30,7 @@ func FetchMojiWeather(mojiAreaCode string) interface{} {
 	weatherURL := fmt.Sprintf("https://tianqi.moji.com/weather/china/%s", mojiAreaCode)
 	utils.LoggerInstance.Info("开始获取墨迹天气数据，正在访问: %s", weatherURL)
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: utils.ConfigUtilInstance.GetWeatherAPITimeoutDuration()}
 	req, _ := http.NewRequest("GET", weatherURL, nil)
 	for k, v := range mojiHeaders {
 		req.Header.Set(k, v)

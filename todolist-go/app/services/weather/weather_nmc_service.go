@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"todolist-go/app/utils"
 )
 
 // NMC请求头
@@ -50,7 +52,7 @@ func FetchNMCWeather(nmcApiCode string) interface{} {
 	}
 
 	url := fmt.Sprintf("https://www.nmc.cn/rest/weather?stationid=%s&_=%d", nmcApiCode, time.Now().UnixMilli())
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: utils.ConfigUtilInstance.GetWeatherAPITimeoutDuration()}
 	req, _ := http.NewRequest("GET", url, nil)
 	for k, v := range nmcHeaders {
 		req.Header.Set(k, v)

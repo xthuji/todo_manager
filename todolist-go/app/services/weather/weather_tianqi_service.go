@@ -74,7 +74,7 @@ func makeError(message string) map[string]interface{} {
 
 // httpGet 简化HTTP请求
 func httpGet(url string, headers map[string]string) (string, error) {
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: utils.ConfigUtilInstance.GetWeatherAPITimeoutDuration()}
 	req, _ := http.NewRequest("GET", url, nil)
 	for k, v := range headers {
 		req.Header.Set(k, v)

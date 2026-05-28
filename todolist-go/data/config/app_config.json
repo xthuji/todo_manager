@@ -4,7 +4,10 @@
       "node": 3000,
       "python": 3001,
       "go": 3002
-    }
+    },
+    "api_timeout_location": 10,
+    "api_timeout_weather": 10,
+    "api_timeout_weather_utls": 20
   },
   "python": {
     "executable_path": "~/miniconda3/envs/python39/bin/python3"

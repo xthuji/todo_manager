@@ -64,7 +64,7 @@ func FindDistrictInfo(areaData []interface{}, provinceName, districtName string)
 
 // locGet 简单HTTP GET请求
 func locGet(url string) map[string]interface{} {
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: utils.ConfigUtilInstance.GetLocationAPITimeoutDuration()}
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil
@@ -128,7 +128,7 @@ func GetLocation2() map[string]interface{} {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: utils.ConfigUtilInstance.GetLocationAPITimeoutDuration()}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil

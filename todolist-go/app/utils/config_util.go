@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 )
 
 // ConfigUtil 配置管理工具
@@ -17,6 +19,8 @@ type ConfigUtil struct {
 	weatherDir        string
 	mockDir           string
 	configDefinitions map[string]configDefinition
+	configCache       map[string]map[string]interface{}
+	configCacheMutex  sync.RWMutex
 }
 
 // configDefinition 配置定义
@@ -41,6 +45,7 @@ func NewConfigUtil() *ConfigUtil {
 			"app": {File: "app_config.json"}, "notify": {File: "notify_config.json"},
 			"festival": {File: "festival_config.json"},
 		},
+		configCache: make(map[string]map[string]interface{}),
 	}
 }
 
@@ -50,7 +55,7 @@ func getProjectRoot() string {
 	exe, err := os.Executable()
 	if err == nil {
 		exeDir := filepath.Dir(exe)
-		
+
 		if strings.Contains(exeDir, ".app/Contents/MacOS") {
 			// 在.app包中，返回Resources目录
 			// 正确的路径应该是: .app/Contents/Resources
@@ -60,7 +65,7 @@ func getProjectRoot() string {
 			}
 		}
 	}
-	
+
 	// 非.app包环境，按原逻辑查找
 	currentDir, _ := os.Getwd()
 	for {
@@ -77,12 +82,12 @@ func getProjectRoot() string {
 }
 
 // Getter方法
-func (c *ConfigUtil) GetProjectRoot() string  { return c.projectRoot }
-func (c *ConfigUtil) GetDataDir() string      { return c.dataDir }
-func (c *ConfigUtil) GetCacheDir() string     { return c.cacheDir }
-func (c *ConfigUtil) GetConfigDir() string    { return c.configDir }
-func (c *ConfigUtil) GetWeatherDir() string   { return c.weatherDir }
-func (c *ConfigUtil) GetMockDir() string      { return c.mockDir }
+func (c *ConfigUtil) GetProjectRoot() string { return c.projectRoot }
+func (c *ConfigUtil) GetDataDir() string     { return c.dataDir }
+func (c *ConfigUtil) GetCacheDir() string    { return c.cacheDir }
+func (c *ConfigUtil) GetConfigDir() string   { return c.configDir }
+func (c *ConfigUtil) GetWeatherDir() string  { return c.weatherDir }
+func (c *ConfigUtil) GetMockDir() string     { return c.mockDir }
 
 // getConfigPath 根据配置名称获取配置文件路径
 func (c *ConfigUtil) getConfigPath(configName string) (string, error) {
@@ -117,12 +122,27 @@ func (c *ConfigUtil) readConfigFile(configPath string) (map[string]interface{}, 
 
 // GetConfig 从配置文件中读取配置
 func (c *ConfigUtil) GetConfig(configName string, defaultConfig map[string]interface{}) map[string]interface{} {
+	c.configCacheMutex.RLock()
+	if cachedConfig, exists := c.configCache[configName]; exists {
+		c.configCacheMutex.RUnlock()
+		if len(cachedConfig) == 0 {
+			return defaultConfig
+		}
+		return cachedConfig
+	}
+	c.configCacheMutex.RUnlock()
+
 	configPath, err := c.getConfigPath(configName)
 	if err != nil {
 		LoggerInstance.Error("获取配置路径失败: %s", configName)
 		return defaultConfig
 	}
 	config, _ := c.readConfigFile(configPath)
+
+	c.configCacheMutex.Lock()
+	c.configCache[configName] = config
+	c.configCacheMutex.Unlock()
+
 	if len(config) == 0 {
 		return defaultConfig
 	}
@@ -147,6 +167,11 @@ func (c *ConfigUtil) SaveConfig(configName string, configData map[string]interfa
 		LoggerInstance.Error("写入配置文件失败: %s", configPath)
 		return false
 	}
+
+	c.configCacheMutex.Lock()
+	c.configCache[configName] = configData
+	c.configCacheMutex.Unlock()
+
 	LoggerInstance.Info("Config saved successfully: %s", configName)
 	return true
 }
@@ -217,4 +242,29 @@ var ConfigUtilInstance *ConfigUtil
 // init 初始化全局配置工具实例
 func init() {
 	ConfigUtilInstance = NewConfigUtil()
+}
+
+// getAPITimeout 获取API超时时间（秒）
+func (c *ConfigUtil) getAPITimeout(configKey string, defaultValue int) int {
+	if t := c.GetConfigValue("app", configKey, nil); t != nil {
+		if tFloat, ok := t.(float64); ok {
+			return int(tFloat)
+		}
+	}
+	return defaultValue
+}
+
+// GetLocationAPITimeoutDuration 获取位置API超时时间（time.Duration）
+func (c *ConfigUtil) GetLocationAPITimeoutDuration() time.Duration {
+	return time.Duration(c.getAPITimeout("server.api_timeout_location", 10)) * time.Second
+}
+
+// GetWeatherAPITimeoutDuration 获取天气API超时时间（time.Duration）
+func (c *ConfigUtil) GetWeatherAPITimeoutDuration() time.Duration {
+	return time.Duration(c.getAPITimeout("server.api_timeout_weather", 10)) * time.Second
+}
+
+// GetWeatherAPIuTLSTimeoutDuration 获取天气API uTLS超时时间（time.Duration）
+func (c *ConfigUtil) GetWeatherAPIuTLSTimeoutDuration() time.Duration {
+	return time.Duration(c.getAPITimeout("server.api_timeout_weather_utls", 20)) * time.Second
 }
