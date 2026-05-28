@@ -19,7 +19,7 @@ const (
 
 // 天气选项
 var WeatherOptions = utils.CacheOptions{
-	AllowExpired: true,       // 允许使用过期缓存作为兜底
+	AllowExpired: true, // 允许使用过期缓存作为兜底
 	TTL:          WeatherCacheTTL,
 }
 
@@ -79,7 +79,7 @@ func BuildWeatherData(
 	mojiWeatherData, todayWeatherData, todayDetailWeatherData, cmaWeatherData, nmcWeatherData map[string]interface{},
 	recentDaysWeatherData, calendarAndHistoryWeatherData interface{},
 	weatherAreaCodeParams map[string]interface{},
-) map[string]interface{}{
+) map[string]interface{} {
 	// 今日天气信息。优先取更新时间更晚的那个数据
 	todayWeatherList := []map[string]interface{}{}
 	if m := mojiWeatherData; m != nil {
@@ -244,25 +244,25 @@ func BuildWeatherData(
 
 	if utils.PRINT_DATA_LOG {
 		if mojiWeatherDataJSON, err := json.Marshal(mojiWeatherData); err == nil {
-			utils.LoggerInstance.Debug(fmt.Sprintf("墨迹天气数据: %s", mojiWeatherDataJSON))
+			utils.LoggerInstance.Debug("墨迹天气数据", "data", mojiWeatherDataJSON)
 		}
 		if todayWeatherDataJSON, err := json.Marshal(todayWeatherData); err == nil {
-			utils.LoggerInstance.Debug(fmt.Sprintf("今日天气数据: %s", todayWeatherDataJSON))
+			utils.LoggerInstance.Debug("今日天气数据", "data", todayWeatherDataJSON)
 		}
 		if todayDetailWeatherDataJSON, err := json.Marshal(todayDetailWeatherData); err == nil {
-			utils.LoggerInstance.Debug(fmt.Sprintf("今日天气补充数据: %s", todayDetailWeatherDataJSON))
+			utils.LoggerInstance.Debug("今日天气补充数据", "data", todayDetailWeatherDataJSON)
 		}
 		if recentDaysWeatherDataJSON, err := json.Marshal(recentDaysWeatherData); err == nil {
-			utils.LoggerInstance.Debug(fmt.Sprintf("近几日天气数据: %s", recentDaysWeatherDataJSON))
+			utils.LoggerInstance.Debug("近几日天气数据", "data", recentDaysWeatherDataJSON)
 		}
 		if calendarAndHistoryWeatherDataJSON, err := json.Marshal(calendarAndHistoryWeatherData); err == nil {
-			utils.LoggerInstance.Debug(fmt.Sprintf("天气历史数据: %s", calendarAndHistoryWeatherDataJSON))
+			utils.LoggerInstance.Debug("天气历史数据", "data", calendarAndHistoryWeatherDataJSON)
 		}
 		if cmaWeatherDataJSON, err := json.Marshal(cmaWeatherData); err == nil {
-			utils.LoggerInstance.Debug(fmt.Sprintf("CMA(中国气象局)天气数据: %s", cmaWeatherDataJSON))
+			utils.LoggerInstance.Debug("CMA(中国气象局)天气数据", "data", cmaWeatherDataJSON)
 		}
 		if nmcWeatherDataJSON, err := json.Marshal(nmcWeatherData); err == nil {
-			utils.LoggerInstance.Debug(fmt.Sprintf("NMC(中央气象台)天气数据: %s", nmcWeatherDataJSON))
+			utils.LoggerInstance.Debug("NMC(中央气象台)天气数据", "data", nmcWeatherDataJSON)
 		}
 	}
 
@@ -416,7 +416,7 @@ func QueryWeatherData(weatherAreaCodeParams map[string]interface{}) map[string]i
 	checkWeatherError(&errors, "Calendar", calendarData)
 	checkWeatherError(&errors, "TodayDetail", todayDetailData)
 	if len(errors) > 0 {
-		utils.LoggerInstance.Warning("部分天气服务出错: %v", errors)
+		utils.LoggerInstance.Warn("部分天气服务出错", "errors", errors)
 	}
 
 	// 构建天气数据
@@ -461,13 +461,13 @@ func GetWeatherData(weatherAreaCodeParams map[string]interface{}) map[string]int
 		}
 	}
 
-	utils.LoggerInstance.Info(fmt.Sprintf("USE_MOCK: %v", utils.USE_MOCK))
+	utils.LoggerInstance.Info("USE_MOCK状态", "use_mock", utils.USE_MOCK)
 	// 如果启用了mock数据，直接使用mock数据
 	if utils.USE_MOCK {
 		mockFilePath := "data/mock/mock_weather_info.json"
 		defer func() {
 			if r := recover(); r != nil {
-				utils.LoggerInstance.Error(fmt.Sprintf("读取mock天气数据失败: %v", r))
+				utils.LoggerInstance.Error("读取mock天气数据失败", "error", r)
 			}
 		}()
 		mockData := utils.CacheUtilInstance.GetWrappedData("mock_weather_info", utils.CacheOptions{
@@ -481,12 +481,10 @@ func GetWeatherData(weatherAreaCodeParams map[string]interface{}) map[string]int
 		}
 	}
 
-	utils.LoggerInstance.Info(fmt.Sprintf("天气请求参数: %v", weatherAreaCodeParams))
+	utils.LoggerInstance.Info("天气请求参数", "params", weatherAreaCodeParams)
 
 	// 直接返回与Python项目相同的数据结构
 	weatherData := QueryWeatherData(weatherAreaCodeParams)
-	utils.LoggerInstance.Info(fmt.Sprintf("天气数据获取结果: %v", weatherData))
+	utils.LoggerInstance.Debug("天气数据获取结果", "data", weatherData)
 	return weatherData
 }
-
-

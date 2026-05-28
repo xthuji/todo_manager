@@ -181,7 +181,7 @@ func (a *AutoWeatherNotify) SendWeatherNotifyOnTimer() {
 		return
 	}
 
-	utils.LoggerInstance.Info("[Task] 正在获取 [%s] 的天气数据...", weatherCode)
+	utils.LoggerInstance.Info("[Task] 正在获取天气数据", "weather_code", weatherCode)
 
 	// 获取区县级别区域编码并构建请求参数
 	weatherParams := map[string]interface{}{"weatherCode": weatherCode}
@@ -198,7 +198,7 @@ func (a *AutoWeatherNotify) SendWeatherNotifyOnTimer() {
 	if isValid, _ := validation["isValid"].(bool); !isValid {
 		errors, _ := validation["errors"].([]string)
 		errorMsg := fmt.Sprintf("数据校验失败: %s", strings.Join(errors, ", "))
-		utils.LoggerInstance.Error("[Error] %s", errorMsg)
+		utils.LoggerInstance.Error("[Error] 数据校验失败", "errorMsg", errorMsg)
 		a.SendErrorNotify(config, errorMsg)
 		return
 	}
@@ -213,7 +213,7 @@ func (a *AutoWeatherNotify) SendWeatherNotifyOnTimer() {
 		if m, ok := result["message"].(string); ok {
 			msg = m
 		}
-		utils.LoggerInstance.Error("天气通知发送失败: %s", msg)
+		utils.LoggerInstance.Error("天气通知发送失败", "message", msg)
 		a.SendErrorNotify(config, msg)
 	}
 }

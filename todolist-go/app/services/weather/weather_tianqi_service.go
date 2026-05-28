@@ -101,7 +101,7 @@ func ExtractTodayWeatherData(html string) map[string]interface{} {
 
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		utils.LoggerInstance.Error("解析HTML失败: %v", err)
+		utils.LoggerInstance.Error("解析HTML失败", "error", err)
 		return weatherData
 	}
 
@@ -185,10 +185,10 @@ func FetchTodayWeather(weatherCode string) interface{} {
 		return makeError("参数weather_code为空，无法获取今日天气数据")
 	}
 	url := fmt.Sprintf("https://forecast.weather.com.cn/town/weather1dn/%s.shtml", weatherCode)
-	utils.LoggerInstance.Info("开始获取今日天气数据，正在访问: %s", url)
+	utils.LoggerInstance.Info("开始获取今日天气数据", "url", url)
 	content, err := httpGet(url, tianqiHeaders)
 	if err != nil {
-		utils.LoggerInstance.Error("获取今日天气数据失败: %v", err)
+		utils.LoggerInstance.Error("获取今日天气数据失败", "error", err)
 		return makeError(fmt.Sprintf("获取今日天气数据失败: %v", err))
 	}
 	utils.LoggerInstance.Info("成功提取今日天气数据")
@@ -224,7 +224,7 @@ func FetchTodayDetailWeather(weatherCode string) interface{} {
 	}
 	timestamp := time.Now().UnixMilli()
 	url := fmt.Sprintf("https://d1.weather.com.cn/sk_2d/%s.html?_=%d", weatherCode, timestamp)
-	utils.LoggerInstance.Info("开始获取今日天气补充数据，正在访问: %s", url)
+	utils.LoggerInstance.Info("开始获取今日天气补充数据", "url", url)
 	headers := make(map[string]string)
 	for k, v := range tianqiHeaders {
 		headers[k] = v
@@ -232,7 +232,7 @@ func FetchTodayDetailWeather(weatherCode string) interface{} {
 	headers["Referer"] = "https://www.weather.com.cn/"
 	content, err := httpGet(url, headers)
 	if err != nil {
-		utils.LoggerInstance.Error("获取今日天气补充数据失败: %v", err)
+		utils.LoggerInstance.Error("获取今日天气补充数据失败", "error", err)
 		return makeError(fmt.Sprintf("获取今日天气补充数据失败: %v", err))
 	}
 	utils.LoggerInstance.Info("成功提取今日天气补充数据")
@@ -244,7 +244,7 @@ func ExtractRecentDaysWeatherData(html string) []interface{} {
 	weatherData := []interface{}{}
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		utils.LoggerInstance.Error("解析HTML失败: %v", err)
+		utils.LoggerInstance.Error("解析HTML失败", "error", err)
 		return weatherData
 	}
 
@@ -304,10 +304,10 @@ func FetchRecentDaysWeather(weatherCode string) interface{} {
 		return makeError("参数weather_code为空，无法获取近几日天气数据")
 	}
 	url := fmt.Sprintf("https://www.weather.com.cn/weather/%s.shtml", weatherCode)
-	utils.LoggerInstance.Info("开始获取近几日天气数据，正在访问: %s", url)
+	utils.LoggerInstance.Info("开始获取近几日天气数据", "url", url)
 	content, err := httpGet(url, tianqiHeaders)
 	if err != nil {
-		utils.LoggerInstance.Error("获取近几日天气数据失败: %v", err)
+		utils.LoggerInstance.Error("获取近几日天气数据失败", "error", err)
 		return makeError(fmt.Sprintf("获取近几日天气数据失败: %v", err))
 	}
 	utils.LoggerInstance.Info("成功提取近几日天气数据")
@@ -363,7 +363,7 @@ func FetchCalendarAndHistoryWeather(weatherCode string) interface{} {
 	yearMonth := fmt.Sprintf("%d%02d", now.Year(), now.Month())
 	timestamp := now.UnixMilli()
 	url := fmt.Sprintf("https://d1.weather.com.cn/calendarFromMon/%d/%s_%s.html?_=%d", now.Year(), weatherCode, yearMonth, timestamp)
-	utils.LoggerInstance.Info("开始获取天气历史数据，正在访问: %s", url)
+	utils.LoggerInstance.Info("开始获取天气历史数据", "url", url)
 	headers := make(map[string]string)
 	for k, v := range tianqiHeaders {
 		headers[k] = v
@@ -371,7 +371,7 @@ func FetchCalendarAndHistoryWeather(weatherCode string) interface{} {
 	headers["Referer"] = "https://www.weather.com.cn/"
 	content, err := httpGet(url, headers)
 	if err != nil {
-		utils.LoggerInstance.Error("获取天气历史数据失败: %v", err)
+		utils.LoggerInstance.Error("获取天气历史数据失败", "error", err)
 		return makeError(fmt.Sprintf("获取天气历史数据失败: %v", err))
 	}
 	utils.LoggerInstance.Info("成功提取天气历史数据")

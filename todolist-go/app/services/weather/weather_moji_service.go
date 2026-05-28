@@ -28,7 +28,7 @@ func FetchMojiWeather(mojiAreaCode string) interface{} {
 	}
 
 	weatherURL := fmt.Sprintf("https://tianqi.moji.com/weather/china/%s", mojiAreaCode)
-	utils.LoggerInstance.Info("开始获取墨迹天气数据，正在访问: %s", weatherURL)
+	utils.LoggerInstance.Info("开始获取墨迹天气数据", "url", weatherURL)
 
 	client := &http.Client{Timeout: utils.ConfigUtilInstance.GetWeatherAPITimeoutDuration()}
 	req, _ := http.NewRequest("GET", weatherURL, nil)
@@ -38,14 +38,14 @@ func FetchMojiWeather(mojiAreaCode string) interface{} {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		utils.LoggerInstance.Error("获取墨迹天气数据失败: %v", err)
+		utils.LoggerInstance.Error("获取墨迹天气数据失败", "error", err)
 		return map[string]interface{}{"error": fmt.Sprintf("获取墨迹天气数据失败: %v", err)}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		errMsg := fmt.Sprintf("HTTP响应状态码: %d", resp.StatusCode)
-		utils.LoggerInstance.Error("获取墨迹天气数据失败: %s", errMsg)
+		utils.LoggerInstance.Error("获取墨迹天气数据失败", "errMsg", errMsg)
 		return map[string]interface{}{"error": errMsg}
 	}
 
@@ -63,7 +63,7 @@ func ExtractMojiWeatherData(html string) map[string]interface{} {
 
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		utils.LoggerInstance.Error("解析墨迹天气HTML失败: %v", err)
+		utils.LoggerInstance.Error("解析墨迹天气HTML失败", "error", err)
 		return weatherData
 	}
 
@@ -156,7 +156,7 @@ func ExtractMojiWeatherData(html string) map[string]interface{} {
 				dayStr = "0" + dayStr
 			}
 			calendarList = append(calendarList, map[string]interface{}{
-				"date": fmt.Sprintf("%s%s", yearMonthStr, dayStr),
+				"date":    fmt.Sprintf("%s%s", yearMonthStr, dayStr),
 				"weather": weatherStr, "tempMin": tempMin, "tempMax": tempMax, "wind": windStr,
 			})
 		}

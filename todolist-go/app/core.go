@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"todolist-go/app/routes"
 	"todolist-go/app/services"
 	"todolist-go/app/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 // App Flask应用结构体 (对应Python的Flask app)
@@ -43,9 +44,9 @@ func NewApp() *App {
 // Setup 配置应用
 func (a *App) Setup() {
 	// 打印静态文件目录路径（调试用）
-	utils.LoggerInstance.Info("静态文件目录: %s", a.StaticDir)
+	utils.LoggerInstance.Info("静态文件目录", "path", a.StaticDir)
 	if _, err := os.Stat(a.StaticDir); os.IsNotExist(err) {
-		utils.LoggerInstance.Warning("静态文件目录不存在: %s", a.StaticDir)
+		utils.LoggerInstance.Warn("静态文件目录不存在", "path", a.StaticDir)
 	} else {
 		utils.LoggerInstance.Info("静态文件目录存在")
 	}
@@ -137,7 +138,7 @@ func (a *App) serveClientPage(c *gin.Context) {
 
 // StartServer 启动服务器
 func (a *App) StartServer() error {
-	utils.LoggerInstance.Info("启动Python服务器, 端口: %d", a.Port)
+	utils.LoggerInstance.Info("启动服务器", "port", a.Port)
 
 	// 启动天气通知定时器
 	go services.StartWeatherNotifyTimer()
@@ -159,7 +160,7 @@ func (a *App) Shutdown() {
 	utils.LoggerInstance.Info("正在关闭服务器...")
 	server := a.GetServer()
 	if err := server.Shutdown(nil); err != nil {
-		utils.LoggerInstance.Error("关闭服务器失败: %v", err)
+		utils.LoggerInstance.Error("关闭服务器失败", "error", err)
 	}
 }
 

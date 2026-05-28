@@ -267,7 +267,7 @@ func GetAllAreaCodes() map[string]interface{} {
 
 	// 检查文件是否存在
 	if _, err := os.Stat(mergedFile); os.IsNotExist(err) {
-		utils.LoggerInstance.Warning("地区编码数据文件不存在或无法读取")
+		utils.LoggerInstance.Warn("地区编码数据文件不存在或无法读取")
 		return map[string]interface{}{
 			"data":      []interface{}{},
 			"timestamp": time.Now().UnixMilli(),
@@ -294,7 +294,7 @@ func GetAllAreaCodes() map[string]interface{} {
 	}
 
 	// 如果文件不存在或读取失败
-	utils.LoggerInstance.Warning("地区编码数据文件读取失败")
+	utils.LoggerInstance.Warn("地区编码数据文件读取失败")
 	return map[string]interface{}{
 		"data":      []interface{}{},
 		"timestamp": time.Now().UnixMilli(),

@@ -1,116 +1,182 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
+	"time"
 )
 
-// Logger 日志工具（基于slog全局API）
+// Logger 日志工具
 type Logger struct {
-	logDir  string
-	logFile string
+	logDir   string
+	logFile  string
+	logger   *slog.Logger
+	levelVar *slog.LevelVar // 支持运行时动态调整日志级别
 }
+
+// GlobalLevel 用于动态调整全局日志级别
+var GlobalLevel = new(slog.LevelVar)
 
 // NewLogger 创建日志工具实例
 func NewLogger() *Logger {
-	// 确保ConfigUtilInstance已初始化
 	if ConfigUtilInstance == nil {
 		ConfigUtilInstance = NewConfigUtil()
 	}
 
-	// 确保日志目录存在
 	logDir := filepath.Join(ConfigUtilInstance.GetDataDir(), "logs")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		fmt.Printf("Error creating log directory: %v\n", err)
 		logDir = filepath.Join(os.TempDir(), "todolist-go", "logs")
-		os.MkdirAll(logDir, 0755)
+		_ = os.MkdirAll(logDir, 0755)
 	}
 
 	logFile := filepath.Join(logDir, "app.log")
-
-	// 打开日志文件
 	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Printf("Error opening log file: %v, using stdout\n", err)
-		file = nil
+
+	// 初始化级别，默认 Info
+	GlobalLevel.Set(slog.LevelInfo)
+
+	options := &slog.HandlerOptions{
+		Level:     GlobalLevel, // 绑定动态级别
+		AddSource: true,        // 开启行号定位
 	}
 
-	// 设置slog全局logger
-	if file != nil {
+	var handler slog.Handler
+	if err == nil && file != nil {
 		multiWriter := io.MultiWriter(file, os.Stdout)
-		handler := slog.NewTextHandler(multiWriter, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})
-		slog.SetDefault(slog.New(handler))
+		handler = slog.NewTextHandler(multiWriter, options)
+	} else {
+		fmt.Printf("Error opening log file: %v, using stdout\n", err)
+		handler = slog.NewTextHandler(os.Stdout, options)
 	}
+
+	slogger := slog.New(handler)
+	slog.SetDefault(slogger)
 
 	return &Logger{
-		logDir:  logDir,
-		logFile: logFile,
+		logDir:   logDir,
+		logFile:  logFile,
+		logger:   slogger,
+		levelVar: GlobalLevel,
 	}
 }
 
-// Info 记录信息日志
-func (l *Logger) Info(format string, v ...interface{}) {
-	if l == nil {
-		fmt.Printf("INFO: "+format+"\n", v...)
+// 核心通用打印方法：负责拦截级别、修正调用栈、处理日志
+func (l *Logger) log(level slog.Level, msg string, attrs ...slog.Attr) {
+	// 性能第一关：级别检查（未开启直接返回，无任何开销）
+	if !l.logger.Enabled(context.Background(), level) {
 		return
 	}
-	slog.Info(fmt.Sprintf(format, v...))
+
+	// 核心优化：获取真正调用日志的 PC（程序计数器），修复封装后的行号错乱问题
+	var pc uintptr
+	var pcs [1]uintptr
+	// skip 3 恰好跳过: runtime.Callers -> l.log -> Info/Error -> 业务调用方
+	runtime.Callers(3, pcs[:])
+	pc = pcs[0]
+
+	// 创建标准 Record 并通过 Handler 输出
+	r := slog.NewRecord(time.Now(), level, msg, pc)
+	r.AddAttrs(attrs...)
+	_ = l.logger.Handler().Handle(context.Background(), r)
 }
 
-// Error 记录错误日志
-func (l *Logger) Error(format string, v ...interface{}) {
+// ==================== 方案 A：高性能结构化日志 API (推荐新代码使用) ====================
+
+func (l *Logger) Debug(msg string, args ...any) {
 	if l == nil {
-		fmt.Printf("ERROR: "+format+"\n", v...)
 		return
 	}
-	slog.Error(fmt.Sprintf(format, v...))
+	l.log(slog.LevelDebug, msg, argsToAttrs(args)...)
 }
 
-// Debug 记录调试日志
-func (l *Logger) Debug(format string, v ...interface{}) {
+func (l *Logger) Info(msg string, args ...any) {
 	if l == nil {
-		fmt.Printf("DEBUG: "+format+"\n", v...)
 		return
 	}
-	slog.Debug(fmt.Sprintf(format, v...))
+	l.log(slog.LevelInfo, msg, argsToAttrs(args)...)
 }
 
-// Warning 记录警告日志
-func (l *Logger) Warning(format string, v ...interface{}) {
+func (l *Logger) Warn(msg string, args ...any) {
 	if l == nil {
-		fmt.Printf("WARNING: "+format+"\n", v...)
 		return
 	}
-	slog.Warn(fmt.Sprintf(format, v...))
+	l.log(slog.LevelWarn, msg, argsToAttrs(args)...)
 }
 
-// safeWarning 安全的警告日志方法，在 LoggerInstance 为 nil 时使用
-func safeWarning(format string, v ...interface{}) {
-	if LoggerInstance != nil {
-		LoggerInstance.Warning(format, v...)
-	} else {
-		fmt.Printf("WARNING: "+format+"\n", v...)
+func (l *Logger) Error(msg string, args ...any) {
+	if l == nil {
+		return
 	}
+	l.log(slog.LevelError, msg, argsToAttrs(args)...)
 }
 
-// safeError 安全的错误日志方法，在 LoggerInstance 为 nil 时使用
-func safeError(format string, v ...interface{}) {
-	if LoggerInstance != nil {
-		LoggerInstance.Error(format, v...)
-	} else {
-		fmt.Printf("ERROR: "+format+"\n", v...)
+// // ==================== 方案 B：传统 Printf 格式化 API (完美兼容老代码) ====================
+
+// func (l *Logger) Debugf(format string, v ...interface{}) {
+// 	if l == nil {
+// 		fmt.Printf("DEBUG: "+format+"\n", v...)
+// 		return
+// 	}
+// 	if l.logger.Enabled(context.Background(), slog.LevelDebug) {
+// 		l.log(slog.LevelDebug, fmt.Sprintf(format, v...))
+// 	}
+// }
+
+// func (l *Logger) Infof(format string, v ...interface{}) {
+// 	if l == nil {
+// 		fmt.Printf("INFO: "+format+"\n", v...)
+// 		return
+// 	}
+// 	if l.logger.Enabled(context.Background(), slog.LevelInfo) {
+// 		l.log(slog.LevelInfo, fmt.Sprintf(format, v...))
+// 	}
+// }
+
+// func (l *Logger) Warnf(format string, v ...interface{}) {
+// 	if l == nil {
+// 		fmt.Printf("WARN: "+format+"\n", v...)
+// 		return
+// 	}
+// 	if l.logger.Enabled(context.Background(), slog.LevelWarn) {
+// 		l.log(slog.LevelWarn, fmt.Sprintf(format, v...))
+// 	}
+// }
+
+// func (l *Logger) Errorf(format string, v ...interface{}) {
+// 	if l == nil {
+// 		fmt.Printf("ERROR: "+format+"\n", v...)
+// 		return
+// 	}
+// 	if l.logger.Enabled(context.Background(), slog.LevelError) {
+// 		l.log(slog.LevelError, fmt.Sprintf(format, v...))
+// 	}
+// }
+
+// 将开散的 key-value 对转换为 slog.Attr，减少逃逸
+func argsToAttrs(args []any) []slog.Attr {
+	if len(args) == 0 {
+		return nil
 	}
+	attrs := make([]slog.Attr, 0, len(args)/2)
+	for i := 0; i < len(args); i += 2 {
+		if i+1 < len(args) {
+			if k, ok := args[i].(string); ok {
+				attrs = append(attrs, slog.Any(k, args[i+1]))
+			}
+		}
+	}
+	return attrs
 }
 
 // 全局日志工具实例
 var LoggerInstance *Logger
 
-// init 初始化全局日志工具实例
 func init() {
 	LoggerInstance = NewLogger()
 }

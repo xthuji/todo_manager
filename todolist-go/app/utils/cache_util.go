@@ -53,7 +53,7 @@ func NewCacheUtil() *CacheUtil {
 
 	// 确保缓存目录存在
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		LoggerInstance.Error("创建缓存目录失败: %v", err)
+		LoggerInstance.Error("创建缓存目录失败", "error", err)
 	}
 
 	return &CacheUtil{
@@ -69,16 +69,16 @@ func (c *CacheUtil) log(level string, message string, meta map[string]interface{
 	switch level {
 	case "error":
 		if err, ok := meta["error"]; ok {
-			LoggerInstance.Error("%s: %v", message, err)
+			LoggerInstance.Error(message, "error", err)
 		} else {
-			LoggerInstance.Error("%s", message)
+			LoggerInstance.Error(message)
 		}
 	case "warn":
-		LoggerInstance.Warning("%s", message)
+		LoggerInstance.Warn(message)
 	case "debug":
-		LoggerInstance.Debug("%s", message)
+		LoggerInstance.Debug(message)
 	default:
-		LoggerInstance.Info("%s", message)
+		LoggerInstance.Info(message)
 	}
 }
 

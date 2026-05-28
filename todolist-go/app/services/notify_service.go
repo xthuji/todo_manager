@@ -33,21 +33,21 @@ func LoadNotifyConfig() map[string]interface{} {
 	}
 
 	configFile := utils.ConfigUtilInstance.GetConfigDir() + "/notify_config.json"
-	utils.LoggerInstance.Info("[Config] 尝试加载通知配置: %s", configFile)
+	utils.LoggerInstance.Info("[Config] 尝试加载通知配置", "config_file", configFile)
 
 	if _, err := exec.Command("test", "-f", configFile).CombinedOutput(); err != nil {
-		utils.LoggerInstance.Warning("[Config] 配置文件不存在: %s", configFile)
+		utils.LoggerInstance.Warn("[Config] 配置文件不存在", "config_file", configFile)
 		return nil
 	}
 
 	data, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		utils.LoggerInstance.Error("[Config] 读取配置文件失败: %v", err)
+		utils.LoggerInstance.Error("[Config] 读取配置文件失败", "error", err)
 		return nil
 	}
 
 	if err := json.Unmarshal(data, &notifyConfig); err != nil {
-		utils.LoggerInstance.Error("[Config] 解析配置文件失败: %v", err)
+		utils.LoggerInstance.Error("[Config] 解析配置文件失败", "error", err)
 		return nil
 	}
 
@@ -57,11 +57,11 @@ func LoadNotifyConfig() map[string]interface{} {
 
 // SendMessage 发送通知
 func SendMessage(typeName string, targetUserInfo map[string]interface{}, message string) map[string]interface{} {
-	utils.LoggerInstance.Info("准备发送 %s 通知到 %s/%s, 内容: \n%s",
-		typeName,
-		getStr2(targetUserInfo, "phoneNumber", "unknown"),
-		getStr2(targetUserInfo, "wechatOpenId", "unknown"),
-		message)
+	utils.LoggerInstance.Info("准备发送通知",
+		"type", typeName,
+		"phone_number", getStr2(targetUserInfo, "phoneNumber", "unknown"),
+		"wechat_open_id", getStr2(targetUserInfo, "wechatOpenId", "unknown"),
+		"content", message)
 
 	statusList := []bool{}
 	messageList := []string{}
@@ -147,12 +147,12 @@ func SendSMSMessage(phoneNumber, message string) map[string]interface{} {
 	cmd := exec.Command("osascript", "-e", applescript)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		utils.LoggerInstance.Error("发送短信失败: %v, 输出: %s", err, string(output))
+		utils.LoggerInstance.Error("发送短信失败", "error", err, "output", output)
 		return map[string]interface{}{"phoneNumber": phoneNumber, "success": false, "message": fmt.Sprintf("短信发送失败: %v", err), "timestamp": ts}
 	}
 
 	if len(output) > 0 {
-		utils.LoggerInstance.Warning("发送短信时产生警告: %s", string(output))
+		utils.LoggerInstance.Warn("发送短信时产生警告", "output", output)
 	}
 
 	utils.LoggerInstance.Info("短信发送成功!")
@@ -184,16 +184,16 @@ func GetWechatAccessToken() string {
 	wechatAppSecret := getStr2(weatherConfig, "wechatAppSecret", "")
 
 	if wechatAppID == "" || wechatAppSecret == "" {
-		utils.LoggerInstance.Warning("微信公众号配置不完整，缺少appId或appSecret")
+		utils.LoggerInstance.Warn("微信公众号配置不完整，缺少appId或appSecret")
 		return ""
 	}
 
 	url := fmt.Sprintf("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s", wechatAppID, wechatAppSecret)
-	utils.LoggerInstance.Info("正在请求微信公众号access_token，appId: %s", wechatAppID)
+	utils.LoggerInstance.Info("正在请求微信公众号access_token", "app_id", wechatAppID)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		utils.LoggerInstance.Error("获取微信公众号access_token失败: %v", err)
+		utils.LoggerInstance.Error("获取微信公众号access_token失败", "error", err)
 		return ""
 	}
 	defer resp.Body.Close()
@@ -206,7 +206,7 @@ func GetWechatAccessToken() string {
 		now := float64(time.Now().UnixMilli())
 		expiresIn, _ := tokenResp["expires_in"].(float64)
 		expireTime := now + expiresIn*1000
-		utils.LoggerInstance.Info("微信公众号access_token获取成功，有效期至: %s", time.UnixMilli(int64(expireTime)).Format("2006-01-02 15:04:05"))
+		utils.LoggerInstance.Info("微信公众号access_token获取成功", "expire_time", time.UnixMilli(int64(expireTime)).Format("2006-01-02 15:04:05"))
 
 		if utils.USE_CACHE {
 			utils.CacheUtilInstance.SetData("wechat_access_token", map[string]interface{}{
@@ -216,7 +216,7 @@ func GetWechatAccessToken() string {
 		return accessToken
 	}
 
-	utils.LoggerInstance.Error("获取微信公众号access_token失败: %v", tokenResp)
+	utils.LoggerInstance.Error("获取微信公众号access_token失败", "response", tokenResp)
 	return ""
 }
 
@@ -233,14 +233,14 @@ func SendWechatMessage(wechatOpenID, message string) map[string]interface{} {
 	}
 
 	url := fmt.Sprintf("https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=%s", accessToken)
-	utils.LoggerInstance.Info("准备发送微信消息到用户: %s", wechatOpenID)
+	utils.LoggerInstance.Info("准备发送微信消息", "wechat_open_id", wechatOpenID)
 
 	payload := map[string]interface{}{"touser": wechatOpenID, "msgtype": "text", "text": map[string]interface{}{"content": message}}
 	jsonData, _ := json.Marshal(payload)
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		utils.LoggerInstance.Error("发送微信消息失败: %v", err)
+		utils.LoggerInstance.Error("发送微信消息失败", "error", err)
 		return map[string]interface{}{"wechatOpenId": wechatOpenID, "success": false, "message": fmt.Sprintf("发送失败: %v", err), "timestamp": ts}
 	}
 	defer resp.Body.Close()
@@ -251,12 +251,12 @@ func SendWechatMessage(wechatOpenID, message string) map[string]interface{} {
 
 	errCode, _ := wechatResp["errcode"].(float64)
 	if errCode == 0 {
-		utils.LoggerInstance.Info("微信消息发送成功，用户: %s", wechatOpenID)
+		utils.LoggerInstance.Info("微信消息发送成功", "wechat_open_id", wechatOpenID)
 		return map[string]interface{}{"wechatOpenId": wechatOpenID, "messageLength": len(message), "success": true, "timestamp": ts}
 	}
 
 	errMsg := getStr2(wechatResp, "errmsg", "未知错误")
-	utils.LoggerInstance.Error("发送微信消息失败: errcode=%d, errmsg=%s", int(errCode), errMsg)
+	utils.LoggerInstance.Error("发送微信消息失败", "err_code", int(errCode), "err_msg", errMsg)
 	return map[string]interface{}{"wechatOpenId": wechatOpenID, "success": false, "message": fmt.Sprintf("微信API错误: %s", errMsg), "timestamp": ts}
 }
 

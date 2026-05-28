@@ -103,16 +103,16 @@ func (c *ConfigUtil) readConfigFile(configPath string) (map[string]interface{}, 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			safeWarning("Config file not found: %s", configPath)
+			LoggerInstance.Warn("配置文件不存在", "config_path", configPath)
 			return map[string]interface{}{}, nil
 		}
-		safeError("读取配置文件失败: %v", err)
+		LoggerInstance.Error("读取配置文件失败", "error", err)
 		return nil, err
 	}
 
 	var config map[string]interface{}
 	if err := json.Unmarshal(data, &config); err != nil {
-		safeError("解析配置文件失败: %s, error: %v", configPath, err)
+		LoggerInstance.Error("解析配置文件失败", "config_path", configPath, "error", err)
 		// 与Python版本保持一致：解析失败时返回空字典，不返回错误
 		return map[string]interface{}{}, nil
 	}
@@ -134,7 +134,7 @@ func (c *ConfigUtil) GetConfig(configName string, defaultConfig map[string]inter
 
 	configPath, err := c.getConfigPath(configName)
 	if err != nil {
-		LoggerInstance.Error("获取配置路径失败: %s", configName)
+		LoggerInstance.Error("获取配置路径失败", "config_name", configName)
 		return defaultConfig
 	}
 	config, _ := c.readConfigFile(configPath)
@@ -158,13 +158,13 @@ func (c *ConfigUtil) GetConfigSync(configName string, defaultConfig map[string]i
 func (c *ConfigUtil) SaveConfig(configName string, configData map[string]interface{}) bool {
 	configPath, err := c.getConfigPath(configName)
 	if err != nil {
-		LoggerInstance.Error("获取配置路径失败: %s", configName)
+		LoggerInstance.Error("获取配置路径失败", "config_name", configName)
 		return false
 	}
 	os.MkdirAll(filepath.Dir(configPath), 0755)
 	data, _ := json.MarshalIndent(configData, "", "  ")
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
-		LoggerInstance.Error("写入配置文件失败: %s", configPath)
+		LoggerInstance.Error("写入配置文件失败", "config_path", configPath)
 		return false
 	}
 
@@ -172,7 +172,7 @@ func (c *ConfigUtil) SaveConfig(configName string, configData map[string]interfa
 	c.configCache[configName] = configData
 	c.configCacheMutex.Unlock()
 
-	LoggerInstance.Info("Config saved successfully: %s", configName)
+	LoggerInstance.Info("配置保存成功", "config_name", configName)
 	return true
 }
 

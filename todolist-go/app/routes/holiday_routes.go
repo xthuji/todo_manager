@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"todolist-go/app/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 // 缓存配置
@@ -34,7 +35,7 @@ func RegisterHolidayRoutes(router *gin.Engine) {
 
 // fetchHolidayData 从API获取节假日数据
 func fetchHolidayData(apiURL string) (map[string]interface{}, error) {
-	utils.LoggerInstance.Info("[节假日服务] 从API获取数据: %s", apiURL)
+	utils.LoggerInstance.Info("[节假日服务] 从API获取数据", "url", apiURL)
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Get(apiURL)
 	if err != nil {
@@ -84,7 +85,7 @@ func getHolidayData(apiURL string) (map[string]interface{}, error) {
 	}
 
 	if wrappedData.Expired {
-		utils.LoggerInstance.Warning("[节假日服务] 使用过期缓存数据")
+		utils.LoggerInstance.Warn("[节假日服务] 使用过期缓存数据")
 	}
 
 	now := time.Now().UnixMilli()
@@ -114,7 +115,9 @@ func getHolidayCache(c *gin.Context) {
 
 // refreshHolidayCache 刷新节假日缓存接口
 func refreshHolidayCache(c *gin.Context) {
-	var req struct{ ApiURL string `json:"apiUrl"` }
+	var req struct {
+		ApiURL string `json:"apiUrl"`
+	}
 	c.ShouldBindJSON(&req)
 	finalAPIURL := req.ApiURL
 	if finalAPIURL == "" {
