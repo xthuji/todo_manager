@@ -1,8 +1,8 @@
 {
   "server": {
     "ports": {
-      "node": 3000,
-      "python": 3001
+      "node": 3030,
+      "python": 3031
     }
   },
   "python": {

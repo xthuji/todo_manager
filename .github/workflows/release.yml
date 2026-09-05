@@ -1,0 +1,53 @@
+name: Release TodoManager
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Package (macOS universal)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+          cache-dependency-path: todolist-go/go.sum
+
+      - name: Verify Go version
+        run: go version
+
+      # build.sh --macos --dmg 负责: Go 依赖安装 → universal(amd64+arm64) 构建
+      # → TodoManager.app 打包（Info.plist/图标/static/data）→ hdiutil 打包 DMG
+      - name: Build & Package
+        working-directory: todolist-go
+        run: |
+          chmod +x ./build.sh
+          ./build.sh --macos --dmg
+
+      - name: List artifacts
+        working-directory: todolist-go
+        run: ls -lh dist/
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: TodoManager ${{ github.ref_name }}
+          body: |
+            ## TodoManager ${{ github.ref_name }}
+
+            Auto-built macOS universal App (DMG), double-click to install.
+          files: todolist-go/dist/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

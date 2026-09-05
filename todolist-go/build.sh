@@ -8,6 +8,7 @@
 #   ./build.sh --macos      # Build for macOS only
 #   ./build.sh --linux      # Build for Linux only
 #   ./build.sh --windows    # Build for Windows only
+#   ./build.sh --dmg        # Build DMG without interactive prompt (for CI)
 #   ./build.sh --clean      # Clean build artifacts
 #   ./build.sh --verbose    # Show detailed output
 #
@@ -30,6 +31,7 @@ PLATFORM="$(uname)"
 
 # 状态变量
 VERBOSE=false
+BUILD_DMG=false
 BUILD_MACOS=false BUILD_LINUX=false BUILD_WINDOWS=false CLEAN_ONLY=false
 
 # 保留的文件和目录模式（清理后保留的打包文件）
@@ -80,7 +82,6 @@ go_build() {
     case "$platform" in
         "macOS")
             export GOOS=darwin
-            export GOARCH=amd64
             output_name="${PROJECT_NAME}"
             ;;
         "Linux")
@@ -95,21 +96,46 @@ go_build() {
             ;;
     esac
 
-    verbose_log "GOOS=${GOOS} GOARCH=${GOARCH}"
-    verbose_log "执行: go build -ldflags '${ldflags}' -o ${DIST_DIR}/${output_name} ./app/cmd/desktop"
+    # macOS 构建 universal 二进制（amd64 + arm64 通过 lipo 合并）
+    if [[ "$platform" == "macOS" ]]; then
+        local arch_bins=()
+        for arch in amd64 arm64; do
+            export GOARCH="${arch}"
+            # webview_go 依赖 cgo；在非本机架构（如 arm64 主机上编译 amd64）时，
+            # Go 会默认禁用 cgo 导致 "build constraints exclude all Go files"，需显式开启
+            export CGO_ENABLED=1
+            verbose_log "GOOS=${GOOS} GOARCH=${arch} CGO_ENABLED=1"
+            go build -ldflags "${ldflags}" -o "${DIST_DIR}/${PROJECT_NAME}-${arch}" ./app/cmd/desktop || {
+                error "${platform} (${arch}) 版本构建失败"
+                exit 1
+            }
+            unset GOARCH CGO_ENABLED
+            arch_bins+=("${DIST_DIR}/${PROJECT_NAME}-${arch}")
+        done
 
-    # 执行构建，编译app/cmd/desktop目录中的文件
-    cd "${SCRIPT_DIR}" && go build -ldflags "${ldflags}" -o "${DIST_DIR}/${output_name}" ./app/cmd/desktop || {
-        error "${platform} 版本构建失败"
-        exit 1
-    }
+        lipo -create -output "${DIST_DIR}/${output_name}" "${arch_bins[@]}" || {
+            error "lipo 合并 universal 二进制失败"
+            exit 1
+        }
+        rm -f "${arch_bins[@]}"
+    else
+        verbose_log "GOOS=${GOOS} GOARCH=${GOARCH}"
+        verbose_log "执行: go build -ldflags '${ldflags}' -o ${DIST_DIR}/${output_name} ./app/cmd/desktop"
 
-    # 恢复GOOS/GOARCH
-    unset GOOS GOARCH
+        # 执行构建，编译app/cmd/desktop目录中的文件
+        go build -ldflags "${ldflags}" -o "${DIST_DIR}/${output_name}" ./app/cmd/desktop || {
+            error "${platform} 版本构建失败"
+            exit 1
+        }
+
+        # 恢复GOOS/GOARCH
+        unset GOOS GOARCH
+    fi
 
     if [[ -f "${DIST_DIR}/${output_name}" ]]; then
         chmod +x "${DIST_DIR}/${output_name}"
         success "${platform} 版本构建成功: ${DIST_DIR}/${output_name}"
+        lipo -info "${DIST_DIR}/${output_name}" 2>/dev/null || true
         ls -lh "${DIST_DIR}/${output_name}"
     else
         error "未找到构建产物"
@@ -313,8 +339,11 @@ build_macos() {
     go_build "macOS"
     create_macos_app_bundle
 
-    # 选择是否构建 DMG 安装包
-    if [[ "$CLEAN_ONLY" == false ]]; then
+    # 选择是否构建 DMG 安装包（--dmg 直接构建；交互终端下询问；CI 非交互跳过）
+    if [[ "$BUILD_DMG" == true ]]; then
+        log "构建 DMG 安装包"
+        create_dmg
+    elif [[ "$CLEAN_ONLY" == false && -t 0 ]]; then
         read -p "是否构建 DMG 安装包？（y/n 默认n）：" build_type
         if [[ "$build_type" == "y" ]]; then
             log "构建 DMG 安装包"
@@ -350,9 +379,10 @@ usage() {
 Usage: $0 [OPTIONS]
 
 Options:
-  --macos, -m     构建 macOS 版本
+  --macos, -m     构建 macOS 版本（universal: amd64 + arm64）
   --linux, -l     构建 Linux 版本
   --windows, -w   构建 Windows 版本
+  --dmg, -d       构建 DMG 安装包（跳过交互询问，供 CI 使用）
   --clean, -c     仅清理构建产物
   --verbose, -v   显示详细输出
   --help, -h      显示帮助信息
@@ -379,6 +409,7 @@ while [[ $# -gt 0 ]]; do
         --macos|-m) BUILD_MACOS=true; shift ;;
         --linux|-l) BUILD_LINUX=true; shift ;;
         --windows|-w) BUILD_WINDOWS=true; shift ;;
+        --dmg|-d) BUILD_DMG=true; shift ;;
         --clean|-c) CLEAN_ONLY=true; shift ;;
         --verbose|-v) VERBOSE=true; shift ;;
         --help|-h) usage; exit 0 ;;
