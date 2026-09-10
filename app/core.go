@@ -24,8 +24,8 @@ type App struct {
 // NewApp 创建新的应用实例
 func NewApp() *App {
 	// 获取配置 (读取Go项目端口)
-	port := 3002
-	if configValue := utils.ConfigUtilInstance.GetConfigValue("app", "server.ports.go", 3002); configValue != nil {
+	port := 3030
+	if configValue := utils.ConfigUtilInstance.GetConfigValue("app", "server.ports.go", 3030); configValue != nil {
 		if p, ok := configValue.(float64); ok {
 			port = int(p)
 		}

@@ -1,5 +1,17 @@
 name: Release TodoManager
 
+# =============================================================================
+# v* tag 触发，三平台并行构建，汇总发布到 GitHub Release。
+#
+# 全部构建相关逻辑集中在 ./scripts/run_tools.sh build（自动按当前 runner 平台分派）：
+#   - 构建依赖准备：Linux apt 装 GTK3/WebKit2GTK + 生成 webkit2gtk-4.0.pc 兼容别名；
+#     Windows 探测/安装 MinGW-w64（CGO）；macOS 校验 clang
+#   - 打包：macOS universal (amd64+arm64, min 12.0) → .app → .dmg（含 ad-hoc 签名）；
+#     Linux tar.gz；Windows zip
+# 本 workflow 只做 runner 引导（checkout、Go 工具链与缓存）与产物上传，不写任何
+# 系统依赖 / CGO / lipo / codesign / hdiutil / tar / zip 细节，避免与本地行为漂移。
+# =============================================================================
+
 on:
   push:
     tags:
@@ -9,43 +21,113 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build & Package (macOS universal)
+  build-macos:
+    name: macOS (universal)
     runs-on: macos-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
           cache: true
           cache-dependency-path: go.sum
 
-      - name: Verify Go version
-        run: go version
-
-      # build.sh --macos --dmg 负责: Go 依赖安装 → universal(amd64+arm64) 构建
-      # → TodoManager.app 打包（Info.plist/图标/static/data）→ hdiutil 打包 DMG
-      - name: Build & Package
-        run: |
-          chmod +x ./build.sh
-          ./build.sh --macos --dmg
+      # run_tools.sh 内部完成：CGO 交叉编译 amd64+arm64 → lipo → ad-hoc 签名 →
+      # 打包 .app（Info.plist LSMinimumSystemVersion=12.0）→ 整包 ad-hoc 签名 → hdiutil 生成 DMG
+      - name: Build & package via run_tools.sh
+        run: ./scripts/run_tools.sh build
 
       - name: List artifacts
         run: ls -lh dist/
 
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/*.dmg
+
+  build-linux:
+    name: Linux (amd64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+          cache-dependency-path: go.sum
+
+      # run_tools.sh 内部完成：apt 安装 GTK3/WebKit2GTK 并生成 webkit2gtk-4.0.pc 兼容别名
+      # → CGO 编译 → tar.gz 打包
+      - name: Build & package via run_tools.sh
+        run: ./scripts/run_tools.sh build
+
+      - name: List artifacts
+        run: ls -lh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-tar
+          path: dist/*.tar.gz
+
+  build-windows:
+    name: Windows (amd64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+          cache-dependency-path: go.sum
+
+      # run_tools.sh 内部完成：探测/安装 MinGW-w64（CGO 所需 gcc）→ 编译 → zip 打包
+      - name: Build & package via run_tools.sh
+        run: ./scripts/run_tools.sh build
+
+      - name: List artifacts
+        run: ls -lh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: dist/*.zip
+
+  release:
+    name: Create GitHub Release
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lhR dist/
+
+      - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: TodoManager ${{ github.ref_name }}
           body: |
             ## TodoManager ${{ github.ref_name }}
 
-            Auto-built macOS universal App (DMG), double-click to install.
-          files: dist/*.dmg
+            跨平台桌面待办事项管理应用，基于 Go + webview_go。
+            构建逻辑由 `./scripts/run_tools.sh build` 统一实现。
+
+            **下载说明:**
+            - macOS: `TodoManager_v*_macos.dmg` — universal (amd64 + arm64)，支持 macOS 12 Monterey 及以上。未做 Apple 公证，首次打开如被 Gatekeeper 拦截，请右键应用选“打开”确认一次即可。
+            - Linux: `TodoManager_v*_linux_amd64.tar.gz` — 解压后运行 `TodoManager`（需预装 `libwebkit2gtk-4.1-0` 与 `libgtk-3-0`；Ubuntu 22.04+/Debian 12+ 的官方源均已提供）
+            - Windows: `TodoManager_v*_windows_amd64.zip` — 解压后运行 `TodoManager.exe`（需系统预装 WebView2 Runtime，Win 10 1803+ 默认自带）
+          files: |
+            dist/*.dmg
+            dist/*.tar.gz
+            dist/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

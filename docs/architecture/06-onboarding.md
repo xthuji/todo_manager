@@ -1,143 +1,239 @@
 # 新人上手指南
 
-> 生成时间：2026-08-01 ｜ 代码版本：master@d6f93a4
-
-本指南帮助新成员在 30 分钟内完成环境搭建、启动应用并跑通第一个改动。
+> 生成时间：2026-09-10 ｜ 代码版本：master@40a4f33 ｜ 应用版本：v1.0.2
 
 ## 1. 前置准备
 
-| 项 | 要求 | 验证命令 |
+| 依赖 | 版本要求 | 安装方式 |
 |---|---|---|
-| Go | 1.25.0+（[go.mod](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/go.mod) 指定） | `go version` |
-| Git | 任意版本 | `git --version` |
-| macOS | 13+（桌面应用目标平台） | `sw_vers` |
-| Xcode CLT | 必需（cgo + Cocoa） | `xcode-select -p` |
-| WebKit 系统库 | 仅 Linux 构建桌面应用时需要 | `pkg-config --exists webkit2gtk-4.0 && echo OK` |
+| Go | 1.25+ | [go.dev/dl](https://go.dev/dl/)（版本从 go.mod 确认） |
+| macOS CLT | 最新 | `xcode-select --install` |
+| webkit2gtk 开发包 | Ubuntu 24.04+ 用 4.1，旧版用 4.0 | 可不管：`run_tools.sh` 构建时会自动 apt 补齐并处理 `webkit2gtk-4.0.pc` 别名；手动为 `sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev` |
+| Git | 任意 | 系统自带或 brew install git |
 
-> 提示：若仅参与后端开发（不构建桌面应用），可只装 Go，用 `app/cmd/server` 入口调试，无需 webview 系统库。
+**GOPROXY 配置**（国内网络建议）：
+```bash
+go env -w GOPROXY=https://goproxy.cn,direct
+```
 
 ## 2. 拉取与导入
 
 ```bash
-git clone <项目地址>
-cd todo_manager/todolist-go
+git clone https://github.com/xthuji/todo_manager.git
+cd todo_manager
 
-# 安装依赖
-go mod tidy
+# 下载依赖
+go mod download
+
+# 验证依赖完整性
+go mod verify
 ```
 
-若 GOPROXY 未配置，建议：
-
-```bash
-go env -w GOPROXY=https://goproxy.cn,direct
-go env -w GOSUMDB=sum.golang.google.cn
-```
+**IDE 建议**：GoLand 或 VS Code + Go 插件（gopls 自动配置）。
 
 ## 3. 配置本地环境
 
-项目所需配置文件已在仓库内（[data/config/](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/data/config)），无需额外配置即可启动。
+项目**无需任何环境变量**。配置全部在 `data/config/` 下的 JSON 文件中：
 
-可选项：
+| 文件 | 必须 | 说明 |
+|---|---|---|
+| `app_config.json` | ✅ | 端口（默认 3030）、超时、开关 |
+| `notify_config.json` | ❌ | 定时通知配置（空文件即可） |
+| `festival_config.json` | ❌ | 自定义节日 |
 
-- 修改 [data/config/app_config.json](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/data/config/app_config.json) 调整端口或超时
-- 启用 Mock：将 `features.mock.enabled` 设为 `true`，天气与位置将使用 [data/mock/](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/data/mock) 中的数据，避免调用外部 API
-- 关闭缓存：将 `features.cache.enabled` 设为 `false`，便于调试
+如果 `data/config/` 目录不存在或配置文件缺失，`ConfigUtil` 会自动创建目录并返回空配置/默认值。
 
 ## 4. 启动服务
 
-### 方式 A：纯 HTTP 服务（推荐后端开发）
+### 方式一：纯 HTTP 服务端（推荐开发用，最快）
 
 ```bash
+# 方式 A：直接 go run
 go run ./app/cmd/server
-# 或
-go build -o /tmp/TodoManagerServer ./app/cmd/server && /tmp/TodoManagerServer
+
+# 方式 B：构建后运行
+./scripts/run_tools.sh server
 ```
 
-访问 http://127.0.0.1:3002 验证。
+然后打开浏览器访问 http://127.0.0.1:3030
 
-### 方式 B：桌面应用（推荐体验完整功能）
+### 方式二：桌面应用
 
 ```bash
-./test_app.sh
+./scripts/run_tools.sh run
 ```
 
-[test_app.sh](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/test_app.sh) 会：检查 Go → 安装依赖 → 清理旧产物 → 编译 `./app/cmd/desktop` → 释放 3002 端口 → 启动窗口。
+或者：
+```bash
+# macOS 专用
+./scripts/run_tools.sh build
+open dist/TodoManager.app
+```
 
-### 方式 C：IDE 调试
+### 方式三：测试 Mock 模式
 
-在 IntelliJ IDEA / VS Code 中配置 Go Run/Debug：
+如果想在离线环境下开发天气功能：
 
-- Package: `todolist-go/app/cmd/desktop`（桌面）或 `todolist-go/app/cmd/server`（服务端）
-- Working directory: 项目根
-- 程序参数：无
+1. 编辑 `data/config/app_config.json`，设置：
+```json
+{
+  "features": {
+    "mock": { "enabled": true }
+  }
+}
+```
+2. 重启应用，天气接口会返回 `data/mock/mock_weather_info.json` 中的静态数据。
 
 ## 5. 验证启动成功
 
-| 检查项 | 方法 |
-|---|---|
-| HTTP 服务 | `curl http://127.0.0.1:3002/api/check-status` 应返回 `{"success":true,...}` |
-| 日志 | 查看 `data/logs/app.log`，应有"启动服务器"与"静态文件目录存在" |
-| 桌面窗口 | 应弹出标题为"TodoManager"的 1000×800 窗口，加载首页 |
-| 定时通知 | 若 `notify_config.json` 的 `startupNotifyEnabled=true`，日志会打印通知结果 |
+```bash
+# 健康检查
+curl http://127.0.0.1:3030/api/check-status
+# → {"success":true,"message":"服务正在运行"}
+
+# 扫描 todo 文件
+curl http://127.0.0.1:3030/api/file/scan
+# → {"success":true,"files":[...],"defaultFile":"todo.txt"}
+
+# 天气查询（需要在 Mock 模式或有网络）
+curl http://127.0.0.1:3030/api/weather/ip-location
+curl "http://127.0.0.1:3030/api/weather/weather-info?weatherCode=101210101"
+```
 
 ## 6. 第一个任务：新增一个 API 接口
 
-以新增"获取任务统计"接口为例，走完从路由到测试的完整流程。
+让我们**从零开始**，在天气路由里加一个"健康检查增强接口"——返回各数据源的可用性状态。
 
-### Step 1：新增路由
+### 步骤 1：在 routes 层添加 Handler
 
-在 [app/routes/file_routes.go](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/app/routes/file_routes.go) 的 `RegisterFileRoutes` 中添加：
-
-```go
-fileGroup.GET("/stats", getFileStats)
-```
-
-### Step 2：实现 handler
-
-在同一文件添加：
+在 `app/routes/weather_routes.go` 的 `RegisterWeatherRoutes` 里注册新路由：
 
 ```go
-func getFileStats(c *gin.Context) {
-    data := scanFilesLogic()
-    files, _ := data["files"].([]map[string]interface{})
+func RegisterWeatherRoutes(router *gin.Engine) {
+    weatherGroup := router.Group("/api/weather")
+    weatherGroup.GET("/ip-location", getIPLocation)
+    weatherGroup.GET("/weather-area-codes", getWeatherAreaCodes)
+    weatherGroup.GET("/weather-info", getWeatherInfo)
+    weatherGroup.GET("/health", weatherHealth)  // ← 新增
+}
+
+// 新增的 Handler
+func weatherHealth(c *gin.Context) {
     c.JSON(http.StatusOK, map[string]interface{}{
         "success": true,
-        "count":   len(files),
-        "files":   files,
+        "data": map[string]interface{}{
+            "cma":   "ok",
+            "nmc":   "ok",
+            "moji":  "ok",
+            "tianqi": "ok",
+        },
+        "timestamp": time.Now().UnixMilli(),
     })
 }
 ```
 
-### Step 3：验证
+### 步骤 2：编译验证
 
 ```bash
-go build ./...
-go run ./app/cmd/server
-curl http://127.0.0.1:3002/api/file/stats
+go build ./app/cmd/server
+# 应该无错误
 ```
 
-### Step 4：（可选）补测试
-
-在 [tests/](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/tests) 下新建 `test_file_stats_test.go`，参考已有测试风格编写。
-
-### Step 5：跑测试
+### 步骤 3：运行并测试
 
 ```bash
-./tests/run_tests.sh
-# 或直接
-go test ./tests/... -v
+./scripts/run_tools.sh server
+curl http://127.0.0.1:3030/api/weather/health
 ```
 
-成功后会生成 `tests/.test_success` 标志文件。
+### 步骤 4：写单元测试
+
+如果你想为这个新功能补测试，在同目录创建 `weather_routes_test.go`：
+
+```go
+package routes
+
+import (
+    "testing"
+    "net/http"
+    "net/http/httptest"
+    "github.com/gin-gonic/gin"
+)
+
+func TestWeatherHealth(t *testing.T) {
+    gin.SetMode(gin.TestMode)
+    r := gin.New()
+    RegisterWeatherRoutes(r)
+
+    req, _ := http.NewRequest("GET", "/api/weather/health", nil)
+    w := httptest.NewRecorder()
+    r.ServeHTTP(w, req)
+
+    if w.Code != http.StatusOK {
+        t.Errorf("Expected 200, got %d", w.Code)
+    }
+}
+```
 
 ## 7. 推荐学习路径
 
-按以下顺序阅读文档与源码，建立全局认知：
+```
+第 1 周：先建立「页面维度」的整体认知
+├── 读 docs/ARCHITECTURE.md（入口）+ docs/architecture/01-overview.md（App 页面地图 + 映射总表）
+├── 读 docs/architecture/02-pages/00-app-shell.md（外壳如何装载四个页面）
+├── 在本地把服务跑起来
+└── 打开浏览器逐一点侧边栏四个页面，对照 Network 面板理解请求-响应
 
-1. **[01-overview.md](01-overview.md)**：项目定位与技术栈
-2. **[03-business-architecture.md](03-business-architecture.md)**：业务域与核心流程（看时序图）
-3. **源码**：[app/core.go](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/app/core.go)（装配）→ [app/routes/](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/app/routes)（任选一个路由文件）→ [app/services/weather_service.go](file:///Users/huji/work/MyProject/code_mine/gitee/todo_manager/todolist-go/app/services/weather_service.go)（最复杂的服务）
-4. **[02-tech-architecture.md](02-tech-architecture.md)**：横切关注点（缓存/并发/日志）
-5. **[04-packages/utils.md](04-packages/utils.md)**：基础设施
-6. **[05-adr/](05-adr/)**：理解关键决策的"为什么"
-7. **[07-dev-guide.md](07-dev-guide.md)**：开发规范与构建部署
+第 2 周：跟着你最关心的业务页深入
+├── 读 docs/architecture/02-pages/weather.md（四源聚合，最复杂链路）
+├── 读 docs/architecture/02-pages/todo.md（文件读写 + 缓存失效）
+├── 读 docs/architecture/04-infrastructure.md（配置/缓存/日志/并发 等地基）
+├── 回头对照 docs/architecture/01-overview.md §6.1，理解为什么这么选型
+└── 尝试改一下天气合并逻辑（BuildWeatherData），跑 go test
+
+第 3 周：补齐其余页面与工程化
+├── 读 02-pages/calendar.md + 02-pages/festival.md（农历/节假日/节日闭环）
+├── 了解前端 static/js/business/ 按页面组织的业务代码
+├── 完整跑一遍三平台构建（./scripts/run_tools.sh build）
+└── 读 docs/architecture/07-dev-guide.md 了解规范
+```
+
+## 8. 调试技巧
+
+### 开启详细日志
+
+编辑 `data/config/app_config.json`：
+```json
+{
+  "logs": {
+    "print_api_data": true,
+    "print_data_log": true
+  }
+}
+```
+
+日志输出在 `data/logs/app.log`。
+
+### HTTP 请求调试
+
+服务跑起来后，直接用浏览器打开 http://127.0.0.1:3030 ，打开 DevTools 查看 Network 面板。桌面应用模式下 webview 支持右键检查元素（`webview_go.New(true)` 开启了调试模式）。
+
+### Mock 模式调试
+
+```json
+{
+  "features": {
+    "mock": { "enabled": true }
+  }
+}
+```
+
+天气接口会返回静态 mock 数据，位置接口返回 `data/mock/mock_ip_area.json`。
+
+### 清理缓存
+
+缓存文件在 `data/cache/` 下，直接删除即可让下次请求重新拉取。
+
+---
+
+*文档生成于 2026-09-10，基于代码版本 master@40a4f33。*

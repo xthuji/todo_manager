@@ -1,9 +1,7 @@
 {
   "server": {
     "ports": {
-      "node": 3030,
-      "python": 3031,
-      "go": 3032
+      "go": 3030
     },
     "api_timeout_location": 10,
     "api_timeout_weather": 10,

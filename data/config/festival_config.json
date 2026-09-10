@@ -326,41 +326,6 @@
       "dateType": "solarTerms",
       "name": "大寒",
       "type": "solar_terms"
-    },
-    {
-      "alias": "",
-      "date": "04-19",
-      "dateType": "lunar",
-      "name": "🎁生日-我",
-      "type": "custom"
-    },
-    {
-      "alias": "",
-      "date": "01-10",
-      "dateType": "lunar",
-      "name": "🎁生日-老婆",
-      "type": "custom"
-    },
-    {
-      "alias": "",
-      "date": "09-27",
-      "dateType": "lunar",
-      "name": "🎁生日-妈",
-      "type": "custom"
-    },
-    {
-      "alias": "",
-      "date": "07-09",
-      "dateType": "lunar",
-      "name": "🎁生日-爸",
-      "type": "custom"
-    },
-    {
-      "alias": "",
-      "date": "11-02",
-      "dateType": "lunar",
-      "name": "🎁生日-哥",
-      "type": "custom"
     }
   ]
 }

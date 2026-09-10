@@ -35,7 +35,7 @@ type TodoApp struct {
 // NewTodoApp 构造函数 (对应 Python __init__)
 func NewTodoApp() *TodoApp {
 	return &TodoApp{
-		Port: 3002,
+		Port: 3030,
 	}
 }
 

@@ -1,214 +1,192 @@
-# 待办事项管理系统 (Go/Webview版本)
+# TodoManager
 
-## 项目概述
+[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/dl/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/xthuji/todo_manager?label=release)](https://github.com/xthuji/todo_manager/releases)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](https://github.com/xthuji/todo_manager/releases)
 
-这是一个基于Go和webview_go的待办事项管理系统桌面应用。系统提供了任务管理、日历视图、节假日管理和天气查询等功能，支持多文件管理和数据缓存。
+> **本项目由 AI 辅助编程开发** —— Go 后端、前端页面与 JS、天气数据抓取解析、单元测试、架构文档均由 AI 协作生成，人工负责方案设计、代码评审与功能验证。详见 [AI 协作说明](#ai-协作说明)。
 
-## 功能特性
+TodoManager 是一个**本地运行、零部署依赖**的跨平台桌面待办事项管理应用，基于 Go + [webview_go](https://github.com/webview/webview_go)。以 `todo.txt` 纯文本文件为数据中心，集成任务管理、日历视图、节假日/节日管理、多源天气查询与定时通知。
 
-- ✅ 任务管理：创建、编辑、删除任务
-- ✅ 日历视图：查看任务在日历上的分布
-- ✅ 多文件管理：支持多个todo.txt文件的切换和管理
-- ✅ 节假日管理：获取和显示节假日信息
-- ✅ 天气服务：查询和显示天气信息
-- ✅ 缓存机制：减少重复请求，提高系统性能
-- ✅ 定时任务：自动天气通知
-- ✅ 桌面应用：基于webview_go的跨平台桌面应用
+## 特性一览
 
-## 安装和运行
+- **任务管理** — 遵循 [todo.txt](http://todotxt.org/) 格式（优先级 / `due:` / `+项目` / `@上下文`），增删改查、完成归档
+- **多文件管理** — 多个 todo 文件切换、导入导出，文件即数据
+- **日历视图** — 公历 + 农历（节气/干支）+ 法定节假日「休/班」+ 自定义节日，整月同屏
+- **多源天气** — 并发抓取 CMA / 中央气象台 / 墨迹天气 / 天气网四源，**字段级互补合并**，单源失效不阻塞
+- **定时通知** — cron 表达式触发的天气播报，支持 macOS Messages 短信与微信公众号推送
+- **跨平台** — macOS universal (amd64 + arm64) / Linux amd64 / Windows amd64
+- **零构建前端** — 原生 HTML/CSS/JS，无需 npm，改完刷新即生效
 
-### 前提条件
+## 技术栈
 
-- Go 1.25+
+| 层 | 选型 |
+|---|---|
+| 桌面框架 | [webview_go](https://github.com/webview/webview_go)（原生窗口 + 内嵌浏览器） |
+| 后端 | Go 1.25 · [Gin](https://github.com/gin-gonic/gin) 1.9 |
+| 前端 | 原生 HTML / CSS / JavaScript（无框架、零构建） |
+| 天气抓取 | [goquery](https://github.com/PuerkitoBio/goquery) · [uTLS](https://github.com/refraction-networking/utls) |
+| 数据 | `todo.txt` 纯文本 + JSON 配置 + 两级缓存（内存 / 文件），**无数据库** |
+| 日志 | `log/slog` 结构化日志 |
+| CI/CD | GitHub Actions，tag 触发三平台自动构建发布 |
 
-### 安装步骤
+## 快速开始
 
-1. **克隆项目**
-   ```bash
-   git clone <项目地址>
-   cd todolist-go
-   ```
+### 下载
 
-2. **安装依赖**
-   ```bash
-   go mod tidy
-   ```
+前往 [Releases](https://github.com/xthuji/todo_manager/releases) 下载对应平台产物：
 
-3. **开发模式运行**
-   ```bash
-   ./test_app.sh
-   ```
+| 平台 | 文件 | 安装与运行条件 |
+|---|---|---|
+| macOS | `TodoManager_v*_macos.dmg` | universal 包（amd64 + arm64），需 **macOS 12 Monterey 及以上**；拖入 Applications |
+| Linux | `TodoManager_v*_linux_amd64.tar.gz` | 解压后运行 `TodoManager`；需预装 `libwebkit2gtk-4.1-0` 与 `libgtk-3-0` |
+| Windows | `TodoManager_v*_windows_amd64.zip` | 解压后运行 `TodoManager.exe`；需系统已装 **WebView2 Runtime**（Win 10 1803+ 默认自带） |
 
-4. **生产构建**
-   ```bash
-   ./build.sh
-   ```
+> macOS 产物**未做 Apple 开发者签名与公证**（仅 ad-hoc 签名），首次打开若被 Gatekeeper 拦截提示“已损坏”，请**右键应用选“打开”**确认一次。
+
+### 环境要求
+
+| 平台 | 要求 |
+|---|---|
+| 通用 | Go 1.25+（国内建议 `go env -w GOPROXY=https://goproxy.cn,direct`） |
+| macOS | Xcode Command Line Tools（`xcode-select --install`） |
+| Linux | 无（`./scripts/run_tools.sh build` 会自动 apt 安装 GTK3/WebKit2GTK 开发包并处理 pkg-config 别名；手动安装为 `sudo apt install pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev`） |
+| Windows | Go + Git Bash（CGO 环境） |
+
+### 从源码运行
+
+```bash
+git clone https://github.com/xthuji/todo_manager.git
+cd todo_manager
+
+# 最轻量：纯 HTTP 服务端（不需要 webview，用浏览器访问）
+go run ./app/cmd/server
+# → http://127.0.0.1:3030
+
+# 桌面应用（交互菜单）
+./scripts/run_tools.sh
+
+# 指定命令
+./scripts/run_tools.sh build    # 构建 + 打包发布产物到 dist/
+./scripts/run_tools.sh run      # 构建并前台运行桌面 App
+./scripts/run_tools.sh test     # 运行单元测试（go test -race）
+./scripts/run_tools.sh clean    # 清理构建产物
+```
 
 ## 项目结构
 
 ```
-todolist-go/
-├── app/                  # 应用主目录
-│   ├── app.go            # Gin服务器应用实例
-│   ├── routes/           # 路由模块
-│   │   ├── file_routes.go        # 文件操作路由
-│   │   ├── holiday_routes.go     # 节假日路由
-│   │   ├── festival_routes.go    # 节日路由
-│   │   ├── status_routes.go      # 服务器状态路由
-│   │   └── weather_routes.go     # 天气路由
-│   ├── services/         # 服务模块
-│   │   ├── weather/      # 天气服务
-│   │   │   ├── weather_cma_service.go
-│   │   │   ├── weather_nmc_service.go
-│   │   │   ├── weather_tianqi_service.go
-│   │   │   └── weather_moji_service.go
-│   │   ├── location_service.go
-│   │   ├── notify_service.go
-│   │   ├── auto_weather_notify_service.go
-│   │   └── weather_service.go
-│   └── utils/            # 工具模块
-│       ├── cache_util.go
-│       ├── config_util.go
-│       ├── constants.go
-│       └── logger_util.go
-├── data/                 # 数据目录
-│   ├── cache/            # 缓存目录
-│   ├── config/           # 配置目录
-│   ├── mock/             # 模拟数据目录
-│   ├── weather/          # 天气数据目录
-│   └── todo.txt          # 默认任务文件
-├── tests/                # 测试目录
-├── logs/                 # 日志目录
-├── static/               # 静态文件目录
-│   ├── css/              # CSS文件
-│   ├── js/               # JavaScript文件
-│   ├── img/              # 图片文件
-│   └── fonts/            # 字体文件
-├── app.go                # Webview应用入口
-├── app_darwin.go         # macOS特定实现
-├── go.mod                # Go模块依赖
-├── go.sum                # Go模块校验
-├── build.sh              # 构建脚本
-├── test_app.sh           # 测试运行脚本
-└── README.md             # 说明文档
+├── app/
+│   ├── cmd/desktop/      桌面入口：起 Gin 服务 → 开 webview 窗口
+│   ├── cmd/server/       纯 HTTP 入口（无 GUI）
+│   ├── routes/           路由注册 + handler（file/weather/holiday/festival/status）
+│   ├── services/         天气聚合、IP 定位、通知发送、定时调度
+│   │   └── weather/      四个数据源各自的抓取与解析
+│   ├── utils/            配置、缓存、日志、常量
+│   └── core.go           App 单例 + 路由装配 + 静态文件 + CORS
+├── static/
+│   ├── pages/            index.html 外壳 + 四个业务页面（iframe 装载）
+│   └── js/business/      按页面组织的业务 JS
+├── data/
+│   ├── config/           app_config / notify_config / festival_config
+│   ├── weather/          各源区域编码映射表
+│   ├── mock/             Mock 模式静态数据
+│   ├── todo.txt          默认任务文件
+│   └── logs|cache/       运行时生成（已 gitignore）
+├── docs/
+│   ├── ARCHITECTURE.md   架构文档入口
+│   └── architecture/     按页面维度组织的技术文档 + 上手指南
+├── tests/                Go 单元测试
+├── scripts/              run_tools.sh / release.sh / git_commit_release.sh
+└── .github/workflows/    release.yml（tag 触发三平台构建）
 ```
 
-## API接口说明
+## 配置
 
-### 文件操作接口
+所有配置位于 `data/config/`，**无需任何环境变量**；文件缺失时程序会自动创建目录并回落到默认值。
 
-- **GET /api/file/scan** - 扫描所有todo*.txt文件
-- **GET /api/file/read/:filename** - 读取指定文件内容
-- **POST /api/file/write/:filename** - 写入文件内容
+| 文件 | 说明 |
+|---|---|
+| `app_config.json` | 服务端口（默认 3030）、各源 API 超时、默认城市、Mock / 缓存开关、日志开关 |
+| `notify_config.json` | 通知城市、cron 表达式、手机号 / 微信 AppId・AppSecret・OpenId |
+| `festival_config.json` | 自定义节日列表（公历 / 农历） |
 
-### 节假日接口
+> ⚠️ `notify_config.json` 一旦被填入手机号或微信密钥，即属**个人凭据**。程序只读取该固定文件名，因此它**不在 `.gitignore` 范围内**——开源 / 共享仓库前请先将其恢复为空模板（字段值置 `""`、`notifyEnabled` 置 `false`），真实凭据只留在本地。
 
-- **GET /api/holiday/cache** - 获取节假日缓存数据
-- **POST /api/holiday/refresh-cache** - 刷新节假日缓存
+**Mock 模式**：把 `features.mock.enabled` 设为 `true`，天气与定位接口将返回 `data/mock/` 中的静态数据，可完全离线开发。
 
-### 节日接口
+## 架构概览
 
-- **GET /api/festival/config** - 获取节日配置
-- **POST /api/festival/save** - 保存节日配置
+```
+用户 ←→ webview_go 窗口 ←→ Gin HTTP (127.0.0.1:3030) ←→ 业务服务
+                                                              ↓
+                                                         外部 API
+                                                    (天气 / 节假日 / 微信)
+```
 
-### 服务器状态接口
+桌面应用启动时在本地 `127.0.0.1:3030` 拉起 Gin 服务，webview 加载本地页面与之交互。后端负责文件读写、外部 API 抓取、缓存与通知；数据以 `map[string]interface{}` 前后端透传，无 ORM、无实体类。
 
-- **GET /api/check-status** - 检查服务器状态
-- **POST /api/shutdown** - 关闭服务器
+详细文档：
 
-### 天气接口
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — 文档索引与架构速览
+- [docs/architecture/01-overview.md](docs/architecture/01-overview.md) — 系统上下文、页面地图、技术栈与选型理由
+- [docs/architecture/06-onboarding.md](docs/architecture/06-onboarding.md) — 新人上手指南
+- [docs/architecture/08-faq.md](docs/architecture/08-faq.md) — 常见问题排查
 
-- **GET /api/weather/ip-location** - 根据IP获取位置信息
-- **GET /api/weather/weather-area-codes** - 获取天气区域编码
-- **GET /api/weather/weather-info** - 获取天气数据
-
-## 配置说明
-
-### 依赖管理
-
-项目依赖在 `go.mod` 文件中定义，包括：
-
-- github.com/webview/webview_go - Webview桌面框架
-- github.com/gin-gonic/gin - Web框架
-- github.com/gin-contrib/cors - CORS中间件
-- github.com/PuerkitoBio/goquery - HTML解析
-
-### 数据目录
-
-- **data/** - 存储任务文件和配置文件
-- **data/cache/** - 存储缓存数据
-- **data/config/** - 存储配置文件
-- **data/mock/** - 存储模拟数据
-- **data/weather/** - 存储天气相关数据
-
-## 注意事项
-
-1. **端口冲突**：默认使用3002端口，如果该端口已被占用，`test_app.sh`脚本会自动释放端口。
-
-2. **文件权限**：确保应用有足够的权限读写数据目录。
-
-3. **依赖版本**：项目使用Go modules管理依赖，建议使用`go mod tidy`安装依赖。
-
-4. **缓存管理**：系统会自动管理缓存，但如果需要手动清理缓存，可以删除 `data/cache/` 目录下的文件。
-
-5. **定时任务**：天气通知定时任务默认在每天早上8点执行。
-
-## 开发说明
-
-### 调试模式
-
-使用`./test_app.sh`命令以开发模式运行，支持快速重新编译和测试。
-
-### 代码规范
-
-- 使用Go官方代码规范
-- 函数和方法使用注释说明
-- 重要的代码块添加文档字符串
-
-### 扩展功能
-
-如果需要扩展系统功能，可以：
-
-1. 在 `app/routes/` 目录下添加新的路由模块
-2. 在 `app/services/` 目录下添加新的服务模块
-3. 在 `app/utils/` 目录下添加新的工具模块
-
-### 运行测试
+## 发布
 
 ```bash
-go test ./tests/... -v
+# 1. 更新版本号
+echo "1.0.3" > version.txt
+
+# 2. 提交 + 推送 + 打 tag（一条龙，交互式）
+./scripts/git_commit_release.sh
+
+# 或分步：只提交推送不发布
+./scripts/git_commit_release.sh -m "docs: 更新 README" --no-release -y
+
+# 3. 或单独触发发布（读 version.txt 打 tag 并推送）
+./scripts/release.sh --dry-run   # 预览
+./scripts/release.sh             # 执行
 ```
 
-### 构建桌面应用
+推送 `v*` tag 后，GitHub Actions 在 macOS / Linux / Windows 三个 runner 上并行构建，macOS 侧编译双架构后用 `lipo` 合并为 universal 二进制，产物自动上传至 GitHub Release。
 
-```bash
-./build.sh
-```
+## 隐私与数据
 
-## 故障排除
+- **本地优先**：任务数据只存于本机 `data/todo.txt`，应用不含任何遥测、统计或账号系统
+- **对外请求**：仅在查询天气 / 定位 / 节假日时访问公开接口，桌面服务本身只监听 `127.0.0.1`，不对外暴露端口
+- **IP 定位**：调用公开气象站点接口获取省市级别位置，可在页面手动选择地区替代
+- **通知凭据**：手机号、微信 AppId / AppSecret / OpenId 仅存于本地配置文件，代码中不含任何默认凭据
 
-### 常见问题
+## AI 协作说明
 
-1. **依赖缺失**：缺少依赖模块
-   - 解决方案：运行 `go mod tidy` 安装所有依赖
+本项目采用 **AI 辅助编程**（AI-assisted coding）方式开发，AI 参与范围包括：
 
-2. **端口被占用**：
-   - 解决方案：修改配置文件中的端口配置
+| 环节 | AI 参与内容 |
+|---|---|
+| Go 后端 | 路由 / service / 缓存 / 日志实现，四源抓取与字段级合并逻辑 |
+| 前端 | 页面结构、业务 JS 模块、农历与日历渲染算法 |
+| 测试 | 单元测试用例与测试脚本 |
+| 文档 | `docs/architecture/` 全部技术文档、README、本说明 |
+| 工程化 | 构建与发布脚本、GitHub Actions 工作流 |
 
-3. **文件权限错误**：
-   - 解决方案：确保应用有足够的权限读写数据目录
+人工职责：需求界定与技术选型决策、代码评审、跨平台真机验证、安全与合规把关。
 
-4. **编译错误**：
-   - 解决方案：运行 `go vet ./...` 检查代码问题
+需要说明的是：AI 生成内容可能存在**与代码实际不符的文档描述**或**未覆盖的边界情况**。因此项目约定「文档与代码同仓库、发现不符以代码为准」，若你在使用中发现任何描述与实现不一致，欢迎提 Issue 指出。
 
-### 日志查看
+## 免责与合规
 
-系统运行时的日志会输出到终端，可以通过查看终端输出来排查问题。
+- 天气数据抓取自公开站点页面，**仅供个人学习与技术研究使用**；请自行遵守各数据源的服务条款与 `robots.txt`，商用请改接官方授权 API
+- 法定节假日数据来自第三方开源镜像，实际放假安排以**国务院官方公告**为准
+- macOS 短信通知依赖本机 Messages.app（`osascript`），仅 macOS 可用；微信推送需自行申请公众号并配置密钥
+- 本项目按 **MIT** 协议开源，不含任何明示或默示的担保
 
-## 许可证
+## License
 
-MIT License
+[MIT License](LICENSE)
 
-## 联系方式
+---
 
-如有问题或建议，请联系项目维护者。
+*Made with AI assistance · 如果这个项目对你有帮助，欢迎 Star 与 PR*

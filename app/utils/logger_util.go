@@ -31,7 +31,7 @@ func NewLogger() *Logger {
 	logDir := filepath.Join(ConfigUtilInstance.GetDataDir(), "logs")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		fmt.Printf("Error creating log directory: %v\n", err)
-		logDir = filepath.Join(os.TempDir(), "todolist-go", "logs")
+		logDir = filepath.Join(os.TempDir(), "TodoManager", "logs")
 		_ = os.MkdirAll(logDir, 0755)
 	}
 

@@ -1,13 +1,13 @@
 {
   "weather": {
     "weatherCode": "101210101",
-    "phoneNumber": "xthuji@icloud.com",
+    "phoneNumber": "",
     "wechatOpenId": "",
-    "wechatAppId": "wxdf434bfa8138f6d5",
-    "wechatAppSecret": "10023a7c467fa8cf74909dfd2f077556",
-    "notifyEnabled": true,
+    "wechatAppId": "",
+    "wechatAppSecret": "",
+    "notifyEnabled": false,
     "notifyTypes": ["sms", "wechat"],
-    "timerEnabled": true,
+    "timerEnabled": false,
     "startupNotifyEnabled": false,
     "cronExpression": "40 8,18 * * *"
   }

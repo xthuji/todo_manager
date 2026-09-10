@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# TodoManager (todolist-go) - 发布工具
+# TodoManager - 发布工具
 # =============================================================================
-# 读取 todolist-go/version.txt 中的 VERSION 创建 git tag v{version}，推送到
-# GitHub 远程，触发仓库根目录 .github/workflows/release.yml 在 macos-latest 上
-# 自动构建 macOS universal App 并发布 DMG 到 GitHub Release。
+# 读取 version.txt 创建 git tag v{version}，推送到远程仓库，
+# 触发 .github/workflows/release.yml 在 macOS / Linux / Windows 三平台
+# 自动构建并发布到 GitHub Release。
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"    # todolist-go/
-PROJECT_DIR="${SCRIPT_DIR}"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"     # git 仓库根目录（.github 所在位置）
-VERSION_FILE="${PROJECT_DIR}/version.txt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+VERSION_FILE="${ROOT_DIR}/version.txt"
 REMOTE_NAME="${RELEASE_REMOTE:-backupstream}"
-GITHUB_REPO="xthuji/todo_manager"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -31,8 +29,8 @@ usage() {
 ${BOLD}用法:${NC} $0 [--version=<ver>] [--remote=<name>] [--dry-run]
 
 ${BOLD}说明:${NC}
-  读取 todolist-go/version.txt 中的 VERSION 创建 git tag v{version}，
-  推送到 GitHub 远程，触发 .github/workflows/release.yml 自动构建并发布 DMG。
+  读取 version.txt 创建 git tag v{version}，推送到远程，
+  触发 .github/workflows/release.yml 自动构建三平台应用并发布。
 
 ${BOLD}选项:${NC}
   --version=<ver>  指定版本号 (覆盖 version.txt)
@@ -64,12 +62,13 @@ for arg in "$@"; do
     esac
 done
 
-# 读取版本号（格式: VERSION = X.Y.Z）
+cd "$ROOT_DIR"
+
 if [[ -n "$CUSTOM_VERSION" ]]; then
     APP_VERSION="$CUSTOM_VERSION"
 else
     [[ -f "$VERSION_FILE" ]] || die "未找到版本文件: $VERSION_FILE"
-    APP_VERSION="$(grep -E '^VERSION = ' "$VERSION_FILE" | awk '{print $3}')"
+    APP_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
 fi
 
 [[ -z "$APP_VERSION" ]] && die "版本号为空"
@@ -80,7 +79,6 @@ TAG_NAME="v${APP_VERSION}"
 
 echo ""
 echo -e "${CYAN}${BOLD}═══ TodoManager Release ═══${NC}"
-echo -e "  项目: ${BOLD}todolist-go${NC}"
 echo -e "  版本: ${BOLD}${APP_VERSION}${NC}"
 echo -e "  Tag:  ${BOLD}${TAG_NAME}${NC}"
 echo -e "  远程: ${BOLD}${REMOTE_NAME}${NC}"
@@ -95,8 +93,6 @@ run() {
         eval "$@"
     fi
 }
-
-cd "$REPO_ROOT"
 
 # 检查远程是否存在
 if git remote get-url "$REMOTE_NAME" &>/dev/null; then
@@ -127,6 +123,5 @@ else
     echo ""
     ok "Tag ${TAG_NAME} 已推送到 ${REMOTE_NAME}"
     echo ""
-    info "GitHub Actions 工作流应已触发: https://github.com/${GITHUB_REPO}/actions"
-    info "Release 页面:                https://github.com/${GITHUB_REPO}/releases/tag/${TAG_NAME}"
+    info "GitHub Actions 工作流应已触发（请在 GitHub 仓库的 Actions 页面查看）"
 fi
