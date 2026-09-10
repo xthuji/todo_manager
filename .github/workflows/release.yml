@@ -22,7 +22,7 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
-          cache-dependency-path: todolist-go/go.sum
+          cache-dependency-path: go.sum
 
       - name: Verify Go version
         run: go version
@@ -30,13 +30,11 @@ jobs:
       # build.sh --macos --dmg 负责: Go 依赖安装 → universal(amd64+arm64) 构建
       # → TodoManager.app 打包（Info.plist/图标/static/data）→ hdiutil 打包 DMG
       - name: Build & Package
-        working-directory: todolist-go
         run: |
           chmod +x ./build.sh
           ./build.sh --macos --dmg
 
       - name: List artifacts
-        working-directory: todolist-go
         run: ls -lh dist/
 
       - name: Upload release assets
@@ -48,6 +46,6 @@ jobs:
             ## TodoManager ${{ github.ref_name }}
 
             Auto-built macOS universal App (DMG), double-click to install.
-          files: todolist-go/dist/*.dmg
+          files: dist/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
