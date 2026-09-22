@@ -39,12 +39,12 @@ jobs:
         run: ./scripts/run_tools.sh build
 
       - name: List artifacts
-        run: ls -lh dist/
+        run: ls -lh release/
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
-          path: dist/*.dmg
+          path: release/*.dmg
 
   build-linux:
     name: Linux (amd64)
@@ -64,12 +64,12 @@ jobs:
         run: ./scripts/run_tools.sh build
 
       - name: List artifacts
-        run: ls -lh dist/
+        run: ls -lh release/
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux-tar
-          path: dist/*.tar.gz
+          path: release/*.tar.gz
 
   build-windows:
     name: Windows (amd64)
@@ -91,12 +91,12 @@ jobs:
         run: ./scripts/run_tools.sh build
 
       - name: List artifacts
-        run: ls -lh dist/
+        run: ls -lh release/
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-zip
-          path: dist/*.zip
+          path: release/*.zip
 
   release:
     name: Create GitHub Release
@@ -105,11 +105,11 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: dist
+          path: release
           merge-multiple: true
 
       - name: List release assets
-        run: ls -lhR dist/
+        run: ls -lhR release/
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -126,8 +126,8 @@ jobs:
             - Linux: `TodoManager_v*_linux_amd64.tar.gz` — 解压后运行 `TodoManager`（需预装 `libwebkit2gtk-4.1-0` 与 `libgtk-3-0`；Ubuntu 22.04+/Debian 12+ 的官方源均已提供）
             - Windows: `TodoManager_v*_windows_amd64.zip` — 解压后运行 `TodoManager.exe`（需系统预装 WebView2 Runtime，Win 10 1803+ 默认自带）
           files: |
-            dist/*.dmg
-            dist/*.tar.gz
-            dist/*.zip
+            release/*.dmg
+            release/*.tar.gz
+            release/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

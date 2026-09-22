@@ -68,7 +68,7 @@ go run ./app/cmd/server
 ./scripts/run_tools.sh
 
 # 指定命令
-./scripts/run_tools.sh build    # 构建 + 打包发布产物到 dist/
+./scripts/run_tools.sh build    # 构建 + 打包发布产物到 release/
 ./scripts/run_tools.sh run      # 构建并前台运行桌面 App
 ./scripts/run_tools.sh test     # 运行单元测试（go test -race）
 ./scripts/run_tools.sh clean    # 清理构建产物

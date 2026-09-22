@@ -21,7 +21,7 @@ cd "$PROJECT_DIR"
 APP_NAME="TodoManager"
 APP_BUNDLE_ID="com.xthuji.todomanager"
 BUILD_DIR="$PROJECT_DIR/build"
-DIST_DIR="$PROJECT_DIR/dist"
+RELEASE_DIR="$PROJECT_DIR/release"
 VERSION=""
 
 # --- 平台检测 ---
@@ -222,7 +222,7 @@ build_desktop() {
   local version
   version=$(get_version)
 
-  mkdir -p "$BUILD_DIR/desktop" "$DIST_DIR"
+  mkdir -p "$BUILD_DIR/desktop" "$RELEASE_DIR"
 
   log_info "构建桌面应用 ($HOST_OS/$HOST_ARCH, version=$version)..."
 
@@ -257,7 +257,7 @@ build_desktop() {
     fi
 
     # 创建 .app bundle
-    local app_bundle="$DIST_DIR/${APP_NAME}.app"
+    local app_bundle="$RELEASE_DIR/${APP_NAME}.app"
     local contents="$app_bundle/Contents"
     local macos_bin="$contents/MacOS/${APP_NAME}"
     local resources="$contents/Resources"
@@ -322,7 +322,7 @@ PLIST
 }
 
 # ============================================================
-# 打包发布产物 (dist/)
+# 打包发布产物 (release/)
 # ============================================================
 zip_directory() {
   local zip_path="$1" src_dir="$2"
@@ -352,26 +352,51 @@ zip_directory() {
     "Compress-Archive -Path '$win_src' -DestinationPath '$win_dst' -Force"
 }
 
+# 用 hdiutil 生成 DMG（文件名带版本号）
+# 卷内包含 App + Applications 快捷方式，支持拖拽安装；staging 用 mktemp + trap
+# 保证异常退出也能清理，全程不碰 Finder 定制、无窗口弹出
+build_dmg() {
+  local version="$1"
+  local app_bundle="$2"
+  local dmg="$RELEASE_DIR/${APP_NAME}_v${version}_macos.dmg"
+
+  [ -d "$app_bundle" ] || return 0
+
+  mkdir -p "$RELEASE_DIR"
+  rm -f "$dmg"
+
+  # staging 目录：App + Applications 符号链接（hdiutil 会将其写入为
+  # Finder 别名，用户拖到此处即完成安装）
+  local staging
+  staging="$(mktemp -d "${TMPDIR:-/tmp}/${APP_NAME}_dmg.XXXXXX")"
+  # shellcheck disable=SC2064
+  trap "rm -rf '$staging'" EXIT
+  cp -R "$app_bundle" "$staging/${APP_NAME}.app"
+  ln -s /Applications "$staging/Applications"
+
+  log_info "生成 DMG: $(basename "$dmg") (支持拖拽安装) ..."
+  hdiutil create \
+    -volname "$APP_NAME" \
+    -srcfolder "$staging" \
+    -ov \
+    -format UDZO \
+    "$dmg" > /dev/null
+
+  rm -rf "$staging"
+  trap - EXIT
+  log_success "DMG → $dmg"
+}
+
 package_release() {
   local version
   version=$(get_version)
 
-  mkdir -p "$DIST_DIR"
+  mkdir -p "$RELEASE_DIR"
 
   if [ "$HOST_OS" = "darwin" ]; then
-    local app_bundle="$DIST_DIR/${APP_NAME}.app"
-    local dmg="$DIST_DIR/${APP_NAME}_v${version}_macos.dmg"
-
-    [ -d "$app_bundle" ] || { build_desktop; }
-
-    log_info "生成 DMG: $(basename "$dmg") ..."
-    local dmg_temp="$DIST_DIR/.dmg_temp"
-    rm -rf "$dmg_temp"; mkdir -p "$dmg_temp"
-    cp -R "$app_bundle" "$dmg_temp/"
-    ln -s /Applications "$dmg_temp/Applications"
-    hdiutil create -volname "$APP_NAME" -srcfolder "$dmg_temp" -ov -format UDZO "$dmg" > /dev/null
-    rm -rf "$dmg_temp"
-    log_success "DMG → $dmg"
+    local app_bundle="$RELEASE_DIR/${APP_NAME}.app"
+    [ -d "$app_bundle" ] || build_desktop
+    build_dmg "$version" "$app_bundle"
   else
     local bin="${APP_NAME}${EXT}"
     local archive
@@ -389,12 +414,12 @@ package_release() {
     [ -f "$PROJECT_DIR/data/todo.txt" ] && cp "$PROJECT_DIR/data/todo.txt" "$stage/"
 
     if [ "$HOST_OS" = "windows" ]; then
-      zip_directory "$DIST_DIR/$archive" "$stage" || log_error "zip 打包失败"
+      zip_directory "$RELEASE_DIR/$archive" "$stage" || log_error "zip 打包失败"
     else
-      (cd "$stage" && tar -czf "$DIST_DIR/$archive" .) || log_error "tar 打包失败"
+      (cd "$stage" && tar -czf "$RELEASE_DIR/$archive" .) || log_error "tar 打包失败"
     fi
     rm -rf "$stage"
-    log_success "Archive → $DIST_DIR/$archive"
+    log_success "Archive → $RELEASE_DIR/$archive"
   fi
 }
 
@@ -404,12 +429,12 @@ package_release() {
 kill_existing() {
   local pids
   # 修复误杀：精确定位生成的桌面应用/服务端二进制，过滤掉 Bash 脚本自身 PID ($$)
-  pids=$(pgrep -f "(${BUILD_DIR}|${DIST_DIR}|/${APP_NAME})" 2>/dev/null | grep -v "^$$$" || true)
+  pids=$(pgrep -f "(${BUILD_DIR}|${RELEASE_DIR}|/${APP_NAME})" 2>/dev/null | grep -v "^$$$" || true)
   if [ -n "$pids" ]; then
     log_info "停止已有进程: $pids"
     echo "$pids" | xargs kill 2>/dev/null || true
     sleep 1
-    pids=$(pgrep -f "(${BUILD_DIR}|${DIST_DIR}|/${APP_NAME})" 2>/dev/null | grep -v "^$$$" || true)
+    pids=$(pgrep -f "(${BUILD_DIR}|${RELEASE_DIR}|/${APP_NAME})" 2>/dev/null | grep -v "^$$$" || true)
     [ -n "$pids" ] && echo "$pids" | xargs kill -9 2>/dev/null || true
     log_success "旧进程已停止"
   fi
@@ -429,7 +454,7 @@ kill_existing() {
 cmd_build() {
   build_desktop
   package_release
-  log_success "构建完成 → $DIST_DIR/"
+  log_success "构建完成 → $RELEASE_DIR/"
 }
 
 cmd_run() {
@@ -443,7 +468,7 @@ cmd_run() {
   [ ! -f "$bin" ] && need=1 || {
     local newer
     newer=$(find "$PROJECT_DIR" \( -name '*.go' -o -name 'version.txt' \) \
-      -not -path '*/build/*' -not -path '*/dist/*' -not -path '*/.git/*' \
+      -not -path '*/build/*' -not -path '*/release/*' -not -path '*/.git/*' \
       -newer "$bin" -print -quit 2>/dev/null || true)
     [ -n "$newer" ] && need=1
   }
@@ -457,7 +482,7 @@ cmd_run() {
 
   local exe="$bin"
   if [ "$HOST_OS" = "darwin" ]; then
-    local app_bin="$DIST_DIR/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
+    local app_bin="$RELEASE_DIR/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
     [ -f "$app_bin" ] || build_desktop
     exe="$app_bin"
   fi
@@ -513,7 +538,7 @@ cmd_test() {
 cmd_clean() {
   log_info "清理构建产物..."
   kill_existing
-  rm -rf "$BUILD_DIR" "$DIST_DIR"
+  rm -rf "$BUILD_DIR" "$RELEASE_DIR"
   find "$PROJECT_DIR" -name '*.test' -delete 2>/dev/null || true
   log_success "清理完成"
 }
@@ -563,7 +588,7 @@ TodoManager 构建工具
 
 输出:
   构建目录:  $BUILD_DIR/
-  发布产物:  $DIST_DIR/
+  发布产物:  $RELEASE_DIR/
 
 项目路径:
   源码:     $PROJECT_DIR/app/

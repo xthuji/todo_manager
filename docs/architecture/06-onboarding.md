@@ -67,7 +67,7 @@ go run ./app/cmd/server
 ```bash
 # macOS 专用
 ./scripts/run_tools.sh build
-open dist/TodoManager.app
+open release/TodoManager.app
 ```
 
 ### 方式三：测试 Mock 模式

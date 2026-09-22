@@ -179,7 +179,7 @@ git push origin v1.0.3
 
 ```bash
 ./scripts/run_tools.sh build
-# 产物在 dist/TodoManager_v*_macos.dmg
+# 产物在 release/TodoManager_v*_macos.dmg
 ```
 
 **注意**：`hdiutil` 只有 macOS 上有，Linux/Windows 本地打不了 DMG。需要在 CI 的 macOS runner 上构建。
