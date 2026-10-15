@@ -65,9 +65,9 @@ go run ./app/cmd/server
 
 或者：
 ```bash
-# macOS 专用
-./scripts/run_tools.sh build
-open release/TodoManager.app
+# macOS：构建产物 release/ 只输出 .dmg（.app 为 build/ 下中间产物，打包后自动清理）
+# 直接运行桌面 App 请用：
+./scripts/run_tools.sh run
 ```
 
 ### 方式三：测试 Mock 模式

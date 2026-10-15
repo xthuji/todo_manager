@@ -190,8 +190,8 @@ ensure_build_deps() {
 # ============================================================
 get_version() {
   if [ -n "$VERSION" ]; then echo "$VERSION"; return; fi
-  if [ -f "$PROJECT_DIR/version.txt" ]; then
-    VERSION="$(tr -d '[:space:]\r' < "$PROJECT_DIR/version.txt")"
+  if [ -f "$PROJECT_DIR/VERSION" ]; then
+    VERSION="$(tr -d '[:space:]\r' < "$PROJECT_DIR/VERSION")"
   else
     VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "dev")"
   fi
@@ -209,6 +209,11 @@ get_desktop_binary() {
   fi
 }
 
+# macOS 的 .app bundle 属于中间产物，与二进制同放 build/，release/ 只留最终归档
+get_app_bundle() {
+  echo "$BUILD_DIR/desktop/${APP_NAME}.app"
+}
+
 get_server_binary() {
   echo "$BUILD_DIR/server/${APP_NAME}-server${EXT}"
 }
@@ -222,7 +227,7 @@ build_desktop() {
   local version
   version=$(get_version)
 
-  mkdir -p "$BUILD_DIR/desktop" "$RELEASE_DIR"
+  mkdir -p "$BUILD_DIR/desktop"
 
   log_info "构建桌面应用 ($HOST_OS/$HOST_ARCH, version=$version)..."
 
@@ -256,8 +261,8 @@ build_desktop() {
         || log_error "universal 二进制 ad-hoc 签名失败"
     fi
 
-    # 创建 .app bundle
-    local app_bundle="$RELEASE_DIR/${APP_NAME}.app"
+    # 创建 .app bundle（build/ 下的中间产物，最终只发布 .dmg）
+    local app_bundle="$(get_app_bundle)"
     local contents="$app_bundle/Contents"
     local macos_bin="$contents/MacOS/${APP_NAME}"
     local resources="$contents/Resources"
@@ -394,9 +399,11 @@ package_release() {
   mkdir -p "$RELEASE_DIR"
 
   if [ "$HOST_OS" = "darwin" ]; then
-    local app_bundle="$RELEASE_DIR/${APP_NAME}.app"
+    local app_bundle="$(get_app_bundle)"
     [ -d "$app_bundle" ] || build_desktop
     build_dmg "$version" "$app_bundle"
+    # release/ 只保留 .dmg，清理 build/ 下的 .app 中间产物
+    rm -rf "$app_bundle"
   else
     local bin="${APP_NAME}${EXT}"
     local archive
@@ -467,7 +474,7 @@ cmd_run() {
   local need=0
   [ ! -f "$bin" ] && need=1 || {
     local newer
-    newer=$(find "$PROJECT_DIR" \( -name '*.go' -o -name 'version.txt' \) \
+    newer=$(find "$PROJECT_DIR" \( -name '*.go' -o -name 'VERSION' \) \
       -not -path '*/build/*' -not -path '*/release/*' -not -path '*/.git/*' \
       -newer "$bin" -print -quit 2>/dev/null || true)
     [ -n "$newer" ] && need=1
@@ -482,7 +489,7 @@ cmd_run() {
 
   local exe="$bin"
   if [ "$HOST_OS" = "darwin" ]; then
-    local app_bin="$RELEASE_DIR/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
+    local app_bin="$(get_app_bundle)/Contents/MacOS/${APP_NAME}"
     [ -f "$app_bin" ] || build_desktop
     exe="$app_bin"
   fi
@@ -594,7 +601,7 @@ TodoManager 构建工具
   源码:     $PROJECT_DIR/app/
   静态资源:  $PROJECT_DIR/static/
   数据:     $PROJECT_DIR/data/
-  版本文件:  $PROJECT_DIR/version.txt
+  版本文件:  $PROJECT_DIR/VERSION
 EOF
 }
 

@@ -2,14 +2,14 @@
 # =============================================================================
 # TodoManager - 发布工具
 # =============================================================================
-# 读取 version.txt 创建 git tag v{version}，推送到远程仓库，
+# 读取 VERSION 创建 git tag v{version}，推送到远程仓库，
 # 触发 .github/workflows/release.yml 在 macOS / Linux / Windows 三平台
 # 自动构建并发布到 GitHub Release。
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-VERSION_FILE="${ROOT_DIR}/version.txt"
+VERSION_FILE="${ROOT_DIR}/VERSION"
 REMOTE_NAME="${RELEASE_REMOTE:-backupstream}"
 
 RED='\033[0;31m'
@@ -29,11 +29,11 @@ usage() {
 ${BOLD}用法:${NC} $0 [--version=<ver>] [--remote=<name>] [--dry-run]
 
 ${BOLD}说明:${NC}
-  读取 version.txt 创建 git tag v{version}，推送到远程，
+  读取 VERSION 创建 git tag v{version}，推送到远程，
   触发 .github/workflows/release.yml 自动构建三平台应用并发布。
 
 ${BOLD}选项:${NC}
-  --version=<ver>  指定版本号 (覆盖 version.txt)
+  --version=<ver>  指定版本号 (覆盖 VERSION 文件)
   --remote=<name>  推送的远程名称 (默认: backupstream)
   --dry-run        仅打印命令，不实际执行
   -h, --help       显示此帮助
@@ -42,7 +42,7 @@ ${BOLD}环境变量:${NC}
   RELEASE_REMOTE   远程名称 (优先级低于 --remote)
 
 ${BOLD}示例:${NC}
-  $0                       # 使用 version.txt 版本号
+  $0                       # 使用 VERSION 版本号
   $0 --version=1.1.0       # 强制指定版本
   $0 --version=1.1.0 --dry-run
 EOF

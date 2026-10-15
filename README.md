@@ -99,6 +99,7 @@ go run ./app/cmd/server
 │   └── architecture/     按页面维度组织的技术文档 + 上手指南
 ├── tests/                Go 单元测试
 ├── scripts/              run_tools.sh / release.sh / git_commit_release.sh
+├── VERSION               版本号（release.sh 读取打 tag）
 └── .github/workflows/    release.yml（tag 触发三平台构建）
 ```
 
@@ -138,7 +139,7 @@ go run ./app/cmd/server
 
 ```bash
 # 1. 更新版本号
-echo "1.0.3" > version.txt
+echo "1.0.3" > VERSION
 
 # 2. 提交 + 推送 + 打 tag（一条龙，交互式）
 ./scripts/git_commit_release.sh
@@ -146,7 +147,7 @@ echo "1.0.3" > version.txt
 # 或分步：只提交推送不发布
 ./scripts/git_commit_release.sh -m "docs: 更新 README" --no-release -y
 
-# 3. 或单独触发发布（读 version.txt 打 tag 并推送）
+# 3. 或单独触发发布（读 VERSION 打 tag 并推送）
 ./scripts/release.sh --dry-run   # 预览
 ./scripts/release.sh             # 执行
 ```
