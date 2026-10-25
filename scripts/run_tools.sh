@@ -3,12 +3,18 @@
 # TodoManager - 构建与运行工具 (跨平台: macOS / Linux / Windows Git Bash)
 # =============================================================================
 # 命令:
-#   1|b|build      构建桌面应用 (自动适配当前平台)
-#   2|r|run        构建并前台运行桌面 App (Ctrl+C 关闭)
-#   3|s|server     构建并前台运行纯 HTTP 服务端 (无 GUI)
-#   4|t|test       运行 Go 单元测试
-#   5|c|clean      清理构建产物
-#   0|q|exit       退出
+#   1|b,build     构建桌面应用 (自动适配当前平台)
+#   2|r,run       构建并前台运行桌面 App (Ctrl+C 关闭)
+#   3|s,server    构建并前台运行纯 HTTP 服务端 (无 GUI)
+#   4|d,dev       开发模式: go run 服务端 + 浏览器访问
+#   5|t,test      运行 Go 单元测试
+#   6|c,clean     清理构建产物
+#   0|q|exit        退出
+# =============================================================================
+# 薄入口：公共实现全部在 run_tools_master.sh（跨项目逐字节一致，禁止单项目
+# 私改），项目差异全部写在本文件的「常量与命令表」与「项目专属实现」内联区；
+# 全部构建/打包/测试逻辑集中在这里，CI workflow 只做 runner 引导与产物上传
+#（规范 4.2）。
 # =============================================================================
 
 set -euo pipefail
@@ -17,191 +23,82 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
 
-# --- 项目常量 ---
-APP_NAME="TodoManager"
-APP_BUNDLE_ID="com.xthuji.todomanager"
+# ============================================================
+# 公共模块：母版实现（与其余桌面应用逐字节一致，请勿在此修改）
+# 先于常量区加载：母版只定义函数不执行业务，差异常量声明在下一区
+# ============================================================
+source "$SCRIPT_DIR/run_tools_master.sh"
+# ============================================================
+# 项目差异区 · 常量与命令表（脚本唯一需要按项目调整的部分）
+# ============================================================
+
+# --- 项目标识 ---
+APP_NAME="TodoManager"                    # 可执行文件 / Wails outputfilename
+BUNDLE_NAME=""              # .app bundle 名（留空同 APP_NAME）
+RELEASE_PREFIX=""        # release/ 产物命名前缀（留空同 APP_NAME）
+APP_DISPLAY_NAME="TodoManager"
+PROJECT_BUNDLE_ID="com.xthuji.todomanager"
+export PROJECT_BUNDLE_ID
+
+# --- 目录与产物 ---
 BUILD_DIR="$PROJECT_DIR/build"
-RELEASE_DIR="$PROJECT_DIR/release"
+FRONTEND_DIR="$PROJECT_DIR/static"
+# 产物目录：默认 <frontend_dir>/dist；Vite outDir 指到别处（如 easy_diff 直写 embed
+# 目录 frontend/dist）时必须按项目覆盖，否则母版 ensure_frontend 会误判为未构建
+FRONTEND_DIST="$FRONTEND_DIR/dist"
+WAILS_CMD=""
 VERSION=""
 
-# --- 平台检测 ---
-HOST_OS=""
-HOST_ARCH=""
-EXT=""
+# --- 构建策略 ---
+IS_WAILS=0                     # 0=纯 Go 桌面（自行覆盖 build_impl / get_app_bundle）
+PLATFORM_SCOPE="all"        # darwin=仅面向 macOS 产物
+MACOS_MIN_VERSION="12.0"
+MACOS_UNIVERSAL_DEFAULT=1     # 1=恒产 universal；0=本地单架构 + 环境变量开关
+UNIVERSAL_ENV_VAR=""     # 例：EASYDIFF_UNIVERSAL
+WAILS_BUILD_CLEAN=0
+WAILS_PIN_VERSION=""                    # 留空=对齐 go.mod 的 wails 版本（真源）
+NEEDS_CGO=1                   # 1=Windows 构建需要 MinGW-w64
+ADHOC_SIGN=1                      # 1=macOS 构建后 ad-hoc 签名
+GO_BUILD_LDFLAGS="-s -w"
+VERSION_LD_VAR="main.Version"        # 版本注入的 Go 变量（ldflags -X）
+LDFLAGS_EXTRA=""
+GOTOOLCHAIN_VER=""
 
-detect_platform() {
-  local os
-  os="$(uname -s 2>/dev/null || echo "unknown")"
-  case "$os" in
-    Darwin*)  HOST_OS="darwin"  ;;
-    Linux*)   HOST_OS="linux"   ;;
-    MINGW*|MSYS*|CYGWIN*) HOST_OS="windows" ;;
-    *)        HOST_OS="unknown" ;;
-  esac
+# --- 资源与配置 ---
+CONFIG_SRC=""
+CONFIG_DEST_DIR=""
+ICON_SRC="$PROJECT_DIR/icons/icon.icns"
 
-  local arch
-  arch="$(uname -m 2>/dev/null || echo "unknown")"
-  case "$arch" in
-    x86_64|amd64)   HOST_ARCH="amd64" ;;
-    arm64|aarch64)  HOST_ARCH="arm64" ;;
-    *)              HOST_ARCH="amd64" ;;
-  esac
+# --- 菜单与分发 ---
+DEFAULT_CMD="run"
+FALLBACK_CMD=""
+SRC_FIND_EXPR=( -name '*.go' -o -path '*/static/*' -o -name 'VERSION' -o -name 'go.mod' )             # needs_build 的源文件匹配表达式
+TEST_PKGS=( ./... )
+CLEAN_EXTRA=(  )
+DEV_CMD=( go run ./app/cmd/server )                    # 留空=母版默认 wails dev
 
-  if [ "$HOST_OS" = "windows" ]; then
-    EXT=".exe"
-  else
-    EXT=""
-  fi
-}
-
-detect_platform
-
-# --- 彩色输出 ---
-BLUE='\033[0;34m'; GREEN='\033[0;32m'; RED='\033[0;31m'
-YELLOW='\033[1;33m'; BOLD='\033[1m'; NC='\033[0m'
-log_info()    { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
-log_warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
-
-# ============================================================
-# 依赖检查与构建依赖准备
-# ============================================================
-check_go() {
-  command -v go &>/dev/null || log_error "Go 未安装 (https://go.dev/dl)"
-}
-
-# 非 root 且有 sudo 时才用 sudo（CI runner 上是免密 sudo）
-SUDO=""
-if [ "$(id -u 2>/dev/null || echo 0)" != "0" ] && command -v sudo &>/dev/null; then
-  SUDO="sudo"
-fi
-
-APT_INDEX_REFRESHED=0
-apt_refresh_once() {
-  [ "${APT_INDEX_REFRESHED:-0}" = "1" ] && return 0
-  if ! command -v apt-get &>/dev/null; then
-    log_warn "当前系统未检测到 apt-get，跳过自动依赖安装。请确保已手动安装: pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev"
-    return 1
-  fi
-  APT_INDEX_REFRESHED=1
-  log_info "刷新 apt 索引 ..."
-  $SUDO apt-get update -qq || log_warn "apt-get update 未完全成功，继续尝试安装"
-  return 0
-}
-
-apt_has() {
-  apt_refresh_once || return 1
-  apt-cache show "$1" >/dev/null 2>&1
-}
-
-apt_install() {
-  apt_refresh_once || return 1
-  log_info "安装构建依赖: $*"
-  # shellcheck disable=SC2086
-  $SUDO apt-get install -y --no-install-recommends "$@" || log_error "apt-get install 失败: $*"
-}
-
-ensure_linux_deps() {
-  local need=() webkit_alias=0
-
-  command -v pkg-config &>/dev/null        || need+=("pkg-config")
-  command -v gcc &>/dev/null               || need+=("build-essential")
-  pkg-config --exists gtk+-3.0 2>/dev/null || need+=("libgtk-3-dev")
-
-  if pkg-config --exists webkit2gtk-4.0 2>/dev/null; then
-    : # 已可用
-  elif pkg-config --exists webkit2gtk-4.1 2>/dev/null; then
-    webkit_alias=1
-  elif apt_has libwebkit2gtk-4.1-dev; then
-    need+=("libwebkit2gtk-4.1-dev"); webkit_alias=1
-  elif apt_has libwebkit2gtk-4.0-dev; then
-    need+=("libwebkit2gtk-4.0-dev")
-  else
-    log_warn "未能自动匹配到 libwebkit2gtk 包，请确认开发环境依赖"
-  fi
-
-  [ ${#need[@]} -eq 0 ] || apt_install "${need[@]}"
-
-  if [ "$webkit_alias" = "1" ]; then
-    local pc_dir
-    pc_dir="$(pkg-config --variable=pcfiledir webkit2gtk-4.1 2>/dev/null || true)"
-    if [ -n "$pc_dir" ] && [ -f "$pc_dir/webkit2gtk-4.1.pc" ]; then
-      if [ ! -f "$pc_dir/webkit2gtk-4.0.pc" ]; then
-        log_info "生成 webkit2gtk-4.0.pc 兼容别名 → $pc_dir"
-        $SUDO cp "$pc_dir/webkit2gtk-4.1.pc" "$pc_dir/webkit2gtk-4.0.pc" \
-          || log_warn "无法写入 .pc 别名，构建可能会因缺失 pkg-config 配置而失败"
-      fi
-    else
-      log_warn "未定位到 webkit2gtk-4.1.pc（pcfiledir=$pc_dir）"
-    fi
-  fi
-
-  if ! pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.0 >/dev/null 2>&1; then
-    log_error "pkg-config 无法解析 gtk+-3.0/webkit2gtk-4.0：$(pkg-config --errors --exists gtk+-3.0 webkit2gtk-4.0 2>&1 | head -3)"
-  fi
-  log_success "Linux 构建依赖就绪 (webkit2gtk-4.0 → $(pkg-config --modversion webkit2gtk-4.0))"
-}
-
-MINGW_DIRS=(
-  /c/msys64/ucrt64/bin
-  /c/msys64/mingw64/bin
-  /c/tools/mingw64/bin
-  /c/mingw64/bin
-  /c/TDM-GCC-64/bin
+# --- 命令表：序号|别名(逗号分隔)|说明|处理函数（菜单/帮助/分发唯一真源）---
+commands=(
+  "1|b,build|构建桌面应用 (自动适配当前平台)|cmd_build"
+  "2|r,run|构建并前台运行桌面 App (Ctrl+C 关闭)|cmd_run"
+  "3|s,server|构建并前台运行纯 HTTP 服务端 (无 GUI)|cmd_server"
+  "4|d,dev|开发模式: go run 服务端 + 浏览器访问|cmd_dev"
+  "5|t,test|运行 Go 单元测试|cmd_test"
+  "6|c,clean|清理构建产物|cmd_clean"
 )
 
-locate_mingw() {
-  if command -v gcc &>/dev/null; then
-    log_info "gcc 已就绪: $(command -v gcc)"
-    return 0
-  fi
-  local d
-  for d in "${MINGW_DIRS[@]}"; do
-    if [ -x "$d/gcc.exe" ] || [ -x "$d/gcc" ]; then
-      export PATH="$d:$PATH"
-      gcc --version >/dev/null 2>&1 || { PATH="${PATH#$d:}"; return 1; }
-      log_info "将 MinGW-w64 加入 PATH: $d"
-      return 0
-    fi
-  done
-  return 1
+# ============================================================
+# 项目专属实现（覆盖母版默认 / 追加项目专属命令）
+# 内联区位于常量表之后、main "$@" 之前：顶层可安全展开差异常量
+# ============================================================
+# 纯 Go 桌面应用（非 Wails）：手工搭 .app bundle + 双架构 lipo + ad-hoc 签名，
+# 因此覆盖母版的 build_impl / get_app_bundle / get_build_binary / package_platform。
+# .app 属 build/ 下中间产物，release/ 只留最终归档（DMG / tar.gz / zip）。
+get_app_bundle() {
+  echo "$BUILD_DIR/desktop/${APP_NAME}.app"
 }
 
-ensure_windows_deps() {
-  locate_mingw && return 0
-  command -v choco &>/dev/null || log_error "未找到 gcc（CGO 必需）。请安装 MinGW-w64 并保证其在 PATH 中"
-  log_info "通过 chocolatey 安装 MinGW-w64 ..."
-  choco install mingw -y --no-progress || log_error "choco install mingw 失败"
-  locate_mingw || log_error "MinGW-w64 安装后仍找不到 gcc"
-  log_success "Windows 构建依赖就绪"
-}
-
-ensure_build_deps() {
-  case "$HOST_OS" in
-    linux)   ensure_linux_deps ;;
-    windows) ensure_windows_deps ;;
-    darwin)  command -v clang &>/dev/null || log_error "缺少 clang，请安装 Xcode Command Line Tools: xcode-select --install" ;;
-  esac
-}
-
-# ============================================================
-# 版本管理
-# ============================================================
-get_version() {
-  if [ -n "$VERSION" ]; then echo "$VERSION"; return; fi
-  if [ -f "$PROJECT_DIR/VERSION" ]; then
-    VERSION="$(tr -d '[:space:]\r' < "$PROJECT_DIR/VERSION")"
-  else
-    VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo "dev")"
-  fi
-  echo "$VERSION"
-}
-
-# ============================================================
-# 二进制路径
-# ============================================================
-get_desktop_binary() {
+get_build_binary() {
   if [ "$HOST_OS" = "darwin" ]; then
     echo "$BUILD_DIR/desktop/${APP_NAME}"
   else
@@ -209,308 +106,148 @@ get_desktop_binary() {
   fi
 }
 
-# macOS 的 .app bundle 属于中间产物，与二进制同放 build/，release/ 只留最终归档
-get_app_bundle() {
-  echo "$BUILD_DIR/desktop/${APP_NAME}.app"
-}
-
 get_server_binary() {
   echo "$BUILD_DIR/server/${APP_NAME}-server${EXT}"
 }
 
-# ============================================================
-# 构建桌面应用
-# ============================================================
-build_desktop() {
-  check_go
-  ensure_build_deps
-  local version
-  version=$(get_version)
+get_run_binary() {
+  if [ "$HOST_OS" = "darwin" ]; then
+    echo "$(get_app_bundle)/Contents/MacOS/${APP_NAME}"
+  else
+    echo "$(get_build_binary)"
+  fi
+}
 
+build_impl() {
+  local ldflags="$1"
   mkdir -p "$BUILD_DIR/desktop"
 
-  log_info "构建桌面应用 ($HOST_OS/$HOST_ARCH, version=$version)..."
-
-  local ldflags="-s -w -X main.Version=${version}"
-
   if [ "$HOST_OS" = "darwin" ]; then
-    export MACOSX_DEPLOYMENT_TARGET=12.0
+    build_macos_universal "$ldflags"
+  else
+    local goos="linux"
+    [ "$HOST_OS" = "windows" ] && goos="windows"
+    log_info "构建桌面应用 ($goos/$HOST_ARCH, CGO=1)..."
+    run env GOOS="$goos" GOARCH="$HOST_ARCH" CGO_ENABLED=1 \
+      go build -ldflags "$ldflags" -o "$(get_build_binary)" ./app/cmd/desktop
+    log_success "二进制 → $(get_build_binary)"
+  fi
+}
 
-    local arch_bins=()
-    for arch in amd64 arm64; do
-      local cgo_arch="x86_64"
-      [ "$arch" = "arm64" ] && cgo_arch="arm64"
-      log_info "  GOOS=darwin GOARCH=${arch} (clang -arch ${cgo_arch}, min=12.0)"
-      (
-        export GOOS=darwin GOARCH="$arch" CGO_ENABLED=1
-        export CC="clang -arch ${cgo_arch}"
-        export CXX="clang++ -arch ${cgo_arch}"
-        export CGO_CFLAGS="-arch ${cgo_arch} -mmacosx-version-min=12.0"
-        export CGO_CXXFLAGS="-arch ${cgo_arch} -mmacosx-version-min=12.0"
-        export CGO_LDFLAGS="-arch ${cgo_arch} -mmacosx-version-min=12.0"
-        go build -ldflags "${ldflags}" -o "$BUILD_DIR/desktop/${APP_NAME}-${arch}" ./app/cmd/desktop
-      ) || log_error "macOS (${arch}) 构建失败"
-      arch_bins+=("$BUILD_DIR/desktop/${APP_NAME}-${arch}")
+# macOS 双架构分别编译后 lipo 合并（Go 交叉编译带 CGO 必须逐架构指定 clang -arch）
+build_macos_universal() {
+  local ldflags="$1"
+  local arch_bins=() arch
+  for arch in amd64 arm64; do
+    local cgo_arch="x86_64"
+    [ "$arch" = "arm64" ] && cgo_arch="arm64"
+    log_info "  GOOS=darwin GOARCH=$arch (clang -arch $cgo_arch, min=$MACOS_MIN_VERSION)"
+    run env GOOS=darwin GOARCH="$arch" CGO_ENABLED=1 \
+      CC="clang -arch $cgo_arch" CXX="clang++ -arch $cgo_arch" \
+      CGO_CFLAGS="-arch $cgo_arch -mmacosx-version-min=$MACOS_MIN_VERSION" \
+      CGO_CXXFLAGS="-arch $cgo_arch -mmacosx-version-min=$MACOS_MIN_VERSION" \
+      CGO_LDFLAGS="-arch $cgo_arch -mmacosx-version-min=$MACOS_MIN_VERSION" \
+      go build -ldflags "$ldflags" -o "$BUILD_DIR/desktop/${APP_NAME}-$arch" ./app/cmd/desktop
+    arch_bins+=("$BUILD_DIR/desktop/${APP_NAME}-$arch")
+  done
+  if $DRY_RUN; then return 0; fi
+  lipo -create -output "$(get_build_binary)" "${arch_bins[@]}" || log_error "lipo 合并失败"
+  rm -f "${arch_bins[@]}"
+  lipo -info "$(get_build_binary)" || true
+  log_success "universal 二进制 → $(get_build_binary)"
+  make_app_bundle "$ldflags"
+}
+
+# 手工搭 .app bundle：可执行文件 + 图标 + static/ + data 只读子集 + Info.plist
+make_app_bundle() {
+  local version; version=$(get_version)
+  local app_bundle; app_bundle=$(get_app_bundle)
+  local contents="$app_bundle/Contents"
+  local macos_bin="$contents/MacOS/${APP_NAME}"
+  local resources="$contents/Resources"
+
+  rm -rf "$app_bundle"
+  mkdir -p "$(dirname "$macos_bin")" "$resources"
+  cp "$(get_build_binary)" "$macos_bin"
+  chmod +x "$macos_bin"
+
+  [ -f "$PROJECT_DIR/icons/icon.icns" ] && cp "$PROJECT_DIR/icons/icon.icns" "$resources/icon.icns"
+  [ -d "$PROJECT_DIR/static" ] && cp -R "$PROJECT_DIR/static" "$resources/"
+  if [ -d "$PROJECT_DIR/data" ]; then
+    mkdir -p "$resources/data"
+    local sub
+    for sub in config weather; do
+      [ -d "$PROJECT_DIR/data/$sub" ] && cp -R "$PROJECT_DIR/data/$sub" "$resources/data/"
     done
-    lipo -create -output "$BUILD_DIR/desktop/${APP_NAME}" "${arch_bins[@]}" || log_error "lipo 合并失败"
-    rm -f "${arch_bins[@]}"
-    lipo -info "$BUILD_DIR/desktop/${APP_NAME}" || true
+    [ -f "$PROJECT_DIR/data/todo.txt" ] && cp "$PROJECT_DIR/data/todo.txt" "$resources/data/"
+    [ -f "$PROJECT_DIR/data/todo.test.txt" ] && cp "$PROJECT_DIR/data/todo.test.txt" "$resources/data/"
+  fi
 
-    if command -v codesign &>/dev/null; then
-      codesign --force --sign - --timestamp=none "$BUILD_DIR/desktop/${APP_NAME}" \
-        || log_error "universal 二进制 ad-hoc 签名失败"
-    fi
-
-    # 创建 .app bundle（build/ 下的中间产物，最终只发布 .dmg）
-    local app_bundle="$(get_app_bundle)"
-    local contents="$app_bundle/Contents"
-    local macos_bin="$contents/MacOS/${APP_NAME}"
-    local resources="$contents/Resources"
-
-    rm -rf "$app_bundle"
-    mkdir -p "$(dirname "$macos_bin")" "$resources"
-    cp "$BUILD_DIR/desktop/${APP_NAME}" "$macos_bin"
-    chmod +x "$macos_bin"
-
-    if [ -f "$PROJECT_DIR/icons/icon.icns" ]; then
-      cp "$PROJECT_DIR/icons/icon.icns" "$resources/icon.icns"
-    fi
-
-    [ -d "$PROJECT_DIR/static" ] && cp -R "$PROJECT_DIR/static" "$resources/"
-    if [ -d "$PROJECT_DIR/data" ]; then
-      mkdir -p "$resources/data"
-      for sub in config weather; do
-        [ -d "$PROJECT_DIR/data/$sub" ] && cp -R "$PROJECT_DIR/data/$sub" "$resources/data/"
-      done
-      [ -f "$PROJECT_DIR/data/todo.txt" ] && cp "$PROJECT_DIR/data/todo.txt" "$resources/data/"
-      [ -f "$PROJECT_DIR/data/todo.test.txt" ] && cp "$PROJECT_DIR/data/todo.test.txt" "$resources/data/"
-    fi
-
-    cat > "$contents/Info.plist" << PLIST
+  cat > "$contents/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key><string>${APP_NAME}</string>
     <key>CFBundleDisplayName</key><string>${APP_NAME}</string>
-    <key>CFBundleIdentifier</key><string>${APP_BUNDLE_ID}</string>
+    <key>CFBundleIdentifier</key><string>${PROJECT_BUNDLE_ID}</string>
     <key>CFBundleShortVersionString</key><string>${version}</string>
     <key>CFBundleVersion</key><string>${version}</string>
     <key>CFBundleExecutable</key><string>${APP_NAME}</string>
     <key>CFBundleIconFile</key><string>icon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleSignature</key><string>????</string>
-    <key>LSMinimumSystemVersion</key><string>12.0</string>
+    <key>LSMinimumSystemVersion</key><string>${MACOS_MIN_VERSION}</string>
     <key>NSHighResolutionCapable</key><true/>
 </dict>
 </plist>
 PLIST
-
-    if command -v codesign &>/dev/null; then
-      codesign --force --deep --sign - --timestamp=none "$app_bundle" \
-        || log_error ".app bundle ad-hoc 签名失败"
-      codesign --verify --deep --strict "$app_bundle" || log_warn "codesign --verify 非零退出（仅提示，不阻断）"
-    fi
-
-    log_success "App bundle → $app_bundle"
-  else
-    local goos="linux"
-    [ "$HOST_OS" = "windows" ] && goos="windows"
-
-    (
-      export GOOS="$goos" GOARCH="$HOST_ARCH" CGO_ENABLED=1
-      go build -ldflags "${ldflags}" -o "$BUILD_DIR/desktop/${APP_NAME}${EXT}" ./app/cmd/desktop
-    ) || log_error "${HOST_OS} 构建失败"
-
-    log_success "二进制 → $BUILD_DIR/desktop/${APP_NAME}${EXT}"
-  fi
+  log_success "App bundle → $app_bundle"
 }
 
-# ============================================================
-# 打包发布产物 (release/)
-# ============================================================
-zip_directory() {
-  local zip_path="$1" src_dir="$2"
-
-  if command -v zip &>/dev/null; then
-    (cd "$src_dir" && zip -rq "$zip_path" .)
-    return 0
-  fi
-
-  local ps="" cand
-  for cand in powershell.exe powershell pwsh.exe pwsh; do
-    if command -v "$cand" &>/dev/null; then ps="$cand"; break; fi
-  done
-  [ -n "$ps" ] || { log_error "未找到 zip 或 powershell，无法打包 zip"; }
-
-  local win_src win_dst
-  if command -v cygpath &>/dev/null; then
-    win_src="$(cygpath -w "$src_dir")\\*"
-    win_dst="$(cygpath -w "$zip_path")"
-  else
-    win_src="$src_dir\\*"
-    win_dst="$zip_path"
-  fi
-
-  log_info "zip 不可用，使用 $ps Compress-Archive 打包"
-  "$ps" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \
-    "Compress-Archive -Path '$win_src' -DestinationPath '$win_dst' -Force"
-}
-
-# 用 hdiutil 生成 DMG（文件名带版本号）
-# 卷内包含 App + Applications 快捷方式，支持拖拽安装；staging 用 mktemp + trap
-# 保证异常退出也能清理，全程不碰 Finder 定制、无窗口弹出
-build_dmg() {
-  local version="$1"
-  local app_bundle="$2"
-  local dmg="$RELEASE_DIR/${APP_NAME}_v${version}_macos.dmg"
-
-  [ -d "$app_bundle" ] || return 0
-
-  mkdir -p "$RELEASE_DIR"
-  rm -f "$dmg"
-
-  # staging 目录：App + Applications 符号链接（hdiutil 会将其写入为
-  # Finder 别名，用户拖到此处即完成安装）
-  local staging
-  staging="$(mktemp -d "${TMPDIR:-/tmp}/${APP_NAME}_dmg.XXXXXX")"
-  # shellcheck disable=SC2064
-  trap "rm -rf '$staging'" EXIT
-  cp -R "$app_bundle" "$staging/${APP_NAME}.app"
-  ln -s /Applications "$staging/Applications"
-
-  log_info "生成 DMG: $(basename "$dmg") (支持拖拽安装) ..."
-  hdiutil create \
-    -volname "$APP_NAME" \
-    -srcfolder "$staging" \
-    -ov \
-    -format UDZO \
-    "$dmg" > /dev/null
-
-  rm -rf "$staging"
-  trap - EXIT
-  log_success "DMG → $dmg"
-}
-
-package_release() {
-  local version
-  version=$(get_version)
-
-  mkdir -p "$RELEASE_DIR"
-
+# macOS 只发 DMG；Linux 发 tar.gz；Windows 发 zip（与 CI 产物 glob 对齐）
+package_platform() {
+  local version; version=$(get_version)
   if [ "$HOST_OS" = "darwin" ]; then
-    local app_bundle="$(get_app_bundle)"
-    [ -d "$app_bundle" ] || build_desktop
-    build_dmg "$version" "$app_bundle"
-    # release/ 只保留 .dmg，清理 build/ 下的 .app 中间产物
-    rm -rf "$app_bundle"
+    # 保留 build 下的 .app：后端增量构建依赖它判断产物是否存在，
+    # 打包完成后删除会让每次 build 都退化为全量编译
+    build_dmg
   else
-    local bin="${APP_NAME}${EXT}"
     local archive
-    [ "$HOST_OS" = "windows" ] && archive="${APP_NAME}_v${version}_windows_${HOST_ARCH}.zip" || archive="${APP_NAME}_v${version}_linux_${HOST_ARCH}.tar.gz"
-
-    [ -f "$BUILD_DIR/desktop/$bin" ] || build_desktop
-
+    if [ "$HOST_OS" = "windows" ]; then
+      archive="${APP_NAME}_v${version}_windows_${HOST_ARCH}.zip"
+    else
+      archive="${APP_NAME}_v${version}_linux_${HOST_ARCH}.tar.gz"
+    fi
+    # dry-run 下不装配归档：下面的 cp/tar/zip 不走 run，真实执行会写 release/
+    if $DRY_RUN; then
+      log_warn "[dry-run] 装配 ${HOST_OS}/${HOST_ARCH} 归档 → release/${archive}（含 static 与 data/）"
+      return 0
+    fi
     local stage="$BUILD_DIR/stage"
     rm -rf "$stage"; mkdir -p "$stage/data"
-    cp -f "$BUILD_DIR/desktop/$bin" "$stage/"
+    cp -f "$(get_build_binary)" "$stage/"
     [ -d "$PROJECT_DIR/static" ] && cp -R "$PROJECT_DIR/static" "$stage/"
+    local sub
     for sub in config weather; do
       [ -d "$PROJECT_DIR/data/$sub" ] && cp -R "$PROJECT_DIR/data/$sub" "$stage/data/"
     done
     [ -f "$PROJECT_DIR/data/todo.txt" ] && cp "$PROJECT_DIR/data/todo.txt" "$stage/"
 
+    mkdir -p "$PROJECT_DIR/release"
     if [ "$HOST_OS" = "windows" ]; then
-      zip_directory "$RELEASE_DIR/$archive" "$stage" || log_error "zip 打包失败"
+      if command -v zip &>/dev/null; then
+        (cd "$stage" && zip -rq "$PROJECT_DIR/release/$archive" .) || log_error "zip 打包失败"
+      else
+        powershell -NoProfile -NonInteractive -Command \
+          "Compress-Archive -Path '$(cygpath -w "$stage")\\*' -DestinationPath '$(cygpath -w "$PROJECT_DIR/release/$archive")' -Force" \
+          || log_error "Compress-Archive 打包失败"
+      fi
     else
-      (cd "$stage" && tar -czf "$RELEASE_DIR/$archive" .) || log_error "tar 打包失败"
+      (cd "$stage" && tar -czf "$PROJECT_DIR/release/$archive" .) || log_error "tar 打包失败"
     fi
     rm -rf "$stage"
-    log_success "Archive → $RELEASE_DIR/$archive"
-  fi
-}
-
-# ============================================================
-# 命令实现
-# ============================================================
-kill_existing() {
-  local pids
-  # 修复误杀：精确定位生成的桌面应用/服务端二进制，过滤掉 Bash 脚本自身 PID ($$)
-  pids=$(pgrep -f "(${BUILD_DIR}|${RELEASE_DIR}|/${APP_NAME})" 2>/dev/null | grep -v "^$$$" || true)
-  if [ -n "$pids" ]; then
-    log_info "停止已有进程: $pids"
-    echo "$pids" | xargs kill 2>/dev/null || true
-    sleep 1
-    pids=$(pgrep -f "(${BUILD_DIR}|${RELEASE_DIR}|/${APP_NAME})" 2>/dev/null | grep -v "^$$$" || true)
-    [ -n "$pids" ] && echo "$pids" | xargs kill -9 2>/dev/null || true
-    log_success "旧进程已停止"
-  fi
-
-  local port=3030
-  if command -v lsof &>/dev/null && lsof -ti:"$port" >/dev/null 2>&1; then
-    log_info "释放端口 $port"
-    lsof -ti:"$port" | xargs kill -9 2>/dev/null || true
-    sleep 1
-  elif command -v fuser &>/dev/null && fuser -s "${port}/tcp" 2>/dev/null; then
-    log_info "释放端口 $port"
-    fuser -k "${port}/tcp" 2>/dev/null || true
-    sleep 1
-  fi
-}
-
-cmd_build() {
-  build_desktop
-  package_release
-  log_success "构建完成 → $RELEASE_DIR/"
-}
-
-cmd_run() {
-  check_go
-  kill_existing
-
-  local bin
-  bin=$(get_desktop_binary)
-
-  local need=0
-  [ ! -f "$bin" ] && need=1 || {
-    local newer
-    newer=$(find "$PROJECT_DIR" \( -name '*.go' -o -name 'VERSION' \) \
-      -not -path '*/build/*' -not -path '*/release/*' -not -path '*/.git/*' \
-      -newer "$bin" -print -quit 2>/dev/null || true)
-    [ -n "$newer" ] && need=1
-  }
-
-  if [ "$need" -eq 1 ]; then
-    log_info "源文件有变更，重新构建..."
-    build_desktop
-  else
-    log_success "源文件无变化，跳过构建"
-  fi
-
-  local exe="$bin"
-  if [ "$HOST_OS" = "darwin" ]; then
-    local app_bin="$(get_app_bundle)/Contents/MacOS/${APP_NAME}"
-    [ -f "$app_bin" ] || build_desktop
-    exe="$app_bin"
-  fi
-
-  log_info "启动桌面 App (前台模式)..."
-  log_info "按 Ctrl+C 关闭"
-  echo ""
-
-  if [ "$HOST_OS" = "windows" ]; then
-    # Windows Git Bash 中以原生方式调起并等待进程
-    cmd.exe /c start /wait "" "$(cygpath -w "$exe" 2>/dev/null || echo "$exe")" || "$exe"
-  else
-    "$exe"
-  fi
-
-  local exit_code=$?
-  echo ""
-  if [ $exit_code -eq 0 ]; then
-    log_success "App 已正常退出"
-  else
-    log_warn "App 退出码: $exit_code"
+    log_success "Archive → $PROJECT_DIR/release/$archive"
   fi
 }
 
@@ -519,111 +256,40 @@ cmd_server() {
   kill_existing
   mkdir -p "$BUILD_DIR/server"
 
-  local version
-  version=$(get_version)
-  local ldflags="-s -w -X main.Version=${version}"
-  local bin="$BUILD_DIR/server/${APP_NAME}-server${EXT}"
-
+  local version; version=$(get_version)
+  local bin; bin=$(get_server_binary)
   log_info "构建 HTTP 服务端 (version=$version)..."
-  go build -ldflags "${ldflags}" -o "$bin" ./app/cmd/server || log_error "服务端构建失败"
-  log_success "服务端二进制 → $bin"
+  run go build -ldflags "-s -w -X main.Version=${version}" -o "$bin" ./app/cmd/server
+  if $DRY_RUN; then return 0; fi
 
   export GIN_MODE=release
   log_info "启动服务端: http://localhost:3030"
   log_info "按 Ctrl+C 停止"
   echo ""
-  "$bin"
+  run "$bin"
 }
 
-cmd_test() {
-  check_go
-  log_info "运行 Go 单元测试..."
-  go test -race -count=1 ./...
-  log_success "全部测试通过"
-}
-
-cmd_clean() {
-  log_info "清理构建产物..."
-  kill_existing
-  rm -rf "$BUILD_DIR" "$RELEASE_DIR"
-  find "$PROJECT_DIR" -name '*.test' -delete 2>/dev/null || true
-  log_success "清理完成"
-}
-
-# ============================================================
-# 交互菜单
-# ============================================================
-commands=(
-  "1|b|build |构建桌面应用 + 打包发布产物"
-  "2|r|run   |构建并前台运行桌面 App (Ctrl+C 关闭)"
-  "3|s|server|构建并前台运行纯 HTTP 服务端"
-  "4|t|test  |运行 Go 单元测试"
-  "5|c|clean |清理构建产物"
-  "0|q|exit  |退出"
-)
-
-show_menu() {
-  echo ""
-  echo "=========================================="
-  echo "      TodoManager - 构建工具 ($HOST_OS/$HOST_ARCH)"
-  echo "=========================================="
-  for c in "${commands[@]}"; do
-    IFS='|' read -r num name desc <<< "$c"
-    printf "  %s) %-10s %s\n" "$num" "$name" "$desc"
-  done
-  echo "=========================================="
-  echo -n "请输入选择 [0-5] (默认: 1): "
-}
-
-show_help() {
-  cat <<EOF
-TodoManager 构建工具
-
-用法: $0 [命令]
-
-当前平台: $HOST_OS/$HOST_ARCH
-版本:     $(get_version 2>/dev/null || echo "unknown")
-
-命令:
-  (无参数)   显示交互菜单
-  1|build    构建桌面应用 + 打包发布产物
-  2|run      构建并前台运行桌面 App (Ctrl+C 关闭)
-  3|server   构建并前台运行纯 HTTP 服务端
-  4|test     运行 Go 单元测试
-  5|clean    清理构建产物
-  0|exit     退出
-
-输出:
-  构建目录:  $BUILD_DIR/
-  发布产物:  $RELEASE_DIR/
-
-项目路径:
-  源码:     $PROJECT_DIR/app/
-  静态资源:  $PROJECT_DIR/static/
-  数据:     $PROJECT_DIR/data/
-  版本文件:  $PROJECT_DIR/VERSION
-EOF
-}
-
-main() {
-  local cmd="${1:-}"
-
-  if [ -z "$cmd" ]; then
-    show_menu
-    read -r choice
-    cmd="${choice:-1}"
+# Windows 下 Git Bash 直接执行 exe 不会等待，需 cmd.exe /c start /wait
+cmd_run() {
+  if needs_build; then
+    cmd_build
+  else
+    log_success "源文件无变化，跳过构建"
   fi
+  kill_existing
 
-  case "$cmd" in
-    1|b|build)      cmd_build ;;
-    2|r|run)        cmd_run ;;
-    3|s|server)     cmd_server ;;
-    4|t|test)       cmd_test ;;
-    5|c|clean)      cmd_clean ;;
-    0|q|exit|quit)  echo "退出..."; exit 0 ;;
-    help|-h|--help) show_help ;;
-    *)              echo "未知命令: $cmd"; show_help; exit 1 ;;
-  esac
+  local exe; exe=$(get_run_binary)
+  if $DRY_RUN; then
+    log_warn "[dry-run] $exe"
+    return 0
+  fi
+  [ -x "$exe" ] || log_error "未找到可运行产物：$exe"
+  log_info "启动桌面 App (前台模式)，按 Ctrl+C 关闭"
+  if [ "$HOST_OS" = "windows" ]; then
+    cmd.exe /c start /wait "" "$(cygpath -w "$exe" 2>/dev/null || echo "$exe")" || "$exe"
+  else
+    "$exe"
+  fi
 }
 
 main "$@"

@@ -122,7 +122,7 @@ jobs:
             构建逻辑由 `./scripts/run_tools.sh build` 统一实现。
 
             **下载说明:**
-            - macOS: `TodoManager_v*_macos.dmg` — universal (amd64 + arm64)，支持 macOS 12 Monterey 及以上。未做 Apple 公证，首次打开如被 Gatekeeper 拦截，请右键应用选“打开”确认一次即可。
+            - macOS: `TodoManager_v*.dmg` — universal (amd64 + arm64)，支持 macOS 12 Monterey 及以上。未做 Apple 公证，首次打开如被 Gatekeeper 拦截，请右键应用选“打开”确认一次即可。
             - Linux: `TodoManager_v*_linux_amd64.tar.gz` — 解压后运行 `TodoManager`（需预装 `libwebkit2gtk-4.1-0` 与 `libgtk-3-0`；Ubuntu 22.04+/Debian 12+ 的官方源均已提供）
             - Windows: `TodoManager_v*_windows_amd64.zip` — 解压后运行 `TodoManager.exe`（需系统预装 WebView2 Runtime，Win 10 1803+ 默认自带）
           files: |
